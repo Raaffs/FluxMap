@@ -1,5 +1,5 @@
-# Created by https://www.toptal.com/developers/gitignore/api/linux,go,react,python,visualstudiocode
-# Edit at https://www.toptal.com/developers/gitignore?templates=linux,go,react,python,visualstudiocode
+# Created by https://www.toptal.com/developers/gitignore/api/react,go,visualstudiocode,python,venv
+# Edit at https://www.toptal.com/developers/gitignore?templates=react,go,visualstudiocode,python,venv
 
 ### Go ###
 # If you prefer the allow list template instead of the deny list, see community template:
@@ -23,21 +23,6 @@
 
 # Go workspace file
 go.work
-
-### Linux ###
-*~
-
-# temporary files which can be created if a process still has a handle open of a deleted file
-.fuse_hidden*
-
-# KDE directory preferences
-.directory
-
-# Linux trash folder which might appear on any partition or disk
-.Trash-*
-
-# .nfs files are created when an open file is removed but is still being accessed
-.nfs*
 
 ### Python ###
 # Byte-compiled / optimized / DLL files
@@ -225,6 +210,18 @@ psd
 thumb
 sketch
 
+### venv ###
+# Virtualenv
+# http://iamzed.com/2009/05/07/a-primer-on-virtualenv/
+[Bb]in
+[Ii]nclude
+[Ll]ib
+[Ll]ib64
+[Ll]ocal
+[Ss]cripts
+pyvenv.cfg
+pip-selfcheck.json
+
 ### VisualStudioCode ###
 .vscode/*
 !.vscode/settings.json
@@ -244,4 +241,4 @@ sketch
 .history
 .ionide
 
-# End of https://www.toptal.com/developers/gitignore/api/linux,go,react,python,visualstudiocode
+# End of https://www.toptal.com/developers/gitignore/api/react,go,visualstudiocode,python,venv

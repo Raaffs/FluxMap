@@ -8,8 +8,9 @@ func (app *Application)InitRoutes()*echo.Echo{
 	e := echo.New()
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+	e.Use(middleware.Secure())
+	
 	e.GET("/",app.Home )
-
 	e.POST("/api/login",app.Login)
 	e.POST("/api/register",app.Register)
 	e.POST("/api/logout",app.Logout)
@@ -27,5 +28,12 @@ func (app *Application)InitRoutes()*echo.Echo{
 	e.PUT("/api/project/:id/task/:id/approve",app.ManagerRestrictedTaskUpdate,IsManager)
 	e.PUT("/api/project/:id/task/:id/assign",app.ManagerRestrictedTaskUpdate,IsManager)
 	
+	e.GET("/api/project/:id/pert",app.GetPert,IsAuthorizedUser)
+	e.POST("/api/project/:id/pert",app.CreateCpm,IsAuthorizedUser)
+	e.PUT("/api/project/:id/pert",app.UpdatePert,IsAuthorizedUser)
+
+	e.GET("/api/project/:id/cpm",app.GetCpm,IsAuthorizedUser)
+	e.POST("/api/project/:id/cpm",app.CreateCpm,IsAuthorizedUser)
+	e.PUT("/api/project/:id/cpm",app.UpdateCpm,IsAuthorizedUser)
 	return e
 }
