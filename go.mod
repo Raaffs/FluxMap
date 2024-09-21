@@ -1,4 +1,4 @@
-module mapmyprojectV2
+module github.com/Raaffs/FluxMap
 
 go 1.22.6
 

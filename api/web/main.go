@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"mapmyprojectV2/internal/models"
+	"github.com/Raaffs/FluxMap/internal/models"
 	"os"
 
 	"github.com/jackc/pgx/v5/pgxpool"

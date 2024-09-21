@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"mapmyprojectV2/internal/models"
+	"errors"
+	"github.com/Raaffs/FluxMap/internal/models"
 	"net/http"
 	"time"
 
@@ -27,6 +27,8 @@ func(app *Application)Login(c echo.Context)error{
     if err := c.Bind(&u); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
     }
+
+	SetCookie("username",u.Username,c)
 	return c.JSON(http.StatusOK,"")
 }
 
@@ -38,15 +40,18 @@ func(app *Application)Register(c echo.Context)error{
 		return echo.NewHTTPError(http.StatusBadRequest,err.Error())
 	}
 	
-	fmt.Println(u,u.HashedPassword,u.Email,u.Username)
 	hash,err:=HashPassword(u.Password);if err!=nil{
 		return echo.NewHTTPError(echo.ErrInternalServerError.Code,"error creating user")
 	}
 
 	u.HashedPassword=hash
-	if err:=app.models.Users.Insert(context.Background(),u);err!=nil{
+	if err:=app.models.Users.Create(context.Background(),u);err!=nil{
+		if errors.Is(err,models.ErrAlreadyExist){
+			return c.JSON(http.StatusConflict,"User already exist")
+		}
 		return echo.NewHTTPError(echo.ErrInternalServerError.Code,err.Error())
 	}
+	SetCookie("username",u.Username,c)
 	return c.JSON(http.StatusOK,"user registered successfully")
 }
 
@@ -63,6 +68,14 @@ func(app *Application)Logout(c echo.Context)error{
 }
 
 func (app *Application)CreateProject(c echo.Context)error{
+	var p models.Project
+	if err:=c.Bind(&p);err!=nil{
+		return c.JSON(http.StatusBadRequest,"invalid json")
+	}
+
+	if err:=app.models.Projects.Create(c.Request().Context(),p);err!=nil{
+		return c.JSON(http.StatusInternalServerError,"error creating project")
+	}
 	return c.JSON(http.StatusOK,"project created")
 }
 
@@ -102,7 +115,11 @@ func (app *Application)UpdateTask(c echo.Context)error{
 	return c.JSON(http.StatusOK,"updated successfully")
 }
 
-func (app *Application)ManagerRestrictedTaskUpdate(c echo.Context)error{
+func (app *Application)ManagerRestrictedTask(c echo.Context)error{
+	return c.JSON(http.StatusOK,"task approved")
+}
+
+func (app *Application)AdminRestrictedProject(c echo.Context)error{
 	return c.JSON(http.StatusOK,"task approved")
 }
 

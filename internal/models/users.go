@@ -15,7 +15,7 @@ type UserModel struct{
 	Errorlog	*log.Logger
 }
 
-func (u *UserModel)Insert(ctx context.Context, user User)error{
+func (u *UserModel)Create(ctx context.Context, user User)error{
 	fmt.Println("users here : ",user.Email,user.Password,user.Username)
 	exist,err:=u.Exist(ctx,user.Username); if err!=nil{
 		fmt.Println("err init",err)
@@ -46,4 +46,28 @@ func(u *UserModel)Exist(ctx context.Context,username string)(bool,error){
 		return false,err
 	}
 	return true,nil
+}
+
+func(u *UserModel)IsManager(ctx context.Context,username string, projectID string)(bool,error){
+	var isManager bool
+    query := `SELECT COUNT(*) > 0 FROM managers WHERE manager	 = $1 AND projectID = $2`
+    if err := u.DB.QueryRow(ctx,query, username, projectID).Scan(&isManager);err!=nil{
+		if errors.Is(err,sql.ErrNoRows){
+			return false,nil
+		}
+		return false,err
+	}
+    return isManager,nil
+}
+
+func(u *UserModel)IsAdmin(ctx context.Context,username string, projectID string)(bool,error){
+	var isAdmin bool
+    query := `SELECT COUNT(*) > 0 FROM projects WHERE manager = $1 AND projectID = $2`
+    if err := u.DB.QueryRow(ctx,query, username, projectID).Scan(&isAdmin);err!=nil{
+		if errors.Is(err,sql.ErrNoRows){
+			return false,nil
+		}
+		return false,err
+	}
+    return isAdmin,nil
 }
