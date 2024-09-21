@@ -1,7 +1,8 @@
 package models
 
 import (
-    "database/sql"
+	"database/sql"
+    "github.com/guregu/null/v5"
 )
 
 // User represents a user in the database
@@ -17,9 +18,9 @@ type User struct {
 type Project struct {
     ProjectID          int            `json:"projectID,omitempty"`           // Primary Key
     ProjectName        string         `json:"projectName" validate:"required"`
-    ProjectDescription sql.NullString `json:"projectDescription,omitempty"`
-    ProjectStartDate   sql.NullTime   `json:"projectStartDate,omitempty"`
-    ProjectDueDate     sql.NullTime   `json:"projectDueDate,omitempty"`
+    ProjectDescription null.String  `json:"projectDescription,omitempty"`
+    ProjectStartDate   null.Time   `json:"projectStartDate,omitempty"`
+    ProjectDueDate     null.Time   `json:"projectDueDate,omitempty"`
     Ownername          string         `json:"ownername"`           // Foreign Key (User.Username)
 }
 

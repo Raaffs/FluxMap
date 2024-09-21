@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -8,7 +9,8 @@ import (
 
 func IsAuthorizedUser(next echo.HandlerFunc)echo.HandlerFunc{
 	return func (c echo.Context)error{
-		cookie,err:=c.Cookie("session"); if err!=nil{
+		cookie,err:=c.Cookie("username"); if err!=nil{
+			log.Println("error getting cookie:",err)
 			return c.Redirect(http.StatusTemporaryRedirect,"http://localhost:5173/login")
 		}
 		if cookie.Value == ""{

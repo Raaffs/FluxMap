@@ -81,17 +81,23 @@ func(app *Application)Logout(c echo.Context)error{
 	return c.JSON(http.StatusOK,"")
 }
 
-func (app *Application)CreateProject(c echo.Context)error{
-	var p models.Project
-	if err:=c.Bind(&p);err!=nil{
-		return c.JSON(http.StatusBadRequest,"invalid json")
+	func (app *Application)CreateProject(c echo.Context)error{
+		var p models.Project
+		// body, err := io.ReadAll(c.Request().Body)
+		// if err != nil {
+		//     return echo.NewHTTPError(http.StatusBadRequest, "unable to read request body")
+		// }
+		// if err := json.Unmarshal(body, &p); err != nil {
+		//     return echo.NewHTTPError(http.StatusBadRequest, "invalid JSON")
+		// }
+		if err:=c.Bind(&p);err!=nil{
+			return echo.NewHTTPError(http.StatusBadRequest,"invalid json")
+		}
+		if err:=app.models.Projects.Create(c.Request().Context(),p);err!=nil{
+			return c.JSON(http.StatusInternalServerError,err.Error())
+		}
+		return c.JSON(http.StatusOK,"project created")
 	}
-
-	if err:=app.models.Projects.Create(c.Request().Context(),p);err!=nil{
-		return c.JSON(http.StatusInternalServerError,"error creating project")
-	}
-	return c.JSON(http.StatusOK,"project created")
-}
 
 func (app *Application)GetProjects(c echo.Context)error{
 	return c.JSON(http.StatusOK,"projects retrieved")

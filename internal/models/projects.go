@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"log"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -15,11 +16,15 @@ type ProjectModel struct{
 }
 
 func (p *ProjectModel)Create(ctx context.Context, project Project)error{
-	insert:=`INSERT INTO projects(projectName,projectDescription,projectDueDate,ownername)
-	VALUES($1,$2,$3,$4)`
-	_,err:=p.DB.Exec(ctx,insert,project.ProjectName,project.ProjectDescription,project.Ownername); if err!=nil{
+
+	insert:=`INSERT INTO projects(projectName,projectDescription,projectStartDate,projectDueDate,ownername)
+	VALUES($1,$2,$3,$4,$5)`
+	_,err:=p.DB.Exec(ctx,insert,project.ProjectName,project.ProjectDescription,project.ProjectStartDate,project.ProjectDueDate,project.Ownername); if err!=nil{
+		p.Errorlog.Println("Error creating project:",err)
 		return err
 	}
+	fmt.Println("here project")
+
 	return nil
 }
 

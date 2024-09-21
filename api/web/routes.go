@@ -15,8 +15,8 @@ func (app *Application)InitRoutes()*echo.Echo{
 	e.POST("/api/register",app.Register)
 	e.POST("/api/logout",app.Logout)
 
-	e.GET("/api/projects",app.GetProjects,IsAuthorizedUser)
-	e.POST("/api/project",app.CreateProject,app.ManagerLevelAccess)
+	e.GET("/api/project",app.GetProjects,IsAuthorizedUser)
+	e.POST("/api/project",app.CreateProject,IsAuthorizedUser)
 	e.GET("/api/project/:id",app.GetProjectByID,IsAuthorizedUser)
 	e.PUT("/api/project/:id",app.UpdateProject,app.ManagerLevelAccess)
 
