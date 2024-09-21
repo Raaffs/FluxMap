@@ -32,15 +32,17 @@ func (p *ProjectModel)Create(ctx context.Context, project Project)error{
 
 func(p *ProjectModel)RetrieveAdminProjects(ctx context.Context,username string)([]*Project,error){
 	var projects []*Project
+	fmt.Println("inside admin")
 	retrieve:=`SELECT projectName,projectDescription,projectDueDate FROM Projects WHERE ownername=$1`
 	rows,err:=p.DB.Query(ctx,retrieve,username); if err!=nil{
 		if errors.Is(err,sql.ErrNoRows){
+			p.Errorlog.Println("err no rows: ",err)
 			return projects,nil
 		}
+		p.Errorlog.Println("Error retrieving projects: ",err)
 		return nil,err
 	}
 	defer rows.Close()
-
 	for rows.Next(){
 		var project Project  
 		err=rows.Scan(&project.ProjectName,&project.ProjectDescription,&project.ProjectDueDate); if err!=nil{
@@ -48,9 +50,12 @@ func(p *ProjectModel)RetrieveAdminProjects(ctx context.Context,username string)(
 		}
 		projects=append(projects,&project)
 	}
+	fmt.Println("scanned all")
 	if err = rows.Err(); err != nil {
+		p.Errorlog.Println("Error reading rows: ",err)
 		return nil, err
 	}
+	fmt.Println("done")
 	return projects,nil
 }
 
@@ -63,6 +68,7 @@ func(p *ProjectModel)RetrieveManagerProjects(ctx context.Context,username string
 		}
 		return nil,err
 	}
+	defer rows.Close()
 	for rows.Next(){
 		var project Project
 		err=rows.Scan(&project.ProjectName,&project.ProjectDescription,&project.ProjectDueDate); if err!=nil{

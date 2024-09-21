@@ -45,6 +45,5 @@ func main(){
 	e:=app.InitRoutes()
 	PORT:=fmt.Sprintf(":%s",app.env["API_PORT"])
 	e.Start(PORT)
-
 }	
 

@@ -4,7 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/Raaffs/FluxMap/internal/models"
@@ -38,6 +40,7 @@ func(app *Application)Login(c echo.Context)error{
 		if errors.Is(err,sql.ErrNoRows){
 			return c.JSON(http.StatusNotFound,"user not found")
 		}
+		c.Logger().Error("Error authenticating user: ",err)
 		return c.JSON(http.StatusInternalServerError,err.Error())
 	}
 
@@ -62,6 +65,7 @@ func(app *Application)Register(c echo.Context)error{
 		if errors.Is(err,models.ErrAlreadyExist){
 			return c.JSON(http.StatusConflict,"User already exist")
 		}
+		c.Logger().Error("Error creating user: ",err)
 		return echo.NewHTTPError(echo.ErrInternalServerError.Code,"internal server error")
 	}
 
@@ -81,27 +85,109 @@ func(app *Application)Logout(c echo.Context)error{
 	return c.JSON(http.StatusOK,"")
 }
 
-	func (app *Application)CreateProject(c echo.Context)error{
-		var p models.Project
-		// body, err := io.ReadAll(c.Request().Body)
-		// if err != nil {
-		//     return echo.NewHTTPError(http.StatusBadRequest, "unable to read request body")
-		// }
-		// if err := json.Unmarshal(body, &p); err != nil {
-		//     return echo.NewHTTPError(http.StatusBadRequest, "invalid JSON")
-		// }
-		if err:=c.Bind(&p);err!=nil{
-			return echo.NewHTTPError(http.StatusBadRequest,"invalid json")
-		}
-		if err:=app.models.Projects.Create(c.Request().Context(),p);err!=nil{
-			return c.JSON(http.StatusInternalServerError,err.Error())
-		}
-		return c.JSON(http.StatusOK,"project created")
+func (app *Application)CreateProject(c echo.Context)error{
+	var p models.Project
+	if err:=c.Bind(&p);err!=nil{
+		return echo.NewHTTPError(http.StatusBadRequest,"invalid json")
 	}
-
-func (app *Application)GetProjects(c echo.Context)error{
-	return c.JSON(http.StatusOK,"projects retrieved")
+	if err:=app.models.Projects.Create(c.Request().Context(),p);err!=nil{
+		c.Logger().Error("Error creating project: ",err)
+		return c.JSON(http.StatusInternalServerError,"An error while creating project")
+	}
+	return c.JSON(http.StatusOK,"project created")
 }
+
+func (app *Application) GetProjects(c echo.Context) error {
+	user, err := c.Cookie("username")
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, "Unauthorized")
+	}
+	username := user.Value
+
+	projects := struct {
+		AdminProjects    []*models.Project `json:"adminProjects"`
+		ManagerProjects  []*models.Project `json:"managerProjects"`
+		AssignedProjects []*models.Project `json:"assignedProjects"`
+	}{}
+
+	adminchan := make(chan []*models.Project)
+	managerchan := make(chan []*models.Project)
+	assginedchan := make(chan []*models.Project)
+	errorchan := make(chan error)
+	done:=make(chan struct{})
+	log.Println("username:", username)
+
+	ctx, cancel := context.WithTimeout(c.Request().Context(), 10*time.Second)
+	defer cancel()
+
+	var wg sync.WaitGroup
+	wg.Add(3)
+
+	go func() {
+		defer wg.Done()
+		projects, err := app.models.Projects.RetrieveAdminProjects(ctx, username)
+		if err != nil {
+			errorchan <- err
+			return
+		}
+		adminchan <- projects
+	}()
+
+	go func() {
+		defer wg.Done()
+		projects, err := app.models.Projects.RetrieveManagerProjects(ctx, username)
+		if err != nil {
+			errorchan <- err
+			return
+		}
+		managerchan <- projects
+	}()
+
+	go func() {
+		defer wg.Done()
+		projects, err := app.models.Projects.RetrieveAssginedProjects(ctx, username)
+		if err != nil {
+			errorchan <- err
+			return
+		}
+		assginedchan <- projects
+	}()
+
+
+	go func() {
+		wg.Wait()
+		close(adminchan)
+		close(managerchan)
+		close(assginedchan)
+		close(errorchan)
+		close(done)
+	}()
+
+	for {
+		select {
+		case admin, ok := <-adminchan:
+			if ok {
+				projects.AdminProjects = admin
+			}
+		case manager, ok := <-managerchan:
+			if ok {
+				projects.ManagerProjects = manager
+			}
+		case assgined,ok:=<-assginedchan:
+			if ok{
+				projects.AssignedProjects=assgined
+			}
+		case err := <-errorchan:
+			if err!=nil{
+				c.Logger().Error("Error retrieving projects: ", err)
+				return c.JSON(http.StatusInternalServerError, "An error while retrieving projects")	
+			}
+		case <-done:
+			return c.JSON(http.StatusOK, projects)
+		}
+	}
+}
+
 
 func (app *Application)GetProjectByID(c echo.Context)error{
 	return c.JSON(http.StatusOK,"project retrieved")

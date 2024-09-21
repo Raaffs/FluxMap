@@ -1,7 +1,6 @@
 package models
 
 import (
-	"database/sql"
     "github.com/guregu/null/v5"
 )
 
@@ -18,9 +17,9 @@ type User struct {
 type Project struct {
     ProjectID          int            `json:"projectID,omitempty"`           // Primary Key
     ProjectName        string         `json:"projectName" validate:"required"`
-    ProjectDescription null.String  `json:"projectDescription,omitempty"`
-    ProjectStartDate   null.Time   `json:"projectStartDate,omitempty"`
-    ProjectDueDate     null.Time   `json:"projectDueDate,omitempty"`
+    ProjectDescription null.String    `json:"projectDescription,omitempty"`
+    ProjectStartDate   null.Time      `json:"projectStartDate,omitempty"`
+    ProjectDueDate     null.Time      `json:"projectDueDate,omitempty"`
     Ownername          string         `json:"ownername"`           // Foreign Key (User.Username)
 }
 
@@ -34,18 +33,18 @@ type Manager struct {
 type Task struct {
     TaskID           int            `json:"taskID,omitempty"`               // Primary Key
     TaskName         string         `json:"taskName" validate:"required"`
-    TaskDescription  sql.NullString `json:"taskDescription,omitempty"`
-    TaskStatus       sql.NullString `json:"taskStatus"`
-    TaskStartDate    sql.NullTime   `json:"taskStartDate,omitempty"`
-    TaskDueDate      sql.NullTime   `json:"taskDueDate,omitempty"`
+    TaskDescription  null.String    `json:"taskDescription,omitempty"`
+    TaskStatus       null.String    `json:"taskStatus"`
+    TaskStartDate    null.Time      `json:"taskStartDate,omitempty"`
+    TaskDueDate      null.Time      `json:"taskDueDate,omitempty"`
     ParentProjectID  int            `json:"parentProjectId"`      // Foreign Key (Project.ProjectID)
-    AssignedUsername sql.NullString `json:"assignedUsername" validate:"required"` // Foreign Key (User.Username)
+    AssignedUsername null.String    `json:"assignedUsername" validate:"required"` // Foreign Key (User.Username)
 }
 
 // Pert represents a PERT record in the database
 type Pert struct {
     ParentTaskID         int            `json:"parentTaskId"`         // Primary Key, Foreign Key (Task.TaskID)
-    PredecessorTaskID    sql.NullInt64  `json:"predecessorTaskId,omitempty"` // Foreign Key (Task.TaskID)
+    PredecessorTaskID    null.Int64  `json:"predecessorTaskId,omitempty"` // Foreign Key (Task.TaskID)
     Optimistic           int            `json:"optimistic" validate:"required"`
     Pessimistic          int            `json:"pessimistic" validate:"required"`
     MostLikely           int            `json:"mostLikely" validate:"required"`
