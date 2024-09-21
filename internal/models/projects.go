@@ -25,7 +25,7 @@ func (p *ProjectModel)Create(ctx context.Context, project Project)error{
 
 
 
-func(p *ProjectModel)RetrieveAdmin(ctx context.Context,username string)([]*Project,error){
+func(p *ProjectModel)RetrieveAdminProjects(ctx context.Context,username string)([]*Project,error){
 	var projects []*Project
 	retrieve:=`SELECT projectName,projectDescription,projectDueDate FROM Projects WHERE ownername=$1`
 	rows,err:=p.DB.Query(ctx,retrieve,username); if err!=nil{
@@ -49,7 +49,7 @@ func(p *ProjectModel)RetrieveAdmin(ctx context.Context,username string)([]*Proje
 	return projects,nil
 }
 
-func(p *ProjectModel)RetrieveManager(ctx context.Context,username string)([]*Project,error){
+func(p *ProjectModel)RetrieveManagerProjects(ctx context.Context,username string)([]*Project,error){
 	var projects []*Project
 	retrieve:=`SELECT projectName,projectDescription,projectDueDate FROM Projects WHERE ownername=$1`
 	rows,err:=p.DB.Query(ctx,retrieve,username); if err!=nil{

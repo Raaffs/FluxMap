@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
-	"github.com/Raaffs/FluxMap/internal/models"
 	"net/http"
 	"time"
+
+	"github.com/Raaffs/FluxMap/internal/models"
 
 	"github.com/labstack/echo/v4"
 )
@@ -23,10 +25,21 @@ func(app *Application)Home(c echo.Context)error{
 }
 
 func(app *Application)Login(c echo.Context)error{
-	u:=&models.User{}	
-    if err := c.Bind(&u); err != nil {
+	var u models.User
+	err := c.Bind(&u); if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
     }
+
+	if err:=app.models.Users.Login(c.Request().Context(),u.Username,u.Password);err!=nil{
+		if errors.Is(err,models.ErrInvalidCredential){
+			return c.JSON(http.StatusUnauthorized,"invalid credential")
+		}
+									
+		if errors.Is(err,sql.ErrNoRows){
+			return c.JSON(http.StatusNotFound,"user not found")
+		}
+		return c.JSON(http.StatusInternalServerError,err.Error())
+	}
 
 	SetCookie("username",u.Username,c)
 	return c.JSON(http.StatusOK,"")
@@ -49,8 +62,9 @@ func(app *Application)Register(c echo.Context)error{
 		if errors.Is(err,models.ErrAlreadyExist){
 			return c.JSON(http.StatusConflict,"User already exist")
 		}
-		return echo.NewHTTPError(echo.ErrInternalServerError.Code,err.Error())
+		return echo.NewHTTPError(echo.ErrInternalServerError.Code,"internal server error")
 	}
+
 	SetCookie("username",u.Username,c)
 	return c.JSON(http.StatusOK,"user registered successfully")
 }
