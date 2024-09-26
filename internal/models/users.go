@@ -44,7 +44,7 @@ func(u *UserModel)Login(ctx context.Context, username, password string)(error){
 	err=u.DB.QueryRow(ctx,query,username).Scan(&hashedPassword)
 	if err!=nil{
 		return err
-	}
+	}	
 	if err:=bcrypt.CompareHashAndPassword([]byte(hashedPassword),[]byte(password));err!=nil{
 		return ErrInvalidCredential
 	}
@@ -67,7 +67,7 @@ func(u *UserModel)Exist(ctx context.Context,username string)(bool,error){
 
 func(u *UserModel)IsManager(ctx context.Context,username string, projectID string)(bool,error){
 	var isManager bool
-    query := `SELECT COUNT(*) > 0 FROM managers WHERE manage = $1 AND projectID = $2`
+    query := `SELECT COUNT(*) > 0 FROM managers WHERE managername = $1 AND projectID = $2`
     if err := u.DB.QueryRow(ctx,query, username, projectID).Scan(&isManager);err!=nil{
 		if errors.Is(err,sql.ErrNoRows){
 			return false,nil
@@ -79,7 +79,7 @@ func(u *UserModel)IsManager(ctx context.Context,username string, projectID strin
 
 func(u *UserModel)IsAdmin(ctx context.Context,username string, projectID string)(bool,error){
 	var isAdmin bool
-    query := `SELECT COUNT(*) > 0 FROM projects WHERE manager = $1 AND projectID = $2`
+    query := `SELECT COUNT(*) > 0 FROM projects WHERE ownername = $1 AND projectID = $2`
     if err := u.DB.QueryRow(ctx,query, username, projectID).Scan(&isAdmin);err!=nil{
 		if errors.Is(err,sql.ErrNoRows){
 			return false,nil

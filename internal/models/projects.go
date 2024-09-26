@@ -28,51 +28,51 @@ func (p *ProjectModel)Create(ctx context.Context, project Project)error{
 	return nil
 }
 
-
-
 func(p *ProjectModel)RetrieveAdminProjects(ctx context.Context,username string)([]*Project,error){
 	var projects []*Project
-	fmt.Println("inside admin")
-	retrieve:=`SELECT projectName,projectDescription,projectDueDate FROM Projects WHERE ownername=$1`
+	retrieve:=`SELECT projectID,projectName,projectDescription,projectDueDate FROM Projects WHERE ownername=$1`
 	rows,err:=p.DB.Query(ctx,retrieve,username); if err!=nil{
 		if errors.Is(err,sql.ErrNoRows){
 			p.Errorlog.Println("err no rows: ",err)
-			return projects,nil
+			return []*Project{},nil
 		}
 		p.Errorlog.Println("Error retrieving projects: ",err)
-		return nil,err
+		return []*Project{},err
 	}
 	defer rows.Close()
 	for rows.Next(){
 		var project Project  
-		err=rows.Scan(&project.ProjectName,&project.ProjectDescription,&project.ProjectDueDate); if err!=nil{
-			return nil,err
+		err=rows.Scan(&project.ProjectID,&project.ProjectName,&project.ProjectDescription,&project.ProjectDueDate); if err!=nil{
+			return []*Project{},err
 		}
 		projects=append(projects,&project)
 	}
 	fmt.Println("scanned all")
 	if err = rows.Err(); err != nil {
 		p.Errorlog.Println("Error reading rows: ",err)
-		return nil, err
+		return []*Project{}, err
 	}
-	fmt.Println("done")
 	return projects,nil
 }
 
 func(p *ProjectModel)RetrieveManagerProjects(ctx context.Context,username string)([]*Project,error){
 	var projects []*Project
-	retrieve:=`SELECT projectName,projectDescription,projectDueDate FROM Projects WHERE ownername=$1`
+	retrieve:=`SELECT projects.ProjectID,projects.projectName,projects.projectDescription,projects.projectDueDate 
+	FROM Projects
+	JOIN Managers ON projects.projectID=managers.projectID
+	WHERE managers.managername=$1`
+
 	rows,err:=p.DB.Query(ctx,retrieve,username); if err!=nil{
 		if errors.Is(err,sql.ErrNoRows){
-			return projects,nil
+			return []*Project{},nil
 		}
-		return nil,err
+		return []*Project{},err
 	}
 	defer rows.Close()
 	for rows.Next(){
 		var project Project
-		err=rows.Scan(&project.ProjectName,&project.ProjectDescription,&project.ProjectDueDate); if err!=nil{
-			return nil,err
+		err=rows.Scan(&project.ProjectID,&project.ProjectName,&project.ProjectDescription,&project.ProjectDueDate); if err!=nil{
+			return []*Project{},err
 		}
 		projects=append(projects,&project)
 	}
@@ -82,19 +82,30 @@ func(p *ProjectModel)RetrieveManagerProjects(ctx context.Context,username string
 
 func(p *ProjectModel)RetrieveAssginedProjects(ctx context.Context,username string)([]*Project,error){
 	var projects []*Project
-	retrieve:=`SELECT projectName,projectDescription,projectDueDate FROM Projects WHERE ownername=$1`
+	retrieve:=`SELECT projectID,projectName,projectDescription,projectDueDate FROM Projects WHERE ownername=$1`
 	rows,err:=p.DB.Query(ctx,retrieve,username); if err!=nil{
 		if errors.Is(err,sql.ErrNoRows){
-			return projects,nil
+			return []*Project{},nil
 		}
-		return nil,err
+		return []*Project{},err
 	}
+	defer rows.Close()
 	for rows.Next(){
 		var project Project
-		err=rows.Scan(&project.ProjectName,&project.ProjectDescription,&project.ProjectDueDate); if err!=nil{
-			return nil,err
+		err=rows.Scan(&project.ProjectID,&project.ProjectName,&project.ProjectDescription,&project.ProjectDueDate); if err!=nil{
+			return []*Project{},err
 		}
 		projects=append(projects,&project)
 	}
 	return projects,nil
 }
+func(p *ProjectModel)AssignManager(ctx context.Context,manager , projectID string)(error){
+	query:=`INSERT INTO managers(managername,projectid)VALUES($1,$2)`	
+	_,err:=p.DB.Exec(ctx,query,manager,projectID);if err!=nil{
+		p.Errorlog.Println("Error assigning manager: ",err)
+		return err
+	}
+	return nil
+}
+
+

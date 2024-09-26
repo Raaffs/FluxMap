@@ -11,7 +11,8 @@ func IsAuthorizedUser(next echo.HandlerFunc)echo.HandlerFunc{
 	return func (c echo.Context)error{
 		cookie,err:=c.Cookie("username"); if err!=nil{
 			log.Println("error getting cookie:",err)
-			return c.Redirect(http.StatusTemporaryRedirect,"http://localhost:5173/login")
+			return c.JSON(http.StatusUnauthorized,"Unauthorized")
+			// return c.Redirect(http.StatusTemporaryRedirect,"http://localhost:5173/login")
 		}
 		if cookie.Value == ""{
 			return c.JSON(http.StatusUnauthorized,"Unauthorized")

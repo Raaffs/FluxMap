@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"sync"
@@ -117,9 +118,9 @@ func (app *Application) GetProjects(c echo.Context) error {
 	done:=make(chan struct{})
 	log.Println("username:", username)
 
-	ctx, cancel := context.WithTimeout(c.Request().Context(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(c.Request().Context(), 5*time.Second)
 	defer cancel()
-
+	
 	var wg sync.WaitGroup
 	wg.Add(3)
 
@@ -147,6 +148,7 @@ func (app *Application) GetProjects(c echo.Context) error {
 		defer wg.Done()
 		projects, err := app.models.Projects.RetrieveAssginedProjects(ctx, username)
 		if err != nil {
+			c.Logger().Error("Error retrieving projects: ",err)
 			errorchan <- err
 			return
 		}
@@ -219,6 +221,23 @@ func (app *Application)UpdateProject(c echo.Context)error{
 
 func (app *Application)UpdateTask(c echo.Context)error{
 	return c.JSON(http.StatusOK,"updated successfully")
+}
+
+func(app *Application)AddManager(c echo.Context)error{
+	m:=struct{
+		Manager string `json:"manager"`
+	}{}
+	fmt.Println("herer")
+	projectID:=c.Param("id")
+	fmt.Println(m.Manager,projectID)
+	fmt.Println(projectID,m.Manager)
+	if err:=c.Bind(&m);err!=nil{
+		return c.JSON(http.StatusBadRequest,"Invalid request body")
+	}
+	if err:=app.models.Projects.AssignManager(c.Request().Context(),m.Manager,projectID);err!=nil{
+		return c.JSON(http.StatusInternalServerError,"Failed to assign manager")
+	}
+	return c.JSON(http.StatusOK,"manager added")
 }
 
 func (app *Application)ManagerRestrictedTask(c echo.Context)error{

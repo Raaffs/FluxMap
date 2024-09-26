@@ -22,8 +22,8 @@ func (app *Application)InitRoutes()*echo.Echo{
 
 	e.PUT("/api/project/admin/:id",app.UpdateProject,app.AdminLevelAccess)
 	e.PUT("/api/project/admin/:id",app.UpdateProject,app.AdminLevelAccess)
+	e.POST("/api/project/:id/manager", app.AddManager,app.AdminLevelAccess)
 	
-
 	e.GET("/api/project/:id/tasks",app.GetTasks,IsAuthorizedUser)
 	e.POST("/api/project/:id/task",app.CreateProject,app.ManagerLevelAccess)
 	e.GET("/api/project/:id/task/:id",app.GetTaskByID,IsAuthorizedUser)
