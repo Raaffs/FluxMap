@@ -45,7 +45,7 @@ type Task struct {
 
 type Pert struct {
     ParentTaskID         int            `json:"parentTaskId"`         // Primary Key, Foreign Key (Task.TaskID)
-    PredecessorTaskID    null.Int64  `json:"predecessorTaskId,omitempty"` // Foreign Key (Task.TaskID)
+    PredecessorTaskID    null.Int64     `json:"predecessorTaskId,omitempty"` // Foreign Key (Task.TaskID)
     Optimistic           int            `json:"optimistic" validate:"required"`
     Pessimistic          int            `json:"pessimistic" validate:"required"`
     MostLikely           int            `json:"mostLikely" validate:"required"`

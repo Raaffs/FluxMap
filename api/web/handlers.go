@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -51,22 +52,22 @@ func(app *Application)Login(c echo.Context)error{
 
 func(app *Application)Register(c echo.Context)error{
 	u:=models.User{}
-	v:=validator.New()
+	// v:=validator.New()
 	if err:=c.Bind(&u);err!=nil{
 		return echo.NewHTTPError(http.StatusBadRequest,err.Error())
 	}
 	
-	v.Check(
-		validator.MinNameLength(u.Username,3),
-		validator.ErrNameTooShort.Key,
-		validator.ErrNameTooShort.Message,
-	)
+	// v.Check(
+	// 	validator.MinNameLength(u.Username,3),
+	// 	validator.ErrNameTooShort.Key,
+	// 	validator.ErrNameTooShort.Message,
+	// )
 
-	v.Check(
-		validator.IsStrongPassword(u.Password),
-		validator.ErrPasswordTooWeak.Key,
-		validator.ErrDescriptionTooShort.Message,
-	)
+	// v.Check(
+	// 	validator.IsStrongPassword(u.Password),
+	// 	validator.ErrPasswordTooWeak.Key,
+	// 	validator.ErrDescriptionTooShort.Message,
+	// )
 
 	hash,err:=HashPassword(u.Password);if err!=nil{
 		return echo.NewHTTPError(echo.ErrInternalServerError.Code,"error creating user")
@@ -75,7 +76,7 @@ func(app *Application)Register(c echo.Context)error{
 	u.HashedPassword=hash
 	if err:=app.models.Users.Create(context.Background(),u);err!=nil{
 		if errors.Is(err,models.ErrAlreadyExist){
-			return c.JSON(http.StatusConflict,"User already exist")
+			return c.JSON(http.StatusConflict,MapMessage("error",models.ErrAlreadyExist.Error()))
 		}
 		c.Logger().Error("Error creating user: ",err)
 		return echo.NewHTTPError(echo.ErrInternalServerError.Code,"internal server error")
@@ -99,26 +100,26 @@ func(app *Application)Logout(c echo.Context)error{
 
 func (app *Application)CreateProject(c echo.Context)error{
 	var p models.Project
-	v:=validator.New()
+	// v:=validator.New()
 	if err:=c.Bind(&p);err!=nil{
 		return echo.NewHTTPError(http.StatusBadRequest,"invalid json")
 	}
 
-	v.Check(
-		validator.MinNameLength(p.ProjectName,5),
-		validator.ErrNameTooShort.Key,
-		fmt.Sprintf(validator.ErrNameTooShort.Message,5),
-	)
+	// v.Check(
+	// 	validator.MinNameLength(p.ProjectName,5),
+	// 	validator.ErrNameTooShort.Key,
+	// 	fmt.Sprintf(validator.ErrNameTooShort.Message,5),
+	// )
 
-	v.Check(
-		validator.MinDescriptionLength(p.ProjectDescription.String,10),
-		validator.ErrDescriptionTooShort.Key,
-		fmt.Sprintf(validator.ErrDescriptionTooShort.Message,10),
-	)
+	// v.Check(
+	// 	validator.MinDescriptionLength(p.ProjectDescription.String,10),
+	// 	validator.ErrDescriptionTooShort.Key,
+	// 	fmt.Sprintf(validator.ErrDescriptionTooShort.Message,10),
+	// )
 
-	if !v.Valid(){
-		return c.JSON(http.StatusBadRequest,v)
-	}
+	// if !v.Valid(){
+	// 	return c.JSON(http.StatusBadRequest,v)
+	// }
 
 	if err:=app.models.Projects.Create(c.Request().Context(),p);err!=nil{
 		c.Logger().Error("Error creating project: ",err)
@@ -219,21 +220,61 @@ func (app *Application) GetProjects(c echo.Context) error {
 	}
 }
 
-
-func (app *Application)GetProjectByID(c echo.Context)error{
-	return c.JSON(http.StatusOK,"project retrieved")
-}
-
 func (app *Application)CreateTask(c echo.Context)error{
+	var t models.Task
+	v:= validator.New()
+	fmt.Println("fjiejfoiejfoijeif")
+	if err:=c.Bind(&t);err!=nil{
+		return c.JSON(http.StatusBadRequest,MapMessage("error",ErrInvalidJson.Error()))
+	}
+	id,err:=strconv.Atoi(c.Param("id"));if err!=nil{
+		c.Logger().Error(MapMessage("error converting to string",err.Error()))
+		return c.JSON(http.StatusBadRequest,MapMessage("error","Invalid project ID"))
+	}
+	t.ParentProjectID=id
+	v.Check(
+		validator.MinNameLength(t.TaskName,3),
+		validator.ErrNameTooShort.Key,
+		validator.ErrNameTooShort.Message,
+	)
+	if !v.Valid(){
+		return c.JSON(http.StatusBadRequest,v)
+	}
+	fmt.Println("task",t)
+	if err:=app.models.Task.Create(c.Request().Context(),t);err!=nil{
+		c.Logger().Error(MapMessage("Error creating task",err.Error()))
+		return c.JSON(http.StatusInternalServerError,MapMessage("error","internal server error"))
+	}
 	return c.JSON(http.StatusOK,"task created")
 }
 
 func (app *Application)GetTasks(c echo.Context)error{
-	return c.JSON(http.StatusOK,"tasks retrieved")
+	projectID:=c.Param("id")
+	id,err:=strconv.Atoi(projectID);if err!=nil{
+		if errors.Is(err,models.ErrRecordNotFound){
+			return c.JSON(http.StatusNotFound,MapMessage("error","Project not found"))
+		}
+		c.Logger().Error(MapMessage("error converting to string",err.Error()))
+		return c.JSON(http.StatusNotFound,MapMessage("error","project not found"))
+	}
+	tasks,err:=app.models.Task.GetTasks(c.Request().Context(),id);if err!=nil{
+		c.Logger().Error(MapMessage("Error retrieving tasks",err.Error()))
+		return c.JSON(http.StatusInternalServerError,MapMessage("error","internal server error"))
+	}
+	return c.JSON(http.StatusOK,tasks)
 }
 
 func (app *Application)GetTaskByID(c echo.Context)error{
-	return c.JSON(http.StatusOK,"task retrieved")
+	id,err:=strconv.Atoi(c.Param("taskID"));if err!=nil{
+		c.Logger().Error(MapMessage("error converting to string",err.Error()))
+		return c.JSON(http.StatusNotFound,MapMessage("error","task not found"))
+	}
+	task,err:=app.models.Task.GetTaskByID(c.Request().Context(),id);if err!=nil{
+		c.Logger().Error(MapMessage("Error retrieving task",err.Error()))
+		return c.JSON(http.StatusInternalServerError,MapMessage("error","failed to retrieve task"))
+	}
+
+	return c.JSON(http.StatusOK,task)
 }
 
 func (app *Application)GetAssignedUserByProject(c echo.Context)error{

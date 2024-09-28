@@ -16,7 +16,6 @@ type ProjectModel struct{
 }
 
 func (p *ProjectModel)Create(ctx context.Context, project Project)error{
-
 	insert:=`INSERT INTO projects(projectName,projectDescription,projectStartDate,projectDueDate,ownername)
 	VALUES($1,$2,$3,$4,$5)`
 	_,err:=p.DB.Exec(ctx,insert,project.ProjectName,project.ProjectDescription,project.ProjectStartDate,project.ProjectDueDate,project.Ownername); if err!=nil{
@@ -82,7 +81,10 @@ func(p *ProjectModel)RetrieveManagerProjects(ctx context.Context,username string
 
 func(p *ProjectModel)RetrieveAssginedProjects(ctx context.Context,username string)([]*Project,error){
 	var projects []*Project
-	retrieve:=`SELECT projectID,projectName,projectDescription,projectDueDate FROM Projects WHERE ownername=$1`
+	retrieve:=`SELECT projects.projectID,projects.projectName,projects.projectDescription,projects.projectDueDate 
+	FROM projects 
+	JOIN tasks ON projects.projectID=tasks.parentProjectID
+	WHERE tasks.assignedUsername=$1`
 	rows,err:=p.DB.Query(ctx,retrieve,username); if err!=nil{
 		if errors.Is(err,sql.ErrNoRows){
 			return []*Project{},nil
