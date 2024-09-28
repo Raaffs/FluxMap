@@ -20,8 +20,9 @@ CREATE TABLE projects(
 );
     
 create table managers(
-	manager VARCHAR(255) PRIMARY KEY,
+	managername VARCHAR(255) ,
 	projectID	INT,
+    PRIMARY KEY(managername,projectID)
 	FOREIGN KEY (manager) REFERENCES users(username) ON DELETE cascade,
 	FOREIGN KEY (projectID) REFERENCES projects(projectID) ON DELETE CASCADE
 );

@@ -33,12 +33,10 @@ func(app *Application)Login(c echo.Context)error{
 	err := c.Bind(&u); if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
     }
-
 	if err:=app.models.Users.Login(c.Request().Context(),u.Username,u.Password);err!=nil{
 		if errors.Is(err,models.ErrInvalidCredential){
 			return c.JSON(http.StatusUnauthorized,"invalid credential")
 		}
-									
 		if errors.Is(err,sql.ErrNoRows){
 			return c.JSON(http.StatusNotFound,"user not found")
 		}
