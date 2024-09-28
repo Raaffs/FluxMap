@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Raaffs/FluxMap/internal/models"
+	validator "github.com/Raaffs/FluxMap/internal/validators"
 
 	"github.com/labstack/echo/v4"
 )
@@ -52,11 +53,23 @@ func(app *Application)Login(c echo.Context)error{
 
 func(app *Application)Register(c echo.Context)error{
 	u:=models.User{}
-	
+	v:=validator.New()
 	if err:=c.Bind(&u);err!=nil{
 		return echo.NewHTTPError(http.StatusBadRequest,err.Error())
 	}
 	
+	v.Check(
+		validator.MinNameLength(u.Username,3),
+		validator.ErrNameTooShort.Key,
+		validator.ErrNameTooShort.Message,
+	)
+
+	v.Check(
+		validator.IsStrongPassword(u.Password),
+		validator.ErrPasswordTooWeak.Key,
+		validator.ErrDescriptionTooShort.Message,
+	)
+
 	hash,err:=HashPassword(u.Password);if err!=nil{
 		return echo.NewHTTPError(echo.ErrInternalServerError.Code,"error creating user")
 	}
@@ -88,9 +101,27 @@ func(app *Application)Logout(c echo.Context)error{
 
 func (app *Application)CreateProject(c echo.Context)error{
 	var p models.Project
+	v:=validator.New()
 	if err:=c.Bind(&p);err!=nil{
 		return echo.NewHTTPError(http.StatusBadRequest,"invalid json")
 	}
+
+	v.Check(
+		validator.MinNameLength(p.ProjectName,5),
+		validator.ErrNameTooShort.Key,
+		fmt.Sprintf(validator.ErrNameTooShort.Message,5),
+	)
+
+	v.Check(
+		validator.MinDescriptionLength(p.ProjectDescription.String,10),
+		validator.ErrDescriptionTooShort.Key,
+		fmt.Sprintf(validator.ErrDescriptionTooShort.Message,10),
+	)
+
+	if !v.Valid(){
+		return c.JSON(http.StatusBadRequest,v)
+	}
+
 	if err:=app.models.Projects.Create(c.Request().Context(),p);err!=nil{
 		c.Logger().Error("Error creating project: ",err)
 		return c.JSON(http.StatusInternalServerError,"An error while creating project")
@@ -241,6 +272,55 @@ func(app *Application)AddManager(c echo.Context)error{
 }
 
 func (app *Application)ManagerRestrictedTask(c echo.Context)error{
+	var t models.Task
+	v:=validator.New()
+	if err:=c.Bind(&t);err!=nil{
+		return c.JSON(http.StatusBadRequest,"Invalid request body")
+	}
+
+	v.Check(
+		t.TaskDescription.Valid,
+		"task",
+		"no valid name",
+	)
+
+	v.Check(
+		t.AssignedUsername.Valid,
+		"user",
+		"no valid user",
+	)
+
+	v.Check(
+		t.TaskID>0,
+		"id",
+		"invalid task id",
+	)
+
+	v.Check(
+		t.ParentProjectID>0,
+		"Projectid",
+		"invalid project id",
+	)
+
+	v.Check(
+		t.Approved.Valid,
+		"approved",
+		"invalid status",
+	)
+
+	if !v.Valid(){
+		c.Logger().Error(v)
+		c.JSON(http.StatusBadRequest,v)
+	}
+
+	if err:=app.models.Task.UpdateManagerTask(c.Request().Context(),t);err!=nil{
+		if errors.Is(err,sql.ErrNoRows){
+			return c.JSON(http.StatusNotFound,map[string]string{"error":"task not found"})
+		}
+		c.Logger().Error("error updating manager task : ",err)
+		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"failed to update task"})
+	}
+
 	return c.JSON(http.StatusOK,"task approved")
 }
 

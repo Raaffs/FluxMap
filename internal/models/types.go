@@ -39,9 +39,10 @@ type Task struct {
     TaskDueDate      null.Time      `json:"taskDueDate,omitempty"`
     ParentProjectID  int            `json:"parentProjectId"`      // Foreign Key (Project.ProjectID)
     AssignedUsername null.String    `json:"assignedUsername" validate:"required"` // Foreign Key (User.Username)
+    Approved         null.Bool
 }
-
 // Pert represents a PERT record in the database
+
 type Pert struct {
     ParentTaskID         int            `json:"parentTaskId"`         // Primary Key, Foreign Key (Task.TaskID)
     PredecessorTaskID    null.Int64  `json:"predecessorTaskId,omitempty"` // Foreign Key (Task.TaskID)
