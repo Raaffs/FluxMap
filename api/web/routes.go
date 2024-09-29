@@ -30,7 +30,6 @@ func (app *Application)InitRoutes()*echo.Echo{
 		},
 	}
 	e.Use(middleware.RateLimiterWithConfig(config))
-	e.GET("/",app.Home )
 	e.POST("/api/login",app.Login)
 	e.POST("/api/register",app.Register)
 	e.POST("/api/logout",app.Logout)
@@ -45,7 +44,7 @@ func (app *Application)InitRoutes()*echo.Echo{
 	e.GET("/api/project/:id/tasks",app.GetTasks,IsAuthorizedUser)
 	e.POST("/api/project/:id/task",app.CreateTask,app.ManagerLevelAccess)
 	e.GET("/api/project/:id/task/:taskID",app.GetTaskByID,IsAuthorizedUser)
-	e.PUT("/api/project/:id/task/:taskID",app.UpdateTask,IsAuthorizedUser)
+	e.PUT("/api/project/:id/task/:taskID/manager",app.ManagerRestrictedTask,IsAuthorizedUser)
 
 	e.PUT("/api/project/:id/task/:taskID/approve",app.ManagerRestrictedTask,app.ManagerLevelAccess)
 	e.PUT("/api/project/:id/task/:taskID/assign",app.ManagerRestrictedTask,app.ManagerLevelAccess)

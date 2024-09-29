@@ -17,18 +17,6 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func(app *Application)Home(c echo.Context)error{
-	data:=map[string]any{
-		"message":"Hello,World!",
-		"id":2,
-	}
-	if data["id"]==2{
-		SetCookie("role","manager",c)
-		return c.JSON(http.StatusOK,data)
-	}
-	return c.JSON(http.StatusBadRequest,"not found")
-}
-
 func(app *Application)Login(c echo.Context)error{
 	var u models.User
 	err := c.Bind(&u); if err != nil {
@@ -52,22 +40,28 @@ func(app *Application)Login(c echo.Context)error{
 
 func(app *Application)Register(c echo.Context)error{
 	u:=models.User{}
-	// v:=validator.New()
+	v:=validator.New()
 	if err:=c.Bind(&u);err!=nil{
 		return echo.NewHTTPError(http.StatusBadRequest,err.Error())
 	}
 	
-	// v.Check(
-	// 	validator.MinNameLength(u.Username,3),
-	// 	validator.ErrNameTooShort.Key,
-	// 	validator.ErrNameTooShort.Message,
-	// )
+	v.Check(
+		validator.MinNameLength(u.Username,3),
+		validator.ErrNameTooShort.Key,
+		validator.ErrNameTooShort.Message,
+	)
 
-	// v.Check(
-	// 	validator.IsStrongPassword(u.Password),
-	// 	validator.ErrPasswordTooWeak.Key,
-	// 	validator.ErrDescriptionTooShort.Message,
-	// )
+	v.Check(
+		validator.IsStrongPassword(u.Password),
+		validator.ErrPasswordTooWeak.Key,
+		validator.ErrDescriptionTooShort.Message,
+	)
+
+	v.Check(
+		validator.Matches(u.Email,validator.EmailRX),
+		"email",
+		"invalid email",
+	)
 
 	hash,err:=HashPassword(u.Password);if err!=nil{
 		return echo.NewHTTPError(echo.ErrInternalServerError.Code,"error creating user")
@@ -88,38 +82,38 @@ func(app *Application)Register(c echo.Context)error{
 
 func(app *Application)Logout(c echo.Context)error{
 	cookie := &http.Cookie{
-		Name:     "role",
+		Name:     "username",
 		Value:    "",
 		Path:     "/",
 		Expires: time.Unix(0, 0),
 		HttpOnly: true,
-	}
+	}	
 	c.SetCookie(cookie)
 	return c.JSON(http.StatusOK,"")
 }
 
 func (app *Application)CreateProject(c echo.Context)error{
 	var p models.Project
-	// v:=validator.New()
+	v:=validator.New()
 	if err:=c.Bind(&p);err!=nil{
 		return echo.NewHTTPError(http.StatusBadRequest,"invalid json")
 	}
 
-	// v.Check(
-	// 	validator.MinNameLength(p.ProjectName,5),
-	// 	validator.ErrNameTooShort.Key,
-	// 	fmt.Sprintf(validator.ErrNameTooShort.Message,5),
-	// )
+	v.Check(
+		validator.MinNameLength(p.ProjectName,5),
+		validator.ErrNameTooShort.Key,
+		fmt.Sprintf(validator.ErrNameTooShort.Message,5),
+	)
 
-	// v.Check(
-	// 	validator.MinDescriptionLength(p.ProjectDescription.String,10),
-	// 	validator.ErrDescriptionTooShort.Key,
-	// 	fmt.Sprintf(validator.ErrDescriptionTooShort.Message,10),
-	// )
+	v.Check(
+		validator.MinDescriptionLength(p.ProjectDescription.String,10),
+		validator.ErrDescriptionTooShort.Key,
+		fmt.Sprintf(validator.ErrDescriptionTooShort.Message,10),
+	)
 
-	// if !v.Valid(){
-	// 	return c.JSON(http.StatusBadRequest,v)
-	// }
+	if !v.Valid(){
+		return c.JSON(http.StatusBadRequest,v)
+	}
 
 	if err:=app.models.Projects.Create(c.Request().Context(),p);err!=nil{
 		c.Logger().Error("Error creating project: ",err)
@@ -216,6 +210,8 @@ func (app *Application) GetProjects(c echo.Context) error {
 			}
 		case <-done:
 			return c.JSON(http.StatusOK, projects)
+		case <-ctx.Done():
+			return c.JSON(http.StatusPartialContent, projects)
 		}
 	}
 }
@@ -316,29 +312,16 @@ func (app *Application)ManagerRestrictedTask(c echo.Context)error{
 	if err:=c.Bind(&t);err!=nil{
 		return c.JSON(http.StatusBadRequest,"Invalid request body")
 	}
-
-	v.Check(
-		t.TaskDescription.Valid,
-		"task",
-		"no valid name",
-	)
+	id:=c.Param("taskID")
+	taskID,err:=strconv.Atoi(id);if err!=nil{
+		return c.JSON(http.StatusNotFound,"Invalid task ID")
+	}
+	t.TaskID=taskID
 
 	v.Check(
 		t.AssignedUsername.Valid,
 		"user",
 		"no valid user",
-	)
-
-	v.Check(
-		t.TaskID>0,
-		"id",
-		"invalid task id",
-	)
-
-	v.Check(
-		t.ParentProjectID>0,
-		"Projectid",
-		"invalid project id",
 	)
 
 	v.Check(
@@ -353,8 +336,9 @@ func (app *Application)ManagerRestrictedTask(c echo.Context)error{
 	}
 
 	if err:=app.models.Task.UpdateManagerTask(c.Request().Context(),t);err!=nil{
-		if errors.Is(err,sql.ErrNoRows){
-			return c.JSON(http.StatusNotFound,map[string]string{"error":"task not found"})
+		if errors.Is(err,models.ErrRecordNotFound){
+			c.Logger().Warn("Task not found :",err)
+			return c.JSON(http.StatusNotFound,MapMessage("message",models.ErrRecordNotFound.Error()))
 		}
 		c.Logger().Error("error updating manager task : ",err)
 		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"failed to update task"})

@@ -44,6 +44,7 @@ type Task struct {
 // Pert represents a PERT record in the database
 
 type Pert struct {
+    ParentProjectID      int
     ParentTaskID         int            `json:"parentTaskId"`         // Primary Key, Foreign Key (Task.TaskID)
     PredecessorTaskID    null.Int64     `json:"predecessorTaskId,omitempty"` // Foreign Key (Task.TaskID)
     Optimistic           int            `json:"optimistic" validate:"required"`

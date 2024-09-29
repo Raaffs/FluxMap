@@ -27,8 +27,11 @@ func FormatDate(t time.Time)string{
 	return t.Format("dd-mm-yyyy")
 }
 
-func MapMessage(key string,msg string)map[string]string{
-    return map[string]string{key:msg}
+func MapMessage(key string,msg string)struct{key string;msg string}{
+    return struct{key string; msg string}{
+        key: key,
+        msg: msg,
+    }
 }
 
 func HashPassword(password string)(string,error){
@@ -37,9 +40,5 @@ func HashPassword(password string)(string,error){
         return "", err
     }
     return string(hashedPassword), nil
-}
-
-func CheckPassword(hashedPassword, password string) error {
-    return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 }
 

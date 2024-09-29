@@ -16,9 +16,9 @@ type TaskModel struct{
 }
 
 func (t *TaskModel)Create(ctx context.Context, task Task)error{
-	insert:=`INSERT INTO tasks(taskName,taskDescription,taskStatus,taskStartDate,taskDueDate,parentProjectID,assignedUsername) 
-	VALUES($1,$2,$3,$4,$5,$6,$7)`
-	_,err:=t.DB.Exec(ctx,insert,task.TaskName,task.TaskDescription,task.TaskStatus,task.TaskStartDate,task.TaskDueDate,task.ParentProjectID,task.AssignedUsername); if err!=nil{
+	insert:=`INSERT INTO tasks(taskName, taskDescription, taskStartDate, taskDueDate, parentProjectID, assignedUsername) 
+VALUES($1, $2, $3, $4, $5, $6)`
+	_,err:=t.DB.Exec(ctx,insert,task.TaskName,task.TaskDescription,task.TaskStartDate,task.TaskDueDate,task.ParentProjectID,task.AssignedUsername); if err!=nil{
 		t.Errorlog.Println("Error creating project:",err)
 		return err
 	}
@@ -27,11 +27,11 @@ func (t *TaskModel)Create(ctx context.Context, task Task)error{
 
 func (t *TaskModel)UpdateManagerTask(ctx context.Context,task Task)error{
 	query:=`
-		UPDATE tasks
-		SET taskname=$1, taskDescription=$2, taskStartDate=$3,taskDueDate=$4, AssignedUsername=$5, Approved=$6	
-		WHERE taskID=$7
+	UPDATE tasks 
+	SET taskname=$1, taskDescription=$2, taskStatus=$3, taskStartDate=$4, taskDueDate=$5, AssignedUsername=$6, Approved=$7 
+	WHERE taskID=$8
 	`
-	_,err:=t.DB.Exec(ctx,query,task.TaskName,task.TaskDescription,task.TaskStartDate,task.TaskDueDate,task.AssignedUsername,task.Approved,task.TaskID);if err!=nil{
+	_,err:=t.DB.Exec(ctx,query,task.TaskName,task.TaskDescription,task.TaskStatus,task.TaskStartDate,task.TaskDueDate,task.AssignedUsername,task.Approved,task.TaskID);if err!=nil{
 		t.Errorlog.Println(err)
 		return err
 	}
@@ -51,6 +51,7 @@ func(t *TaskModel)GetTasks(ctx context.Context,projectID int)([]*Task,error){
 		}
 		return []*Task{},err
 	}
+	defer rows.Close()
 	for rows.Next(){
 		var task Task
 		if err=rows.Scan(&task.TaskID,&task.TaskName,&task.TaskDescription,&task.TaskStatus,&task.TaskStartDate,&task.TaskDueDate,&task.ParentProjectID,&task.AssignedUsername,&task.Approved);err!=nil{
