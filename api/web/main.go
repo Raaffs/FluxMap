@@ -42,6 +42,9 @@ func main(){
 	}
 	e:=app.InitRoutes()
 	PORT:=fmt.Sprintf(":%s",app.env["API_PORT"])
-	e.Start(PORT)
+	if err:=e.Start(PORT);err!=nil{
+		log.Fatal("Error starting server %w\n",err)
+	}
+
 }	
 

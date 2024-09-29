@@ -293,7 +293,6 @@ func(app *Application)AddManager(c echo.Context)error{
 	m:=struct{
 		Manager string `json:"manager"`
 	}{}
-	fmt.Println("herer")
 	projectID:=c.Param("id")
 	fmt.Println(m.Manager,projectID)
 	fmt.Println(projectID,m.Manager)
