@@ -27,10 +27,12 @@ func FormatDate(t time.Time)string{
 	return t.Format("dd-mm-yyyy")
 }
 
-func MapMessage(key string,msg string)struct{key string;msg string}{
-    return struct{key string; msg string}{
-        key: key,
-        msg: msg,
+func MapMessage(key string,msg string)struct{Message map[string]string}{
+    return struct{Message map[string]string}{
+        Message: map[string]string{
+            key:key,
+            msg:msg,
+        },
     }
 }
 

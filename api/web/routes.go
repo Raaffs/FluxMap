@@ -50,7 +50,7 @@ func (app *Application)InitRoutes()*echo.Echo{
 	e.PUT("/api/project/:id/task/:taskID/assign",app.ManagerRestrictedTask,app.ManagerLevelAccess)
 	
 	e.GET("/api/project/:id/pert",app.GetPert,IsAuthorizedUser)
-	e.POST("/api/project/:id/pert",app.CreateCpm,IsAuthorizedUser)
+	e.POST("/api/project/:id/pert",app.CreatePert,IsAuthorizedUser)
 	e.PUT("/api/project/:id/pert",app.UpdatePert,IsAuthorizedUser)
 
 	e.GET("/api/project/:id/cpm",app.GetCpm,IsAuthorizedUser)

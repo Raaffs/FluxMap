@@ -18,7 +18,7 @@ type PertModel struct{
 func(p *PertModel)Insert(ctx context.Context,PertValues []Pert)error{
 	query:=`
 		INSERT INTO Pert(ParentTaskID, PredecessorTaskID, Optimistic, Pessimistic, MostLikely, ParentProjectID)
-		VALUES($1, $2, $3, $4, $5)
+		VALUES($1, $2, $3, $4, $5, $6)
 	`
 	for _,val :=range PertValues{
 		_, err := p.DB.Exec(ctx,query,val.ParentTaskID, val.PredecessorTaskID,val.Optimistic,val.Pessimistic,val.MostLikely,val.ParentProjectID);if err!=nil{

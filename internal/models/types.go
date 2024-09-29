@@ -44,21 +44,22 @@ type Task struct {
 // Pert represents a PERT record in the database
 
 type Pert struct {
-    ParentProjectID      int
     ParentTaskID         int            `json:"parentTaskId"`         // Primary Key, Foreign Key (Task.TaskID)
     PredecessorTaskID    null.Int64     `json:"predecessorTaskId,omitempty"` // Foreign Key (Task.TaskID)
     Optimistic           int            `json:"optimistic" validate:"required"`
     Pessimistic          int            `json:"pessimistic" validate:"required"`
     MostLikely           int            `json:"mostLikely" validate:"required"`
+    ParentProjectID      int
 }
 
 // Cpm represents a CPM record in the database
 type Cpm struct {
-    TaskID         int    `json:"taskId"`             // Primary Key, Foreign Key (Task.TaskID)
-    EarliestStart  int    `json:"earliestStart" validate:"required"`
-    EarliestFinish int    `json:"earliestFinish" validate:"required"`
-    LatestStart    int    `json:"latestStart" validate:"required"`
-    LatestFinish   int    `json:"latestFinish" validate:"required"`
-    SlackTime      int    `json:"slackTime" validate:"required"`
-    CriticalPath   bool   `json:"criticalPath" default:"false"`
+    TaskID          int    `json:"taskId"`             // Primary Key, Foreign Key (Task.TaskID)
+    EarliestStart   int    `json:"earliestStart" validate:"required"`
+    EarliestFinish  int    `json:"earliestFinish" validate:"required"`
+    LatestStart     int    `json:"latestStart" validate:"required"`
+    LatestFinish    int    `json:"latestFinish" validate:"required"`
+    SlackTime       int    `json:"slackTime" validate:"required"`
+    CriticalPath    bool   `json:"criticalPath" default:"false"`
+    ParentProjectID int    `json:"parentProjectID"`  
 }

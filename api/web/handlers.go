@@ -353,11 +353,31 @@ func (app *Application)AdminRestrictedProject(c echo.Context)error{
 
 
 func(app *Application)GetPert(c echo.Context)error{
-	return c.JSON(http.StatusOK,"done")
+	id:=c.Param("id")
+	projectID,err:=strconv.Atoi(id);if err!=nil{
+		return c.JSON(http.StatusNotFound,"Invalid project ID")
+	}
+	pertValues,err:=app.models.Pert.Get(c.Request().Context(),projectID);if err!=nil{
+		if errors.Is(err,models.ErrRecordNotFound){
+			c.Logger().Warn("Project not found :",err)
+			return c.JSON(http.StatusNotFound,MapMessage("message",models.ErrRecordNotFound.Error()))
+		}
+		c.Logger().Error("error getting pert values : ",err)
+		return c.JSON(http.StatusInternalServerError,MapMessage("error","Error getting pert data"))
+	}
+	return c.JSON(http.StatusOK,pertValues)
 }
 
 func(app *Application)CreatePert(c echo.Context)error{
-	return c.JSON(http.StatusOK,"done")
+	var pert []models.Pert	
+	if err:=c.Bind(&pert);err!=nil{
+		return c.JSON(http.StatusBadRequest,"Invalid request body")
+	}
+	if err:=app.models.Pert.Insert(c.Request().Context(),pert);err!=nil{
+		c.Logger().Error(MapMessage("Pert Error",err.Error()))
+		return c.JSON(http.StatusInternalServerError,MapMessage("error","failed to insert pert data"))
+	}
+	return c.JSON(http.StatusOK,map[string]string{"message":"pert data inserted successfully"})
 }
 
 func(app *Application)UpdatePert(c echo.Context)error{
@@ -365,11 +385,32 @@ func(app *Application)UpdatePert(c echo.Context)error{
 }
 
 func(app *Application)GetCpm(c echo.Context)error{
-	return c.JSON(http.StatusOK,"done")
+	id:=c.Param("id")
+	projectID,err:=strconv.Atoi(id);if err!=nil{
+		return c.JSON(http.StatusNotFound,"Invalid project ID")
+	}
+	cpmValues,err:=app.models.Cpm.Get(c.Request().Context(),projectID);if err!=nil{
+		if errors.Is(err,models.ErrRecordNotFound){
+			c.Logger().Warn("Project not found :",err)
+			return c.JSON(http.StatusNotFound,MapMessage("message",models.ErrRecordNotFound.Error()))
+		}
+		c.Logger().Error("error getting cpm values : ",err)
+		return c.JSON(http.StatusInternalServerError,MapMessage("error","Error getting pert data"))
+	}
+	return c.JSON(http.StatusOK,cpmValues)
 }
 
 func(app *Application)CreateCpm(c echo.Context)error{
-	return c.JSON(http.StatusOK,"done")
+	var cpm []models.Cpm	
+	if err:=c.Bind(&cpm);err!=nil{
+		return c.JSON(http.StatusBadRequest,"Invalid request body")
+	}
+	if err:=app.models.Cpm.Insert(c.Request().Context(),cpm);err!=nil{
+		c.Logger().Error(MapMessage("cpm Error",err.Error()))
+		return c.JSON(http.StatusInternalServerError,MapMessage("error","failed to insert pert data"))
+	}
+
+	return c.JSON(http.StatusOK,MapMessage("message","cpm data inserted successfully"))
 }
 
 func(app *Application)UpdateCpm(c echo.Context)error{
