@@ -21,8 +21,8 @@ type Models struct {
 	Users       UserModel
 	Projects    ProjectModel
 	Task      	TaskModel
-	Pert 		PertModel
-	Cpm         CpmModel
+	Pert 		PertModel[Pert]
+	Cpm         CpmModel[Cpm]
 }
 
 func NewModels(db *pgxpool.Pool) Models {
@@ -44,12 +44,12 @@ func NewModels(db *pgxpool.Pool) Models {
 			Infolog: 	infoLog,
 			Errorlog: 	errorLog,
 		},
-		Pert: PertModel{
+		Pert: PertModel[Pert]{
 			DB:			db,
 			Infolog: 	infoLog,
 			Errorlog: 	errorLog,
 		},
-		Cpm: CpmModel{
+		Cpm: CpmModel[Cpm]{
 			DB:			db,
 			Infolog: 	infoLog,
 			Errorlog: 	errorLog,

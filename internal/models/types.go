@@ -1,8 +1,19 @@
 package models
 
 import (
-    "github.com/guregu/null/v5"
+	"context"
+
+	"github.com/guregu/null/v5"
 )
+
+type ReadDatabase[T  Analytic ] interface{
+    Exist()(bool,error)
+    Get(context.Context,int)([]*T,error)
+}
+
+type Analytic interface{
+    Cpm|Pert
+}
 
 // User represents a user in the database
 type User struct {
@@ -11,6 +22,7 @@ type User struct {
     Password       string    `json:"password" validate:"required,min=8"`
     HashedPassword string    `json:"hashedPassword,omitempty"`
     Created        string    `json:"created,omitempty"`
+
 }
 
 // Project represents a project in the database
@@ -52,6 +64,7 @@ type Pert struct {
     ParentProjectID      int
 }
 
+
 // Cpm represents a CPM record in the database
 type Cpm struct {
     TaskID          int    `json:"taskId"`             // Primary Key, Foreign Key (Task.TaskID)
@@ -63,3 +76,4 @@ type Cpm struct {
     CriticalPath    bool   `json:"criticalPath" default:"false"`
     ParentProjectID int    `json:"parentProjectID"`  
 }
+

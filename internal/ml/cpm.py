@@ -104,3 +104,4 @@ critical_path_distributions = get_critical_path_distributions(tasks)
 # Output results
 print("Task Distributions:", task_distributions)
 print("Critical Path Distributions:", critical_path_distributions)
+    

@@ -415,3 +415,17 @@ func(app *Application)CreateCpm(c echo.Context)error{
 func(app *Application)UpdateCpm(c echo.Context)error{
 	return c.JSON(http.StatusOK,"done")
 }
+func(app *Application)CalcPert(){
+	calculate[models.Pert,*models.PertModel[models.Pert]](&app.models.Pert,3,context.Background())
+}
+func(app *Application)CalcCpm(){
+	calculate[models.Cpm,*models.CpmModel[models.Cpm]](&app.models.Cpm,3,context.Background())
+}
+func calculate[U models.Analytic,T models.ReadDatabase[U]](v T,id int,c context.Context ){
+	a,err:=v.Get(c,id); if err!=nil{
+		log.Fatal(err)
+	}
+	for _,value:=range a{
+		fmt.Println(value)
+	}
+}
