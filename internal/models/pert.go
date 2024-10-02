@@ -32,7 +32,7 @@ func(p *PertModel[T])Insert(ctx context.Context,PertValues []Pert)error{
 func(p *PertModel[T])Exist()(bool,error){
 	return true,nil
 }
-func(p *PertModel[T])Get(ctx context.Context,projectID int)([]*T,error){
+func(p *PertModel[T])GetData(ctx context.Context,projectID int)([]*T,error){
 	var pertValues []*T
 	query:=`SELECT parentTaskID, predecessorTaskID, optimistic, pessimistic, mostLikely, parentProjectID 
 	FROM pert
@@ -68,4 +68,35 @@ func(p *PertModel[T])Get(ctx context.Context,projectID int)([]*T,error){
 
 	return pertValues,nil
 }
+
+func(p *PertModel[T])GetResult(ctx context.Context,projectID int)(Result,error){
+	var result Result
+	query:=`SELECT result
+	FROM pertResult
+	WHERE projectID=$1
+	`
+	if err :=p.DB.QueryRow(ctx,query,projectID).Scan(result);err!=nil{
+		if errors.Is(err,sql.ErrNoRows){
+			return Result{},ErrRecordNotFound
+		}
+		p.Errorlog.Printf("An error occurred while getting cpm result for projectID %v\n",err)
+		return Result{},err
+	}
+	return result,nil
+}
+
+func(p *PertModel[T])UpdateResult(ctx context.Context,projectId int,result Result)(error){
+	query:=`UPDATE pertResult
+		SET result=$1
+		WHERE projectID=$2
+	`
+	_,err:=p.DB.Exec(ctx,query,result,projectId);if err!=nil{
+		if errors.Is(err,sql.ErrNoRows){
+			return ErrRecordNotFound
+		}
+		p.Errorlog.Printf("An error occurred while updating cpm result for projectID %v\n",err)
+	}
+	return nil
+}
+
 

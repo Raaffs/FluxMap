@@ -35,7 +35,7 @@ func(m *CpmModel[T])Exist()(bool,error){
 	return true,nil
 }
 
-func(m *CpmModel[T])Get(ctx context.Context,projectID int)([]*T,error){
+func(m *CpmModel[T])GetData(ctx context.Context,projectID int)([]*T,error){
 	var cpmValues []*T
 	query:=`SELECT TaskID, EarliestStart, EarliestFinish, LatestStart, LatestFinish, SlackTime, CriticalPath, ParentProjectID 
 	FROM cpm
@@ -69,4 +69,20 @@ func(m *CpmModel[T])Get(ctx context.Context,projectID int)([]*T,error){
 	}
 
 	return cpmValues,nil
+}
+
+func(m *CpmModel[T])GetResult(ctx context.Context,projectID int)(Result,error){
+	var result Result
+	query:=`SELECT result
+	FROM cpmResult
+	WHERE projectID=$1
+	`
+	if err :=m.DB.QueryRow(ctx,query,projectID).Scan(result);err!=nil{
+		if errors.Is(err,sql.ErrNoRows){
+			return Result{},ErrRecordNotFound
+		}
+		m.Errorlog.Printf("An error occurred while getting cpm result for projectID %v\n",err)
+		return Result{},err
+	}
+	return result,nil
 }

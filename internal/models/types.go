@@ -8,7 +8,8 @@ import (
 
 type ReadDatabase[T  Analytic ] interface{
     Exist()(bool,error)
-    Get(context.Context,int)([]*T,error)
+    GetData(context.Context,int)([]*T,error)
+    GetResult(context.Context,int)(Result,error)
 }
 
 type Analytic interface{
@@ -51,29 +52,34 @@ type Task struct {
     TaskDueDate      null.Time      `json:"taskDueDate,omitempty"`
     ParentProjectID  int            `json:"parentProjectId"`      // Foreign Key (Project.ProjectID)
     AssignedUsername null.String    `json:"assignedUsername" validate:"required"` // Foreign Key (User.Username)
-    Approved         null.Bool
+    Approved         null.Bool      `json:"approved"`
 }
 // Pert represents a PERT record in the database
 
 type Pert struct {
-    ParentTaskID         int            `json:"parentTaskId"`         // Primary Key, Foreign Key (Task.TaskID)
-    PredecessorTaskID    null.Int64     `json:"predecessorTaskId,omitempty"` // Foreign Key (Task.TaskID)
-    Optimistic           int            `json:"optimistic" validate:"required"`
-    Pessimistic          int            `json:"pessimistic" validate:"required"`
-    MostLikely           int            `json:"mostLikely" validate:"required"`
+    ParentTaskID         int                `json:"parentTaskId"`         // Primary Key, Foreign Key (Task.TaskID)
+    PredecessorTaskID    null.Int64         `json:"predecessorTaskId,omitempty"` // Foreign Key (Task.TaskID)
+    Optimistic           int                `json:"optimistic" validate:"required"`
+    Pessimistic          int                `json:"pessimistic" validate:"required"`
+    MostLikely           int                `json:"mostLikely" validate:"required"`
     ParentProjectID      int
+    PertResult           Result  `json:"result"`
 }
 
 
 // Cpm represents a CPM record in the database
 type Cpm struct {
-    TaskID          int    `json:"taskId"`             // Primary Key, Foreign Key (Task.TaskID)
-    EarliestStart   int    `json:"earliestStart" validate:"required"`
-    EarliestFinish  int    `json:"earliestFinish" validate:"required"`
-    LatestStart     int    `json:"latestStart" validate:"required"`
-    LatestFinish    int    `json:"latestFinish" validate:"required"`
-    SlackTime       int    `json:"slackTime" validate:"required"`
-    CriticalPath    bool   `json:"criticalPath" default:"false"`
-    ParentProjectID int    `json:"parentProjectID"`  
+    TaskID          int                 `json:"taskId"`             // Primary Key, Foreign Key (Task.TaskID)
+    EarliestStart   int                 `json:"earliestStart" validate:"required"`
+    EarliestFinish  int                 `json:"earliestFinish" validate:"required"`
+    LatestStart     int                 `json:"latestStart" validate:"required"`
+    LatestFinish    int                 `json:"latestFinish" validate:"required"`
+    SlackTime       int                 `json:"slackTime" validate:"required"`
+    CriticalPath    bool                `json:"criticalPath" default:"false"`
+    ParentProjectID int                 `json:"parentProjectID"`  
+    CpmResult       Result   `json:"result"`
 }
 
+type Result struct{
+    Result map[string]any
+}

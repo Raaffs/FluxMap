@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Raaffs/FluxMap/api/external"
 	"github.com/Raaffs/FluxMap/internal/models"
 	validator "github.com/Raaffs/FluxMap/internal/validators"
 
@@ -352,19 +353,32 @@ func (app *Application)AdminRestrictedProject(c echo.Context)error{
 
 
 func(app *Application)GetPert(c echo.Context)error{
+	r:=struct{
+		data 	[]*models.Pert
+		Result 	map[string]any
+	}{}
+
 	id:=c.Param("id")
 	projectID,err:=strconv.Atoi(id);if err!=nil{
 		return c.JSON(http.StatusNotFound,"Invalid project ID")
 	}
-	pertValues,err:=app.models.Pert.Get(c.Request().Context(),projectID);if err!=nil{
+	data,result,err:=calculate(&app.models.Pert,c.Request().Context(),projectID); if err!=nil{
 		if errors.Is(err,models.ErrRecordNotFound){
-			c.Logger().Warn("Project not found :",err)
-			return c.JSON(http.StatusNotFound,MapMessage("message",models.ErrRecordNotFound.Error()))
+			return c.JSON(http.StatusNotFound,MapMessage("message","No data CPM related data found"))
 		}
-		c.Logger().Error("error getting pert values : ",err)
-		return c.JSON(http.StatusInternalServerError,MapMessage("error","Error getting pert data"))
+
+		if errors.Is(err,ErrFetchingResult){
+			r.data=data
+			log.Println("data ",r.data,r.Result,"data",data,result)
+			return c.JSON(http.StatusPartialContent,r.data)
+		}
+		c.Logger().Error("error getting cpm values : ",err)
+		return c.JSON(http.StatusInternalServerError,MapMessage("error","Error getting CPM data"))
 	}
-	return c.JSON(http.StatusOK,pertValues)
+	log.Println("DATA VALUES : ",data,r.data)
+	r.data=data
+	r.Result=result.Result
+	return c.JSON(http.StatusOK,r)
 }
 
 func(app *Application)CreatePert(c echo.Context)error{
@@ -384,19 +398,31 @@ func(app *Application)UpdatePert(c echo.Context)error{
 }
 
 func(app *Application)GetCpm(c echo.Context)error{
+	r:=struct{
+		Data 	[]*models.Cpm 	`json:"data"`
+		Result 	map[string]any	`json:"result"`
+	}{}
+
 	id:=c.Param("id")
 	projectID,err:=strconv.Atoi(id);if err!=nil{
 		return c.JSON(http.StatusNotFound,"Invalid project ID")
 	}
-	cpmValues,err:=app.models.Cpm.Get(c.Request().Context(),projectID);if err!=nil{
+
+	data,result,err:=calculate(&app.models.Cpm,c.Request().Context(),projectID); if err!=nil{
 		if errors.Is(err,models.ErrRecordNotFound){
-			c.Logger().Warn("Project not found :",err)
-			return c.JSON(http.StatusNotFound,MapMessage("message",models.ErrRecordNotFound.Error()))
+			return c.JSON(http.StatusNotFound,MapMessage("message","No data CPM related data found"))
+		}
+		if errors.Is(err,ErrFetchingResult){
+			r.Data=data
+			return c.JSON(http.StatusPartialContent,r.Data)
 		}
 		c.Logger().Error("error getting cpm values : ",err)
-		return c.JSON(http.StatusInternalServerError,MapMessage("error","Error getting pert data"))
+		return c.JSON(http.StatusInternalServerError,MapMessage("error","Error getting CPM data"))
 	}
-	return c.JSON(http.StatusOK,cpmValues)
+	r.Data=data
+	fmt.Println("r data",r.Data)
+	r.Result=result.Result
+	return c.JSON(http.StatusOK,r)
 }
 
 func(app *Application)CreateCpm(c echo.Context)error{
@@ -415,17 +441,29 @@ func(app *Application)CreateCpm(c echo.Context)error{
 func(app *Application)UpdateCpm(c echo.Context)error{
 	return c.JSON(http.StatusOK,"done")
 }
-func(app *Application)CalcPert(){
-	calculate[models.Pert,*models.PertModel[models.Pert]](&app.models.Pert,3,context.Background())
-}
-func(app *Application)CalcCpm(){
-	calculate[models.Cpm,*models.CpmModel[models.Cpm]](&app.models.Cpm,3,context.Background())
-}
-func calculate[U models.Analytic,T models.ReadDatabase[U]](v T,id int,c context.Context ){
-	a,err:=v.Get(c,id); if err!=nil{
-		log.Fatal(err)
+
+func calculate[U models.Analytic,T models.ReadDatabase[U]](v T,ctx context.Context, id int)([]*U,models.Result,error){
+	data,err:=v.GetData(ctx,id);if err!=nil{
+		return nil,models.Result{},err 
 	}
-	for _,value:=range a{
-		fmt.Println(value)
+	if data==nil{
+		return nil,models.Result{},models.ErrRecordNotFound
 	}
+
+	result,err:=v.GetResult(ctx,id); if err!=nil{
+		if !errors.Is(err, models.ErrRecordNotFound){
+			return data,models.Result{},ErrFetchingResult
+		}
+	}
+	if result.Result!=nil{
+		return data,models.Result{Result:result.Result},nil
+	}
+	result,err=external.PERT(data);if err!=nil{
+		log.Println("Error fetching result: ",err)
+		return data,models.Result{},ErrFetchingResult
+	}
+	
+	log.Println("data ; ",data,"result ",result)
+	return data,result,nil
+
 }

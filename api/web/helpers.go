@@ -11,7 +11,7 @@ import (
 
 var(
     ErrInvalidJson=errors.New("Invalid JSON")
-    ErrInternalServerError=errors.New("Internal server Error")
+    ErrFetchingResult=errors.New("Error getting analytics")
 )
 
 func SetCookie(key string, value string, c echo.Context){

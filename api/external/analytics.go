@@ -1,23 +1,37 @@
 package external
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+
+	"github.com/Raaffs/FluxMap/internal/models"
 )
 
-func PERT()(map[string]any,error){
-	pertData:=make(map[string]any)
-	
-	resp,err:=http.Get("http://localhost:5000/pert");if err!=nil{
-		return nil,err
+
+func PERT[T models.Analytic](a []*T) (models.Result, error) {
+	pertData := models.Result{}
+	data, err := json.Marshal(a)
+	if err != nil {
+		return models.Result{}, err
+	}
+
+	resp, err := http.Post("http://localhost:5000/api/pert", "application/json", bytes.NewBuffer(data))
+	if err != nil {
+		return models.Result{}, err
 	}
 	defer resp.Body.Close()
+
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("received non-200 response: %s", resp.Status)
+		return models.Result{}, fmt.Errorf("received non-200 response: %s", resp.Status)
 	}
-	err=json.NewDecoder(resp.Body).Decode(&pertData);if err!=nil{
-		return nil,err
+
+	err = json.NewDecoder(resp.Body).Decode(&pertData.Result)
+	if err != nil {
+		return models.Result{}, err
 	}
-	return pertData,nil
+	log.Println("data pert",pertData)
+	return pertData, nil
 }

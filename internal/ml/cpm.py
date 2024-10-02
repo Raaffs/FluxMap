@@ -2,35 +2,6 @@ import numpy as np
 from scipy.stats import norm
 
 # Define the CPM data for tasks
-tasks = [
-    {
-        "taskId": 1,
-        "earliestStart": 2,
-        "earliestFinish": 5,
-        "latestStart": 3,
-        "latestFinish": 6,
-        "slackTime": 1,
-        "criticalPath": False
-    },
-    {
-        "taskId": 3,
-        "earliestStart": 4,
-        "earliestFinish": 8,
-        "latestStart": 6,
-        "latestFinish": 9,
-        "slackTime": 0,
-        "criticalPath": True
-    },
-    {
-        "taskId": 6,
-        "earliestStart": 7,
-        "earliestFinish": 10,
-        "latestStart": 8,
-        "latestFinish": 11,
-        "slackTime": 2,
-        "criticalPath": False
-    }
-]
 
 # Function to compute mean and standard deviation for task duration
 def compute_distribution(task):
@@ -66,7 +37,6 @@ def get_task_distributions(tasks):
 
     return task_distributions
 
-# Function to return critical path distributions
 def get_critical_path_distributions(tasks):
     critical_path_distributions = []
     critical_path_mean = 0
@@ -81,11 +51,9 @@ def get_critical_path_distributions(tasks):
                 "std_dev": std_dev
             })
 
-            # Sum means and variances for critical path
             critical_path_mean += mean
             critical_path_variance += std_dev ** 2
 
-    # Overall critical path mean and standard deviation
     critical_path_std = np.sqrt(critical_path_variance)
     critical_path_distributions.append({
         "taskId": "criticalPathOverall",
@@ -94,14 +62,3 @@ def get_critical_path_distributions(tasks):
     })
 
     return critical_path_distributions
-
-# Get task distributions
-task_distributions = get_task_distributions(tasks)
-
-# Get critical path distributions
-critical_path_distributions = get_critical_path_distributions(tasks)
-
-# Output results
-print("Task Distributions:", task_distributions)
-print("Critical Path Distributions:", critical_path_distributions)
-    
