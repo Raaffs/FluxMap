@@ -11,7 +11,7 @@ import (
 )
 
 
-func PERT[T models.Analytic](a []*T) (models.Result, error) {
+func RequestAndCalculatePERTCPM[T models.Analytic](a []*T) (models.Result, error) {
 	pertData := models.Result{}
 	data, err := json.Marshal(a)
 	if err != nil {

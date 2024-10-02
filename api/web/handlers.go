@@ -354,29 +354,28 @@ func (app *Application)AdminRestrictedProject(c echo.Context)error{
 
 func(app *Application)GetPert(c echo.Context)error{
 	r:=struct{
-		data 	[]*models.Pert
-		Result 	map[string]any
+		Data 	[]*models.Pert 	`json:"data"`
+		Result 	map[string]any	`json:"result"`
 	}{}
 
 	id:=c.Param("id")
 	projectID,err:=strconv.Atoi(id);if err!=nil{
 		return c.JSON(http.StatusNotFound,"Invalid project ID")
 	}
+
 	data,result,err:=calculate(&app.models.Pert,c.Request().Context(),projectID); if err!=nil{
 		if errors.Is(err,models.ErrRecordNotFound){
 			return c.JSON(http.StatusNotFound,MapMessage("message","No data CPM related data found"))
 		}
-
 		if errors.Is(err,ErrFetchingResult){
-			r.data=data
-			log.Println("data ",r.data,r.Result,"data",data,result)
-			return c.JSON(http.StatusPartialContent,r.data)
+			r.Data=data
+			return c.JSON(http.StatusPartialContent,r.Data)
 		}
 		c.Logger().Error("error getting cpm values : ",err)
 		return c.JSON(http.StatusInternalServerError,MapMessage("error","Error getting CPM data"))
 	}
-	log.Println("DATA VALUES : ",data,r.data)
-	r.data=data
+	r.Data=data
+	fmt.Println("r data",r.Data)
 	r.Result=result.Result
 	return c.JSON(http.StatusOK,r)
 }
@@ -458,11 +457,11 @@ func calculate[U models.Analytic,T models.ReadDatabase[U]](v T,ctx context.Conte
 	if result.Result!=nil{
 		return data,models.Result{Result:result.Result},nil
 	}
-	result,err=external.PERT(data);if err!=nil{
+	result,err=external.RequestAndCalculatePERTCPM(data);if err!=nil{
 		log.Println("Error fetching result: ",err)
 		return data,models.Result{},ErrFetchingResult
 	}
-	
+
 	log.Println("data ; ",data,"result ",result)
 	return data,result,nil
 
