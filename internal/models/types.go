@@ -63,7 +63,6 @@ type Pert struct {
     Pessimistic          int                `json:"pessimistic" validate:"required"`
     MostLikely           int                `json:"mostLikely" validate:"required"`
     ParentProjectID      int
-    PertResult           Result  `json:"result"`
 }
 
 
@@ -76,10 +75,10 @@ type Cpm struct {
     LatestFinish    int                 `json:"latestFinish" validate:"required"`
     SlackTime       int                 `json:"slackTime" validate:"required"`
     CriticalPath    bool                `json:"criticalPath" default:"false"`
-    ParentProjectID int                 `json:"parentProjectID"`  
-    CpmResult       Result   `json:"result"`
+    ParentProjectID int                 `json:"parentProjectID"`
+    Dependencies    []int               `json:"dependencies"`  
 }
 
-type Result struct{
+type Result struct{         
     Result map[string]any
 }

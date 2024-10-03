@@ -6,8 +6,8 @@ app = Flask(__name__)
 
 cors = CORS(app, resources={r"/api/*": {"origins": "http://localhost:4000"}})
 
-@app.route("/api/pert", methods=['POST'])  # Allow POST requests
-def handle_pert():
+@app.route("/api/cpm", methods=['POST'])  # Allow POST requests
+def handle_cpm():
     data = request.json  # Expect a JSON payload
     if not data:
         return jsonify({'error': 'Invalid data'}), 400  # Return an error if no data is received
@@ -22,6 +22,14 @@ def handle_pert():
     }
     print(res)
     return jsonify(res)
+
+@app.route("/api/pert",methods=['POST'])
+def handle_pert():
+    data=request.json
+    if not data:
+        return jsonify({'error':'invalid data'}),400
+    print("data in python: ",data)
+
 
 if __name__ == "__main__":
     app.run()

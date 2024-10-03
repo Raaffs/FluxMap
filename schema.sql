@@ -1,5 +1,4 @@
 -- Switch to mapmyprojectv2 database
-drop table tasks cascade;
 -- Users table
 CREATE TABLE users (
     username VARCHAR(255) PRIMARY KEY,
@@ -18,13 +17,14 @@ CREATE TABLE projects(
     ownername VARCHAR(255) NOT NULL,
     FOREIGN KEY (ownername) REFERENCES users(username) ON DELETE CASCADE
 );
-    
+
 create table managers(
-	managername VARCHAR(255) ,
+	managername VARCHAR(255),
 	projectID	INT,
-    PRIMARY KEY(managername,projectID)
-	FOREIGN KEY (manager) REFERENCES users(username) ON DELETE cascade,
+	primary KEY(managername,projectID),
+	FOREIGN KEY (managername) REFERENCES users(username) ON DELETE cascade,
 	FOREIGN KEY (projectID) REFERENCES projects(projectID) ON DELETE CASCADE
+
 );
 
 
@@ -42,11 +42,11 @@ CREATE TABLE tasks(
     FOREIGN KEY (parentProjectID) REFERENCES projects(projectID) ON DELETE CASCADE
 );
 
+
 -- PERT table with composite key references
 CREATE TABLE pert(
     parentTaskID INTEGER NOT NULL,
     predecessorTaskID INTEGER,
-    predecessorProjectID INTEGER,
     optimistic INTEGER NOT NULL,
     pessimistic INTEGER NOT NULL,
     mostLikely INTEGER NOT NULL,
@@ -67,3 +67,42 @@ CREATE TABLE cpm(
     PRIMARY KEY (taskID),
     FOREIGN KEY (taskID) REFERENCES tasks(taskID) ON DELETE CASCADE
 );
+
+
+ALTER TABLE users
+ALTER COLUMN created SET DEFAULT CURRENT_TIMESTAMP;
+
+
+alter table pert 
+add column parentProjectID INTEGER;
+
+ALTER TABLE Pert 
+ADD CONSTRAINT fk_parentProjectID
+FOREIGN KEY (parentProjectID) REFERENCES projects(projectID);
+
+
+alter table CPM 
+add column parentProjectID INTEGER;
+
+ALTER TABLE CPM 
+ADD CONSTRAINT fk_parentProjectID
+FOREIGN KEY (parentProjectID) REFERENCES projects(projectID)
+
+create table cpmResult(
+	projectID integer,
+	result	  json,
+	primary key(projectID),
+	foreign key (ProjectID) references projects(projectID)
+	
+);
+
+create table pertResult(
+	projectID integer,
+	result	  json,
+	primary key(projectID),
+	foreign key (ProjectID) references projects(projectID)
+	
+);
+
+alter table cpm
+add column dependencies INT[]
