@@ -24,7 +24,14 @@ type User struct {
     Password       string    `json:"password" validate:"required,min=8"`
     HashedPassword string    `json:"hashedPassword,omitempty"`
     Created        string    `json:"created,omitempty"`
+}
 
+type Invitation struct{
+    ID                 string         `json:"id"`
+    Username           string         `json:"username"`       
+    ProjectID          int            `json:"projectID,omitempty"`           // Primary Key
+    ProjectName        string         `json:"projectName" validate:"required"`
+    ProjectDescription null.String    `json:"projectDescription,omitempty"`
 }
 
 // Project represents a project in the database
@@ -57,14 +64,14 @@ type Task struct {
 }
 // Pert represents a PERT record in the database
 
-    type Pert struct {
-        ParentTaskID         int                `json:"parentTaskId"`         // Primary Key, Foreign Key (Task.TaskID)
-        PredecessorTaskID    null.Int64         `json:"predecessorTaskId,omitempty"` // Foreign Key (Task.TaskID)
-        Optimistic           int                `json:"optimistic" validate:"required"`
-        Pessimistic          int                `json:"pessimistic" validate:"required"`
-        MostLikely           int                `json:"mostLikely" validate:"required"`
-        ParentProjectID      int
-    }
+type Pert struct {
+    ParentTaskID         int                `json:"parentTaskId"`         // Primary Key, Foreign Key (Task.TaskID)
+    PredecessorTaskID    null.Int64         `json:"predecessorTaskId,omitempty"` // Foreign Key (Task.TaskID)
+    Optimistic           int                `json:"optimistic" validate:"required"`
+    Pessimistic          int                `json:"pessimistic" validate:"required"`
+    MostLikely           int                `json:"mostLikely" validate:"required"`
+    ParentProjectID      int
+}
 
 
 // Cpm represents a CPM record in the database

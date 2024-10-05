@@ -88,3 +88,28 @@ func(u *UserModel)IsAdmin(ctx context.Context,username string, projectID string)
 	}
     return isAdmin,nil
 }
+
+func (u *UserModel)Invite(ctx context.Context,username string, projectID int)(error){
+	query:=`
+		INSERT INTO invitation(username,projectID)
+		VALUES($1,$2)
+	`
+	 _,err:=u.DB.Exec(ctx,query,username,projectID); if err!=nil{
+		return err
+	 }
+	return nil
+}
+
+
+
+func (u *UserModel)ConfirmInvitation(ctx context.Context, confirmation bool, projectID int,)error{
+	query:=`
+		UPDATE invitation
+		SET accepted=$1
+		WHERE projectID=$2
+	`
+	_,err:=u.DB.Exec(ctx,query,confirmation,projectID); if err!=nil{
+		return err
+	}
+	return nil
+}

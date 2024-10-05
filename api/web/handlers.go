@@ -217,6 +217,45 @@ func (app *Application) GetProjects(c echo.Context) error {
 	}
 }
 
+func(app *Application)Invite(c echo.Context)error{
+	invitation:=struct{
+		Username  string `json:"username"`
+		ProjectID int `json:"projectID"`
+	}{}
+	if err:=c.Bind(invitation);err!=nil{
+		return c.JSON(http.StatusBadRequest,MapMessage("Invite","Invalid JSON"))
+	}
+
+	exist,err:=app.models.Users.Exist(c.Request().Context(),invitation.Username)
+	if !exist{
+		return c.JSON(http.StatusNotFound,MapMessage("Invite","User not found"))
+	}
+	if err!=nil{
+		c.Logger().Error("Error inviting user:",err)
+		return c.JSON(http.StatusInternalServerError,MapMessage("Invite","Error while checking user existence"))
+	}
+	if err:=app.models.Users.Invite(c.Request().Context(),invitation.Username,invitation.ProjectID); err!=nil{
+		c.Logger().Error("Error inviting user: ",err)
+		return c.JSON(http.StatusInternalServerError,MapMessage("Invite","Failed to invite user"))
+	}
+	return nil
+}
+
+
+
+func(app *Application)ConfirmInvitation(c echo.Context)error{
+	invitation:=struct{
+		ProjectID int `json:"projectID"`
+		Confirmation bool `json:"confirmation"`
+	}{}
+
+	if err:=app.models.Users.ConfirmInvitation(c.Request().Context(),invitation.Confirmation,invitation.ProjectID);err!=nil{
+		c.Logger().Error("Error confirming invitation: ",err)
+		return c.JSON(http.StatusInternalServerError,MapMessage("Confirm Invitation","Failed to confirm invitation"))
+	}
+	return nil
+}
+
 func (app *Application)CreateTask(c echo.Context)error{
 	var t models.Task
 	v:= validator.New()
@@ -287,6 +326,14 @@ func (app *Application)UpdateProject(c echo.Context)error{
 }
 
 func (app *Application)UpdateTask(c echo.Context)error{
+	var t models.Task
+	if err:=c.Bind(&t);err!=nil{
+		return c.JSON(http.StatusBadRequest,MapMessage("error","invalid request"))
+	}
+	if err:=app.models.Task.UpdateTask(c.Request().Context(),t);err!=nil{
+		c.Logger().Error(MapMessage("Error updating task",err.Error()))
+		return c.JSON(http.StatusInternalServerError,MapMessage("error","internal server error"))
+	}
 	return c.JSON(http.StatusOK,"updated successfully")
 }
 

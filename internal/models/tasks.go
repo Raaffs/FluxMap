@@ -25,6 +25,20 @@ VALUES($1, $2, $3, $4, $5, $6)`
 	return nil
 }
 
+func (t *TaskModel)UpdateTask(ctx context.Context,task Task)error{
+	query:=`
+	UPDATE tasks 
+	SET taskStatus=$1
+	WHERE taskID=$2
+	`
+	_,err:=t.DB.Exec(ctx,query,task.TaskStatus,task.TaskID);if err!=nil{
+		t.Errorlog.Println(err)
+		return err
+	}
+	return nil
+}
+
+
 func (t *TaskModel)UpdateManagerTask(ctx context.Context,task Task)error{
 	query:=`
 	UPDATE tasks 
