@@ -52,10 +52,8 @@ func (app *Application)InitRoutes()*echo.Echo{
 	
 	e.GET("/api/project/:id/pert",app.GetPert,IsAuthorizedUser)
 	e.POST("/api/project/:id/pert",app.CreatePert,IsAuthorizedUser)
-	e.PUT("/api/project/:id/pert",app.UpdatePert,IsAuthorizedUser)
 
 	e.GET("/api/project/:id/cpm",app.GetCpm,IsAuthorizedUser)
 	e.POST("/api/project/:id/cpm",app.CreateCpm,IsAuthorizedUser)
-	e.PUT("/api/project/:id/cpm",app.UpdateCpm,IsAuthorizedUser)
 	return e
 }

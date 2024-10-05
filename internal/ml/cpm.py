@@ -20,8 +20,8 @@ def get_task_distributions(tasks):
             "mean": mean,
             "std_dev": std_dev,
             "total_float": task["latestStart"] - task["earliestStart"],
-            "free_float": compute_free_float(task, tasks),
-            "independent_float": task["latestStart"] - task["earliestFinish"] - task["successorSlack"]
+            "free_float": sanitize_float(compute_free_float(task, tasks)),  # Updated here
+            "independent_float": task["latestStart"] - task["earliestFinish"] - task["slackTime"]
         })
         
         # Sum means and variances for overall distribution
@@ -38,6 +38,7 @@ def get_task_distributions(tasks):
 
     return task_distributions
 
+# Function to compute free float with handling for infinity
 def compute_free_float(task, tasks):
     # Find the earliest start time of the next task
     next_tasks = [t for t in tasks if task["taskId"] in t.get("dependencies", [])]
@@ -46,6 +47,12 @@ def compute_free_float(task, tasks):
 
     earliest_start_next = min(nt["earliestStart"] for nt in next_tasks)
     return task["earliestFinish"] - earliest_start_next
+
+# Function to sanitize infinite and NaN float values
+def sanitize_float(value):
+    if np.isinf(value):
+        return None
+    return value
 
 def get_critical_path_distributions(tasks):
     critical_path_distributions = []
@@ -60,8 +67,8 @@ def get_critical_path_distributions(tasks):
                 "mean": mean,
                 "std_dev": std_dev,
                 "total_float": task["latestStart"] - task["earliestStart"],
-                "free_float": compute_free_float(task, tasks),
-                "independent_float": task["latestStart"] - task["earliestFinish"] - task["successorSlack"]
+                "free_float": sanitize_float(compute_free_float(task, tasks)),  # Updated here
+                "independent_float": task["latestStart"] - task["earliestFinish"] - task["slackTime"]
             })
 
             critical_path_mean += mean
@@ -75,55 +82,3 @@ def get_critical_path_distributions(tasks):
     })
 
     return critical_path_distributions
-
-# Example of tasks data
-tasks = [
-    {
-        "taskId": "A",
-        "earliestStart": 0,
-        "earliestFinish": 4,
-        "latestStart": 0,
-        "dependencies": [],
-        "successorSlack": 0,
-        "criticalPath": True
-    },
-    {
-        "taskId": "B",
-        "earliestStart": 4,
-        "earliestFinish": 8,
-        "latestStart": 4,
-        "dependencies": ["A"],
-        "successorSlack": 0,
-        "criticalPath": True
-    },
-    {
-        "taskId": "C",
-        "earliestStart": 2,
-        "earliestFinish": 6,
-        "latestStart": 4,
-        "dependencies": ["A"],
-        "successorSlack": 2,
-        "criticalPath": False
-    },
-    {
-        "taskId": "D",
-        "earliestStart": 8,
-        "earliestFinish": 10,
-        "latestStart": 8,
-        "dependencies": ["B", "C"],
-        "successorSlack": 0,
-        "criticalPath": True
-    }
-]
-
-# Usage
-task_distributions = get_task_distributions(tasks)
-critical_path_distributions = get_critical_path_distributions(tasks)
-
-print("Task Distributions:")
-for dist in task_distributions:
-    print(dist)
-
-print("\nCritical Path Distributions:")
-for dist in critical_path_distributions:
-    print(dist)

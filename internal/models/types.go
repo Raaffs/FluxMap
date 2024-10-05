@@ -8,6 +8,7 @@ import (
 
 type ReadDatabase[T  Analytic ] interface{
     Exist()(bool,error)
+    InsertResult(context.Context,int,Result)error
     GetData(context.Context,int)([]*T,error)
     GetResult(context.Context,int)(Result,error)
 }
@@ -56,14 +57,14 @@ type Task struct {
 }
 // Pert represents a PERT record in the database
 
-type Pert struct {
-    ParentTaskID         int                `json:"parentTaskId"`         // Primary Key, Foreign Key (Task.TaskID)
-    PredecessorTaskID    null.Int64         `json:"predecessorTaskId,omitempty"` // Foreign Key (Task.TaskID)
-    Optimistic           int                `json:"optimistic" validate:"required"`
-    Pessimistic          int                `json:"pessimistic" validate:"required"`
-    MostLikely           int                `json:"mostLikely" validate:"required"`
-    ParentProjectID      int
-}
+    type Pert struct {
+        ParentTaskID         int                `json:"parentTaskId"`         // Primary Key, Foreign Key (Task.TaskID)
+        PredecessorTaskID    null.Int64         `json:"predecessorTaskId,omitempty"` // Foreign Key (Task.TaskID)
+        Optimistic           int                `json:"optimistic" validate:"required"`
+        Pessimistic          int                `json:"pessimistic" validate:"required"`
+        MostLikely           int                `json:"mostLikely" validate:"required"`
+        ParentProjectID      int
+    }
 
 
 // Cpm represents a CPM record in the database

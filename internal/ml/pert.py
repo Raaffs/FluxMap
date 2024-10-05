@@ -1,118 +1,105 @@
+import json
 import numpy as np
+from collections import defaultdict, deque
 
-# Function to compute PERT distribution for a single task
-def compute_pert_distribution(task):
-    optimistic = task["optimistic"]
-    most_likely = task["mostLikely"]
-    pessimistic = task["pessimistic"]
+def calculate_pert_values(task):
+    optimistic = task['optimistic']
+    pessimistic = task['pessimistic']
+    most_likely = task['mostLikely']
+    
+    expected_time = (optimistic + 4 * most_likely + pessimistic) / 6
+    variance = ((pessimistic - optimistic) / 6) ** 2
+    stddev = np.sqrt(variance)
+    
+    return expected_time, variance, stddev
 
-    # Calculate the expected duration (mean) using the PERT formula
-    mean = (optimistic + 4 * most_likely + pessimistic) / 6
-
-    # Calculate the standard deviation (using the PERT formula)
-    std_dev = (pessimistic - optimistic) / 6
-
-    return mean, std_dev
-
-# Function to compute Z-value for a task
-def compute_z_value(observed_duration, mean, std_dev):
-    if std_dev == 0:  # To avoid division by zero
-        return 0
-    return (observed_duration - mean) / std_dev
-
-# Function to process PERT tasks, including predecessor relationships and Z-values
-def get_pert_distributions(tasks):
-    task_map = {task["parentTaskId"]: task for task in tasks}
-    task_distributions = []
-    overall_mean = 0
-    overall_variance = 0
-
+def get_pert_task_distributions(tasks):
+    results = []
     for task in tasks:
-        mean, std_dev = compute_pert_distribution(task)
+        expected_time, variance, stddev = calculate_pert_values(task)
+        task_info = {
+            'taskId': task['parentTaskId'],
+            'mean': expected_time,
+            'variance': variance,
+            'stddev': stddev,
+            'predecessorId': task['predecessorTaskId']
+        }
+        results.append(task_info)
+    return results
 
-        # If there is a predecessor task, add its mean to the current task
-        if task["predecessorTaskId"] in task_map:
-            predecessor_task = task_map[task["predecessorTaskId"]]
-            predecessor_mean, _ = compute_pert_distribution(predecessor_task)
-            mean += predecessor_mean  # Add predecessor's duration to the current task
+def build_graph(task_map):
+    graph = defaultdict(list)
+    in_degree = defaultdict(int)
 
-        # Compute Z-value (you can use the most likely value as observed duration)
-        observed_duration = task["mostLikely"]
-        z_value = compute_z_value(observed_duration, mean, std_dev)
+    for task in task_map.values():
+        if task['predecessorId'] is not None:
+            graph[task['predecessorId']].append(task['taskId'])
+            in_degree[task['taskId']] += 1
+            
+    return graph, in_degree
 
-        task_distributions.append({
-            "taskId": task["parentTaskId"],
-            "mean": mean,
-            "std_dev": std_dev,
-            "z_value": z_value
-        })
+def find_critical_path(graph, in_degree, task_map):
+    queue = deque()
+    earliest_finish = {task['taskId']: 0 for task in task_map.values()}
 
-        # Sum means and variances for overall distribution
-        overall_mean += mean
-        overall_variance += std_dev ** 2
+    for task_id in task_map.keys():
+        if in_degree[task_id] == 0:
+            queue.append(task_id)
 
-    # Overall project mean and standard deviation
-    overall_std = np.sqrt(overall_variance)
-    task_distributions.append({
-        "taskId": "overall",
-        "mean": overall_mean,
-        "std_dev": overall_std
-    })
+    while queue:
+        current = queue.popleft()
+        current_finish = earliest_finish[current] + task_map[current]['mean']
+        
+        for neighbor in graph[current]:
+            in_degree[neighbor] -= 1
+            earliest_finish[neighbor] = max(earliest_finish[neighbor], current_finish)
+            if in_degree[neighbor] == 0:
+                queue.append(neighbor)
 
-    return task_distributions
+    max_finish_time = max(earliest_finish.values())
+    
+    critical_path = []
+    for task_id in task_map.keys():
+        if earliest_finish[task_id] == max_finish_time:
+            critical_path.append(task_id)
+            max_finish_time -= task_map[task_id]['mean']
 
-# Function to return critical path distributions (if needed for PERT analysis)
-def get_critical_path_distributions(tasks):
-    task_map = {task["parentTaskId"]: task for task in tasks}
-    critical_path_distributions = []
-    critical_path_mean = 0
-    critical_path_variance = 0
+    if critical_path:
+        critical_path.reverse()
+        parent_map = {task['taskId']: task['predecessorId'] for task in task_map.values() if task['predecessorId'] is not None}
 
-    for task in tasks:
-        if task.get("criticalPath", False):
-            mean, std_dev = compute_pert_distribution(task)
+        complete_path = []
+        current_task = critical_path[0]
+        while current_task is not None:
+            complete_path.append(current_task)
+            current_task = parent_map.get(current_task)
 
-            # Add predecessor task's mean to critical path task if exists
-            if task["predecessorTaskId"] in task_map:
-                predecessor_task = task_map[task["predecessorTaskId"]]
-                predecessor_mean, _ = compute_pert_distribution(predecessor_task)
-                mean += predecessor_mean
+        return complete_path[::-1]
 
-            # Compute Z-value for critical path task
-            observed_duration = task["mostLikely"]
-            z_value = compute_z_value(observed_duration, mean, std_dev)
+    return []
 
-            critical_path_distributions.append({
-                "taskId": task["parentTaskId"],
-                "mean": mean,
-                "std_dev": std_dev,
-                "z_value": z_value
-            })
+def main(json_data):
+    tasks = json.loads(json_data)
+    
+    # Get task distributions
+    task_map = {}
+    task_distributions = get_pert_task_distributions(tasks)
+    for task_info in task_distributions:
+        task_map[task_info['taskId']] = task_info
+    
+    # Build graph and calculate critical path
+    graph, in_degree = build_graph(task_map)
+    critical_path = find_critical_path(graph, in_degree, task_map)
 
-            critical_path_mean += mean
-            critical_path_variance += std_dev ** 2
-
-    critical_path_std = np.sqrt(critical_path_variance)
-    critical_path_distributions.append({
-        "taskId": "criticalPathOverall",
-        "mean": critical_path_mean,
-        "std_dev": critical_path_std
-    })
-
-    return critical_path_distributions
-
-# Example usage
-if __name__ == "__main__":
-    tasks = [
-        {"parentTaskId": 1, "predecessorTaskId": None, "optimistic": 2, "mostLikely": 4, "pessimistic": 6},
-        {"parentTaskId": 2, "predecessorTaskId": 1, "optimistic": 3, "mostLikely": 5, "pessimistic": 8},
-        {"parentTaskId": 3, "predecessorTaskId": 2, "optimistic": 1, "mostLikely": 2, "pessimistic": 5, "criticalPath": True},
-        {"parentTaskId": 4, "predecessorTaskId": 2, "optimistic": 2, "mostLikely": 4, "pessimistic": 7, "criticalPath": True},
-        {"parentTaskId": 5, "predecessorTaskId": 3, "optimistic": 2, "mostLikely": 4, "pessimistic": 7, "criticalPath": False}
-    ]
-
-    pert_distributions = get_pert_distributions(tasks)
-    critical_path_distributions = get_critical_path_distributions(tasks)
-
-    print("PERT Task Distributions:", pert_distributions)
-    print("Critical Path Distributions:", critical_path_distributions)
+    # Print results
+    print("Task Results:", [
+        {
+            'taskId': info['taskId'],
+            'mean': info['mean'],
+            'variance': info['variance'],
+            'stddev': info['stddev'],
+            'predecessorId': info['predecessorId']
+        }
+        for info in task_distributions
+    ])
+    print("Critical Path:", critical_path)

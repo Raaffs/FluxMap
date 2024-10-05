@@ -17,13 +17,24 @@ func RequestAndCalculatePERTCPM[T models.Analytic](a []*T) (models.Result, error
 	if err != nil {
 		return models.Result{}, err
 	}
-
-	resp, err := http.Post("http://localhost:5000/api/pert", "application/json", bytes.NewBuffer(data))
+	url:="http://localhost:5000/api/%s"
+	switch any(*a[0]).(type) {
+    case models.Cpm:
+		fmt.Println("here in pert")
+		url=fmt.Sprintf(url,"cpm")
+    case models.Pert:
+		fmt.Println("here in pert")	
+		url=fmt.Sprintf(url,"pert")
+    default:
+		return models.Result{},fmt.Errorf("unknown type")
+    }
+	log.Println("URL:",url)
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(data))
 	if err != nil {
-		return models.Result{}, err
+		return models.Result{}, err		
 	}
+	fmt.Println(resp.Body)
 	defer resp.Body.Close()
-
 	if resp.StatusCode != http.StatusOK {
 		return models.Result{}, fmt.Errorf("received non-200 response: %s", resp.Status)
 	}

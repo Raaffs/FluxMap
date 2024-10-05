@@ -20,6 +20,14 @@ func(p *PertModel[T])Insert(ctx context.Context,PertValues []Pert)error{
 	query:=`
 		INSERT INTO Pert(ParentTaskID, PredecessorTaskID, Optimistic, Pessimistic, MostLikely, ParentProjectID)
 		VALUES($1, $2, $3, $4, $5, $6)
+		ON CONFLICT (parentTaskID)
+		DO UPDATE SET
+			PredecessorTaskID = $2,
+			Optimistic = $3,
+			Pessimistic = $4,
+			MostLikely = $5,
+			ParentProjectID = $6
+
 	`
 	for _,val :=range PertValues{
 		_, err := p.DB.Exec(ctx,query,val.ParentTaskID, val.PredecessorTaskID,val.Optimistic,val.Pessimistic,val.MostLikely,val.ParentProjectID);if err!=nil{
@@ -27,8 +35,27 @@ func(p *PertModel[T])Insert(ctx context.Context,PertValues []Pert)error{
 			return err
 		}
 	}
+
 	return nil
 }
+
+func(p *PertModel[T])InsertResult(ctx context.Context,projectID int, result Result)(error){
+	query:=`
+		INSERT into pertResult(projectID, result)
+		VALUES($1,$2)
+		ON CONFLICT	(projectID)
+		DO UPDATE 
+		SET
+		result=EXCLUDED.result
+	`
+	_,err:=p.DB.Exec(ctx,query,projectID,result.Result);if err!=nil{
+		return err
+	}
+	fmt.Println("result in pertmodel:",result.Result)
+
+	return nil
+}
+
 func(p *PertModel[T])Exist()(bool,error){
 	return true,nil
 }
@@ -70,12 +97,14 @@ func(p *PertModel[T])GetData(ctx context.Context,projectID int)([]*T,error){
 }
 
 func(p *PertModel[T])GetResult(ctx context.Context,projectID int)(Result,error){
-	var result Result
+	result:=Result{
+		Result: make(map[string]any),
+	}
 	query:=`SELECT result
 	FROM pertResult
 	WHERE projectID=$1
 	`
-	if err :=p.DB.QueryRow(ctx,query,projectID).Scan(result);err!=nil{
+	if err :=p.DB.QueryRow(ctx,query,projectID).Scan(&result.Result);err!=nil{
 		if errors.Is(err,sql.ErrNoRows){
 			return Result{},ErrRecordNotFound
 		}

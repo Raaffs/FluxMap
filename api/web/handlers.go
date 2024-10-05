@@ -363,7 +363,7 @@ func(app *Application)GetPert(c echo.Context)error{
 		return c.JSON(http.StatusNotFound,"Invalid project ID")
 	}
 
-	data,result,err:=calculate(&app.models.Pert,c.Request().Context(),projectID); if err!=nil{
+	data,result,err:=getAnalytics(&app.models.Pert,c.Request().Context(),projectID); if err!=nil{
 		if errors.Is(err,models.ErrRecordNotFound){
 			return c.JSON(http.StatusNotFound,MapMessage("message","No data CPM related data found"))
 		}
@@ -377,6 +377,7 @@ func(app *Application)GetPert(c echo.Context)error{
 	r.Data=data
 	fmt.Println("r data",r.Data)
 	r.Result=result.Result
+
 	return c.JSON(http.StatusOK,r)
 }
 
@@ -385,11 +386,19 @@ func(app *Application)CreatePert(c echo.Context)error{
 	if err:=c.Bind(&pert);err!=nil{
 		return c.JSON(http.StatusBadRequest,"Invalid request body")
 	}
+	fmt.Println("mf1")
 	if err:=app.models.Pert.Insert(c.Request().Context(),pert);err!=nil{
 		c.Logger().Error(MapMessage("Pert Error",err.Error()))
 		return c.JSON(http.StatusInternalServerError,MapMessage("error","failed to insert pert data"))
 	}
-	return c.JSON(http.StatusOK,map[string]string{"message":"pert data inserted successfully"})
+	fmt.Println("mf2")
+	if err:=calculate[models.Pert,*models.PertModel[models.Pert]](&app.models.Pert,c.Request().Context(),pert[0].ParentProjectID);err!=nil{
+		c.Logger().Error("Error calculating pert : ",err)
+		return c.JSON(http.StatusInternalServerError,MapMessage("Error","Failed to calculate values"))
+	}
+	fmt.Println("mf3")
+
+	return c.JSON(http.StatusOK,MapMessage("PERT","data and result inserted successfully"))
 }
 
 func(app *Application)UpdatePert(c echo.Context)error{
@@ -407,7 +416,7 @@ func(app *Application)GetCpm(c echo.Context)error{
 		return c.JSON(http.StatusNotFound,"Invalid project ID")
 	}
 
-	data,result,err:=calculate(&app.models.Cpm,c.Request().Context(),projectID); if err!=nil{
+	data,result,err:=getAnalytics(&app.models.Cpm,c.Request().Context(),projectID); if err!=nil{
 		if errors.Is(err,models.ErrRecordNotFound){
 			return c.JSON(http.StatusNotFound,MapMessage("message","No data CPM related data found"))
 		}
@@ -419,7 +428,6 @@ func(app *Application)GetCpm(c echo.Context)error{
 		return c.JSON(http.StatusInternalServerError,MapMessage("error","Error getting CPM data"))
 	}
 	r.Data=data
-	fmt.Println("r data",r.Data)
 	r.Result=result.Result
 	return c.JSON(http.StatusOK,r)
 }
@@ -429,11 +437,15 @@ func(app *Application)CreateCpm(c echo.Context)error{
 	if err:=c.Bind(&cpm);err!=nil{
 		return c.JSON(http.StatusBadRequest,"Invalid request body")
 	}
+	
 	if err:=app.models.Cpm.Insert(c.Request().Context(),cpm);err!=nil{
 		c.Logger().Error(MapMessage("cpm Error",err.Error()))
-		return c.JSON(http.StatusInternalServerError,MapMessage("error","failed to insert pert data"))
+		return c.JSON(http.StatusInternalServerError,MapMessage("error","failed to insert cpm data"))
 	}
-
+	if err:=calculate(&app.models.Cpm,c.Request().Context(),cpm[0].ParentProjectID); err!=nil{
+		c.Logger().Error("Error calculating cpm data : ",err)
+		return c.JSON(http.StatusInternalServerError,MapMessage("error","Failed to calculate CPM values"))
+	}
 	return c.JSON(http.StatusOK,MapMessage("message","cpm data inserted successfully"))
 }
 
@@ -441,28 +453,49 @@ func(app *Application)UpdateCpm(c echo.Context)error{
 	return c.JSON(http.StatusOK,"done")
 }
 
-func calculate[U models.Analytic,T models.ReadDatabase[U]](v T,ctx context.Context, id int)([]*U,models.Result,error){
+
+func storeResult[U models.Analytic, T models.ReadDatabase[U]](t T,ctx context.Context,id int, result models.Result)error{
+	if err:=t.InsertResult(ctx,id,result);err!=nil{
+		return err
+	}
+	return nil
+}
+
+func calculate[U models.Analytic,T models.ReadDatabase[U]](v T,ctx context.Context, id int)(error){
+	data,err:=v.GetData(ctx,id);if err!=nil{
+		return err 
+	}
+	fmt.Println("here1")
+	if data==nil{
+		return models.ErrRecordNotFound
+	}
+	fmt.Println("here2")
+
+	result,err:=external.RequestAndCalculatePERTCPM(data); if err!=nil{
+		log.Println("Error fetching result: ",err)
+		return ErrFetchingResult
+	}
+	fmt.Println("here3")
+
+	if err:=storeResult(v,ctx,id,result);err!=nil{
+		return err
+	}
+	fmt.Println("here4")
+	return nil
+}
+
+func getAnalytics[U models.Analytic,T models.ReadDatabase[U]](v T,ctx context.Context, id int)([]*U,models.Result,error){
 	data,err:=v.GetData(ctx,id);if err!=nil{
 		return nil,models.Result{},err 
 	}
 	if data==nil{
 		return nil,models.Result{},models.ErrRecordNotFound
 	}
-
 	result,err:=v.GetResult(ctx,id); if err!=nil{
 		if !errors.Is(err, models.ErrRecordNotFound){
 			return data,models.Result{},ErrFetchingResult
 		}
 	}
-	if result.Result!=nil{
-		return data,models.Result{Result:result.Result},nil
-	}
-	result,err=external.RequestAndCalculatePERTCPM(data);if err!=nil{
-		log.Println("Error fetching result: ",err)
-		return data,models.Result{},ErrFetchingResult
-	}
-
-	log.Println("data ; ",data,"result ",result)
 	return data,result,nil
 
 }
