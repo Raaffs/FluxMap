@@ -100,8 +100,6 @@ func (u *UserModel)Invite(ctx context.Context,username string, projectID int)(er
 	return nil
 }
 
-
-
 func (u *UserModel)ConfirmInvitation(ctx context.Context, confirmation bool, projectID int,)error{
 	query:=`
 		UPDATE invitation
