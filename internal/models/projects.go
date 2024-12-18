@@ -1,3 +1,4 @@
+
 package models
 
 import (
@@ -46,7 +47,6 @@ func(p *ProjectModel)RetrieveAdminProjects(ctx context.Context,username string)(
 		}
 		projects=append(projects,&project)
 	}
-	fmt.Println("scanned all")
 	if err = rows.Err(); err != nil {
 		p.Errorlog.Println("Error reading rows: ",err)
 		return []*Project{}, err

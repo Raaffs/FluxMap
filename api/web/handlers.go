@@ -20,9 +20,11 @@ import (
 
 func(app *Application)Login(c echo.Context)error{
 	var u models.User
+
 	err := c.Bind(&u); if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
     }
+	log.Println("lets see: ",u)
 	if err:=app.models.Users.Login(c.Request().Context(),u.Username,u.Password);err!=nil{
 		if errors.Is(err,models.ErrInvalidCredential){
 			return c.JSON(http.StatusUnauthorized,"invalid credential")
@@ -35,6 +37,7 @@ func(app *Application)Login(c echo.Context)error{
 	}
 
 	SetCookie("username",u.Username,c)
+	log.Println("logged in successfully")
 	return c.JSON(http.StatusOK,"")
 }
 
@@ -55,7 +58,7 @@ func(app *Application)Register(c echo.Context)error{
 	v.Check(
 		validator.IsStrongPassword(u.Password),
 		validator.ErrPasswordTooWeak.Key,
-		validator.ErrDescriptionTooShort.Message,
+		validator.ErrPasswordTooWeak.Message,
 	)
 
 	v.Check(
@@ -64,14 +67,19 @@ func(app *Application)Register(c echo.Context)error{
 		"invalid email",
 	)
 
+	if !v.Valid(){
+		return c.JSON(http.StatusBadRequest,v)
+	}
+
 	hash,err:=HashPassword(u.Password);if err!=nil{
 		return echo.NewHTTPError(echo.ErrInternalServerError.Code,"error creating user")
 	}
 
+
 	u.HashedPassword=hash
 	if err:=app.models.Users.Create(context.Background(),u);err!=nil{
 		if errors.Is(err,models.ErrAlreadyExist){
-			return c.JSON(http.StatusConflict,MapMessage("error",models.ErrAlreadyExist.Error()))
+			return c.JSON(http.StatusConflict,MapMessage("error","User already exist"))
 		}
 		c.Logger().Error("Error creating user: ",err)
 		return echo.NewHTTPError(echo.ErrInternalServerError.Code,"internal server error")
@@ -216,6 +224,55 @@ func (app *Application) GetProjects(c echo.Context) error {
 		}
 	}
 }
+
+func(app *Application)GetAdminProjects(c echo.Context)error{
+	user, err := c.Cookie("username")
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, "Unauthorized")
+	}
+	adminProjects,err:=app.models.Projects.RetrieveAdminProjects(c.Request().Context(),user.Value); if err!=nil{
+		c.Logger().Error("Error retrieving projects : ",err)
+		c.JSON(http.StatusInternalServerError,MapMessage("Project","An error occurred while retrieving project"))
+	}
+	c.JSON(http.StatusOK,adminProjects)
+	return nil
+}
+
+func(app *Application) GetManagerProjects(c echo.Context) error {
+	user, err := c.Cookie("username")
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, "Unauthorized")
+	}
+
+	managerProjects, err := app.models.Projects.RetrieveManagerProjects(c.Request().Context(), user.Value)
+	if err != nil {
+		c.Logger().Error("Error retrieving manager projects: ", err)
+		return c.JSON(http.StatusInternalServerError, MapMessage("Project", "An error occurred while retrieving manager projects"))
+	}
+
+	return c.JSON(http.StatusOK, managerProjects)
+}
+
+func(app *Application) GetAssignedProjects(c echo.Context) error {
+	// Retrieve the username from the cookie (same as before)
+	user, err := c.Cookie("username")
+	if err != nil {
+		// Unauthorized if the cookie is not found
+		return c.JSON(http.StatusUnauthorized, "Unauthorized")
+	}
+
+	// Call the method to retrieve assigned projects
+	assignedProjects, err := app.models.Projects.RetrieveAssginedProjects(c.Request().Context(), user.Value)
+	if err != nil {
+		// Log and handle errors
+		c.Logger().Error("Error retrieving assigned projects: ", err)
+		return c.JSON(http.StatusInternalServerError, MapMessage("Project", "An error occurred while retrieving assigned projects"))
+	}
+
+	// Return the assigned projects data
+	return c.JSON(http.StatusOK, assignedProjects)
+}
+
 
 func(app *Application)Invite(c echo.Context)error{
 	invitation:=struct{
@@ -433,18 +490,14 @@ func(app *Application)CreatePert(c echo.Context)error{
 	if err:=c.Bind(&pert);err!=nil{
 		return c.JSON(http.StatusBadRequest,"Invalid request body")
 	}
-	fmt.Println("mf1")
 	if err:=app.models.Pert.Insert(c.Request().Context(),pert);err!=nil{
 		c.Logger().Error(MapMessage("Pert Error",err.Error()))
 		return c.JSON(http.StatusInternalServerError,MapMessage("error","failed to insert pert data"))
 	}
-	fmt.Println("mf2")
 	if err:=calculate[models.Pert,*models.PertModel[models.Pert]](&app.models.Pert,c.Request().Context(),pert[0].ParentProjectID);err!=nil{
 		c.Logger().Error("Error calculating pert : ",err)
 		return c.JSON(http.StatusInternalServerError,MapMessage("Error","Failed to calculate values"))
 	}
-	fmt.Println("mf3")
-
 	return c.JSON(http.StatusOK,MapMessage("PERT","data and result inserted successfully"))
 }
 

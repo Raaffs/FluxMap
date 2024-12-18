@@ -18,6 +18,9 @@ func SetCookie(key string, value string, c echo.Context){
 	cookie := &http.Cookie{
         Name:  key,
         Value: value,
+        HttpOnly: true,
+        Secure: true,
+        Path: "/",
         Expires: time.Now().Add(72*time.Hour) ,
     }
 	c.SetCookie(cookie)
@@ -27,14 +30,19 @@ func FormatDate(t time.Time)string{
 	return t.Format("dd-mm-yyyy")
 }
 
-func MapMessage(key string,msg string)struct{Message map[string]string}{
-    return struct{Message map[string]string}{
-        Message: map[string]string{
-            key:key,
-            msg:msg,
-        },
+
+func MapMessage(key string,msg string)struct{Key string; Message string}{
+    return struct{
+        Key string
+        Message string
+    }{
+        Key: key,
+        Message: msg,
     }
 }
+
+
+
 
 func HashPassword(password string)(string,error){
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
