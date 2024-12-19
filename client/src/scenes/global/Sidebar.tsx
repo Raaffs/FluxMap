@@ -91,6 +91,7 @@ const SidebarEx = () => {
         }}
       >
         <MenuItem 
+          onClick={()=>navigate('/projects/admin')}
           icon={<AdminPanelSettingsSharpIcon/>}
           style={{
             color:'#4CAF50',
@@ -100,17 +101,23 @@ const SidebarEx = () => {
             Admin
           </MenuItem>
         <MenuItem  
+          onClick={()=>navigate('/projects/manager')}
           icon={<ManageAccountsOutlinedIcon/>}
           style={{
               color:'#8E44AD',
               backgroundColor: theme.palette.mode==='dark'? colors.primary[600]:'white' 
-            }}>Manager</MenuItem>
-        <MenuItem 
+            }}>
+              Manager
+            </MenuItem>
+        <MenuItem
+          onClick={()=>navigate('/projects/allocated')}
          icon={<PeopleOutlinedIcon/>}
          style={{
             color:'#3498DB',
             backgroundColor: theme.palette.mode==='dark'? colors.primary[600]:'white' 
-          }} >Allocated</MenuItem>
+          }} >
+            Allocated
+          </MenuItem>
       </SubMenu>
       <SubMenu
         label="Status"

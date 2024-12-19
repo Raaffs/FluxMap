@@ -19,8 +19,8 @@ func SetCookie(key string, value string, c echo.Context){
         Name:  key,
         Value: value,
         HttpOnly: true,
-        Secure: true,
-        Path: "/",
+        Secure: false,
+        SameSite: http.SameSiteDefaultMode  ,
         Expires: time.Now().Add(72*time.Hour) ,
     }
 	c.SetCookie(cookie)

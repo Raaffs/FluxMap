@@ -28,6 +28,22 @@ func (p *ProjectModel)Create(ctx context.Context, project Project)error{
 	return nil
 }
 
+func(p *ProjectModel)RetrieveProjectByID(ctx context.Context,id int)(Project,error){
+	var project Project
+	retrieve:=`
+		SELECT projectID,projectName,projectDescription,projectStartDate,projectDueDate,ownername 
+		FROM Projects 
+		WHERE projectID=$1
+	`
+	if err:=p.DB.QueryRow(ctx,retrieve,id).Scan(&project.ProjectID,&project.ProjectName,&project.ProjectDescription,&project.ProjectStartDate,&project.ProjectDueDate,&project.Ownername);err!=nil{
+		if errors.Is(err,sql.ErrNoRows){
+			return Project{},ErrRecordNotFound
+		}
+		return Project{},err
+	}
+	return project,nil
+}
+
 func(p *ProjectModel)RetrieveAdminProjects(ctx context.Context,username string)([]*Project,error){
 	var projects []*Project
 	retrieve:=`SELECT projectID,projectName,projectDescription,projectDueDate FROM Projects WHERE ownername=$1`

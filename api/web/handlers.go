@@ -234,6 +234,7 @@ func(app *Application)GetAdminProjects(c echo.Context)error{
 		c.Logger().Error("Error retrieving projects : ",err)
 		c.JSON(http.StatusInternalServerError,MapMessage("Project","An error occurred while retrieving project"))
 	}
+	log.Println(adminProjects)
 	c.JSON(http.StatusOK,adminProjects)
 	return nil
 }
@@ -254,23 +255,36 @@ func(app *Application) GetManagerProjects(c echo.Context) error {
 }
 
 func(app *Application) GetAssignedProjects(c echo.Context) error {
-	// Retrieve the username from the cookie (same as before)
 	user, err := c.Cookie("username")
 	if err != nil {
-		// Unauthorized if the cookie is not found
 		return c.JSON(http.StatusUnauthorized, "Unauthorized")
 	}
 
-	// Call the method to retrieve assigned projects
 	assignedProjects, err := app.models.Projects.RetrieveAssginedProjects(c.Request().Context(), user.Value)
 	if err != nil {
 		// Log and handle errors
 		c.Logger().Error("Error retrieving assigned projects: ", err)
 		return c.JSON(http.StatusInternalServerError, MapMessage("Project", "An error occurred while retrieving assigned projects"))
 	}
-
-	// Return the assigned projects data
 	return c.JSON(http.StatusOK, assignedProjects)
+}
+
+func(app *Application)GetProjectByID(c echo.Context)error{
+	_, err := c.Cookie("username")
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, "Unauthorized")
+	}
+	id, err := strconv.Atoi(c.Param("id"));if err!=nil{
+		return c.JSON(http.StatusBadRequest,MapMessage("message","Invalid project id"))
+	}
+	projects,err:=app.models.Projects.RetrieveProjectByID(c.Request().Context(),id);if err!=nil{
+		if errors.Is(err,models.ErrRecordNotFound){
+			return c.JSON(http.StatusNotFound,MapMessage("message","Project not found"))
+		}
+		c.Logger().Error("Error retrieving project by id: ",err)
+		return c.JSON(http.StatusInternalServerError,MapMessage("message","An error occurred while retrieving project by id"))
+	}
+	return c.JSON(http.StatusOK,projects)
 }
 
 
@@ -316,7 +330,6 @@ func(app *Application)ConfirmInvitation(c echo.Context)error{
 func (app *Application)CreateTask(c echo.Context)error{
 	var t models.Task
 	v:= validator.New()
-	fmt.Println("fjiejfoiejfoijeif")
 	if err:=c.Bind(&t);err!=nil{
 		return c.JSON(http.StatusBadRequest,MapMessage("error",ErrInvalidJson.Error()))
 	}
@@ -599,3 +612,5 @@ func getAnalytics[U models.Analytic,T models.ReadDatabase[U]](v T,ctx context.Co
 	return data,result,nil
 
 }
+
+

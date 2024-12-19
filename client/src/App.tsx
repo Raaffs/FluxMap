@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import './App.css';
-import { Route, Router, Routes } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import {ColorModeContext, useMode} from './theme'
 import { CssBaseline,ThemeProvider } from '@mui/material';
 import Topbar from './scenes/global/Topbar';
 import SidebarEx from './scenes/global/Sidebar';
 import LoginUser from './scenes/auth/login';
 import SignUpUser from './scenes/auth/signup';
+import { ProjectTaskDetailPage } from './components/task';
+import { ProjectOverview } from './scenes/projects/overview';
+import { AdminProjects,ManagerProjects,AllocatedProjects } from './scenes/projects/projects';
 function App() {
   const [theme, colorMode] = useMode();
   const [isSidebar,setIsSidebar]=useState(true)
@@ -21,6 +24,10 @@ function App() {
               <Routes>
                 <Route path='/login' element={<LoginUser/>}/>
                 <Route path='/register' element={<SignUpUser/>}/>
+                <Route path='/projects/admin' element={<AdminProjects/>}/>
+                <Route path='/projects/manager' element={<ManagerProjects/>}/>
+                <Route path='/projects/allocated' element={<AllocatedProjects/>}/>
+                <Route path='/project/:id' element={<ProjectOverview/>}/>
               </Routes>
             </main>
           </div>

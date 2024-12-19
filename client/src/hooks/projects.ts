@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Projects } from "./types";
-
 export const useRetrieveProjectsFrom = (link: string) => {
   const [projects, setProjects] = useState<Projects[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -9,17 +8,14 @@ export const useRetrieveProjectsFrom = (link: string) => {
   useEffect(() => {
     fetch(link, {
       method: "GET",
+      credentials: "include",
       headers: {
         "Content-Type": "application/json",
       },
     })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Failed to fetch projects");
-        }
-        return response.json();
-      })
+      .then((response) => response.json()) // Proceed without checking `response.ok`
       .then((data) => {
+        console.log(data)
         const mappedProjects: Projects[] = data.map((item: any) => ({
           projectID: item.projectID,
           projectName: item.projectName,
@@ -32,13 +28,14 @@ export const useRetrieveProjectsFrom = (link: string) => {
       })
       .catch((err) => {
         console.error("Error fetching projects:", err);
-        setError("Failed to load projects.");
+        setError(error); // Handle all errors here
         setLoading(false);
       });
-  }, [link]);
+  },[link]);
 
   return { projects, loading, error };
 };
+
 
 export const usePostProject = () => {
   const [loading, setLoading] = useState<boolean>(false);

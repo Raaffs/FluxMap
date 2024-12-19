@@ -10,12 +10,12 @@ export interface tasks {
     taskID: number;
     taskName: string;           // Required
     taskDescription?: string;   // Optional
-    taskStatus?: string;        // Optional
-    taskStartDate?: string;     // Optional, ISO date string
-    taskDueDate?: string;       // Optional, ISO date string
+    taskStatus?: string|"";        // Optional
+    taskStartDate?: string|"";     // Optional, ISO date string
+    taskDueDate?: string|"";       // Optional, ISO date string
     parentProjectID: number;    // Required, Foreign Key (Project.ProjectID)
     assignedUsername: string;   // Required, Foreign Key (User.Username)
-    approved?: boolean;         // Optional
+    approved?: boolean|false;         // Optional
 }
 
 export interface PertInput {

@@ -14,14 +14,11 @@ func (app *Application)InitRoutes()*echo.Echo{
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"http://localhost:3000"},
-		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
 		AllowCredentials: true,
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization },
+		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 	}))
-	// e.Use(middleware.SecureWithConfig(middleware.SecureConfig{
-		// XSSProtection:         "1; mode=block",
-		// 
-		// ContentSecurityPolicy: "default-src 'self' http://localhost:3000;",
-	// }))
+	
 	// e.Use(middleware.CSRF())
 	config := middleware.RateLimiterConfig{
 		Skipper: middleware.DefaultSkipper,
@@ -44,15 +41,16 @@ func (app *Application)InitRoutes()*echo.Echo{
 	e.POST("/api/register",app.Register)
 	e.POST("/api/logout",app.Logout)
 
-	e.GET("/api/project",app.GetProjects,IsAuthorizedUser)
-	e.POST("/api/project",app.CreateProject,IsAuthorizedUser)
+	e.GET("/api/projects",app.GetProjects,IsAuthorizedUser)
+	e.POST("/api/projects",app.CreateProject,IsAuthorizedUser)
+	e.GET("/api/project/:id",app.GetProjectByID,IsAuthorizedUser)
 	e.PUT("/api/project/:id",app.UpdateProject,app.ManagerLevelAccess)
 	e.PUT("/api/project/admin/:id",app.UpdateProject,app.AdminLevelAccess)
 	e.POST("/api/project/:id/manager", app.AddManager,app.AdminLevelAccess)
 
-	e.GET("/api/project/admin",app.GetAdminProjects,IsAuthorizedUser)
-	e.GET("/api/project/manager",app.GetManagerProjects,IsAuthorizedUser)
-	e.GET("/api/project/assigned",app.GetAssignedProjects,IsAuthorizedUser)
+	e.GET("/api/projects/admin",app.GetAdminProjects,IsAuthorizedUser)
+	e.GET("/api/projects/manager",app.GetManagerProjects,IsAuthorizedUser)
+	e.GET("/api/projects/assigned",app.GetAssignedProjects,IsAuthorizedUser)
 
 	e.POST("/api/project/:id/invite",app.Invite)
 	e.PUT("/api/project/:id/invite",app.Invite)
