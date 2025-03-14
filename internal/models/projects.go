@@ -100,7 +100,8 @@ func(p *ProjectModel)RetrieveAssginedProjects(ctx context.Context,username strin
 	retrieve:=`SELECT projects.projectID,projects.projectName,projects.projectDescription,projects.projectDueDate 
 	FROM projects 
 	JOIN tasks ON projects.projectID=tasks.parentProjectID
-	WHERE tasks.assignedUsername=$1`
+	WHERE tasks.assignedUsername=$1
+	`
 	rows,err:=p.DB.Query(ctx,retrieve,username); if err!=nil{
 		if errors.Is(err,sql.ErrNoRows){
 			return []*Project{},nil
@@ -117,6 +118,7 @@ func(p *ProjectModel)RetrieveAssginedProjects(ctx context.Context,username strin
 	}
 	return projects,nil
 }
+
 func(p *ProjectModel)AssignManager(ctx context.Context,manager , projectID string)(error){
 	query:=`INSERT INTO managers(managername,projectid)VALUES($1,$2)`	
 	_,err:=p.DB.Exec(ctx,query,manager,projectID);if err!=nil{

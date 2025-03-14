@@ -3,7 +3,7 @@ import { Projects } from "./types";
 export const useRetrieveProjectsFrom = (link: string) => {
   const [projects, setProjects] = useState<Projects[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetch(link, {
@@ -15,7 +15,6 @@ export const useRetrieveProjectsFrom = (link: string) => {
     })
       .then((response) => response.json()) // Proceed without checking `response.ok`
       .then((data) => {
-        console.log(data)
         const mappedProjects: Projects[] = data.map((item: any) => ({
           projectID: item.projectID,
           projectName: item.projectName,
@@ -36,39 +35,39 @@ export const useRetrieveProjectsFrom = (link: string) => {
   return { projects, loading, error };
 };
 
-
 export const usePostProject = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<boolean>(false);
 
-  const postProject = (newProject: Projects, link: string) => {
+  const postProject = async (newProject: Projects, link: string) => {
     setLoading(true);
     setError(null);
     setSuccess(false);
-
-    fetch(link, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(newProject),
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Failed to post the project");
-        }
-        return response.json();
-      })
-      .then(() => {
-        setSuccess(true);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Error posting project:", err);
-        setError("Failed to post the project.");
-        setLoading(false);
+    console.log("heelo",JSON.stringify(newProject), newProject)
+    try {
+      const response = await fetch("http://localhost:4000/api/projects", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newProject),
+        credentials: "include",
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to post the project");
+      }
+
+      await response.json(); // Assuming success response has no additional data
+      setSuccess(true);
+    } catch (err) {
+      console.error("Error posting project:", err);
+      setError(err instanceof Error ? err.message : "An unknown error occurred");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return { postProject, loading, error, success };

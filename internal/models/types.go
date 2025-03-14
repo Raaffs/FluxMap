@@ -30,8 +30,7 @@ type Invitation struct{
     ID                 string         `json:"id"`
     Username           string         `json:"username"`       
     ProjectID          int            `json:"projectID,omitempty"`           // Primary Key
-    ProjectName        string         `json:"projectName" validate:"required"`
-    ProjectDescription null.String    `json:"projectDescription,omitempty"`
+    Accepted           bool           `json:"accepted"`
 }
 
 // Project represents a project in the database
@@ -41,7 +40,7 @@ type Project struct {
     ProjectDescription null.String    `json:"projectDescription,omitempty"`
     ProjectStartDate   null.Time      `json:"projectStartDate,omitempty"`
     ProjectDueDate     null.Time      `json:"projectDueDate,omitempty"`
-    Ownername          string         `json:"ownername"`           // Foreign Key (User.Username)
+    Ownername          string         `json:"ownername,omitempty"`           // Foreign Key (User.Username)
 }
 
 // Manager represents a manager in the database
@@ -52,18 +51,20 @@ type Manager struct {
 
 // Task represents a task in the database
 type Task struct {
-    TaskID           int            `json:"taskID,omitempty"`               // Primary Key
-    TaskName         string         `json:"taskName" validate:"required"`
-    TaskDescription  null.String    `json:"taskDescription,omitempty"`
-    TaskStatus       null.String    `json:"taskStatus"`
-    TaskStartDate    null.Time      `json:"taskStartDate,omitempty"`
-    TaskDueDate      null.Time      `json:"taskDueDate,omitempty"`
-    ParentProjectID  int            `json:"parentProjectId"`      // Foreign Key (Project.ProjectID)
-    AssignedUsername null.String    `json:"assignedUsername" validate:"required"` // Foreign Key (User.Username)
-    Approved         null.Bool      `json:"approved"`
+    TaskID              int            `json:"taskID,omitempty"`               // Primary Key
+    TaskName            string         `json:"taskName" validate:"required"`
+    TaskDescription     null.String    `json:"taskDescription,omitempty"`
+    TaskStatus          null.String    `json:"taskStatus"`
+    TaskStartDate       null.Time      `json:"taskStartDate,omitempty"`
+    TaskDueDate         null.Time      `json:"taskDueDate,omitempty"`
+    ParentProjectID     int            `json:"parentProjectId"`      // Foreign Key (Project.ProjectID)
+    AssignedUsername    null.String    `json:"assignedUsername" validate:"required"` // Foreign Key (User.Username)
+    Approved            null.Bool      `json:"approved"`
+    TaskCompletedDate   null.Time      `json:"taskCompletedDate"`
+    TaskApprovedDate    null.Time      `json:"taskApprovedDate"`
 }
-// Pert represents a PERT record in the database
 
+// Pert represents a PERT record in the database
 type Pert struct {
     ParentTaskID         int                `json:"parentTaskId"`         // Primary Key, Foreign Key (Task.TaskID)
     PredecessorTaskID    null.Int64         `json:"predecessorTaskId,omitempty"` // Foreign Key (Task.TaskID)
@@ -74,17 +75,11 @@ type Pert struct {
 }
 
 
-// Cpm represents a CPM record in the database
 type Cpm struct {
     TaskID          int                 `json:"taskId"`             // Primary Key, Foreign Key (Task.TaskID)
-    EarliestStart   int                 `json:"earliestStart" validate:"required"`
-    EarliestFinish  int                 `json:"earliestFinish" validate:"required"`
-    LatestStart     int                 `json:"latestStart" validate:"required"`
-    LatestFinish    int                 `json:"latestFinish" validate:"required"`
-    SlackTime       int                 `json:"slackTime" validate:"required"`
-    CriticalPath    bool                `json:"criticalPath" default:"false"`
     ParentProjectID int                 `json:"parentProjectID"`
     Dependencies    []int               `json:"dependencies"`  
+    Duration        int                 `json:"duration"`
 }
 
 type Result struct{         

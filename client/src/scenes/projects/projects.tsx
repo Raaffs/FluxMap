@@ -16,3 +16,4 @@ export const AllocatedProjects = () => {
   return <ProjectComponent URI="http://localhost:4000/api/projects/assigned" />
 };
 
+

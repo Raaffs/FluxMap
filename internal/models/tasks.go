@@ -16,9 +16,9 @@ type TaskModel struct{
 }
 
 func (t *TaskModel)Create(ctx context.Context, task Task)error{
-	insert:=`INSERT INTO tasks(taskName, taskDescription, taskStartDate, taskDueDate, parentProjectID, assignedUsername) 
-VALUES($1, $2, $3, $4, $5, $6)`
-	_,err:=t.DB.Exec(ctx,insert,task.TaskName,task.TaskDescription,task.TaskStartDate,task.TaskDueDate,task.ParentProjectID,task.AssignedUsername); if err!=nil{
+	insert:=`INSERT INTO tasks(taskName, taskDescription, taskStartDate, taskDueDate, parentProjectID, assignedUsername,taskCompletedDate,taskApprovedDate) 
+VALUES($1, $2, $3, $4, $5, $6, $7, $8)`
+	_,err:=t.DB.Exec(ctx,insert,task.TaskName,task.TaskDescription,task.TaskStartDate,task.TaskDueDate,task.ParentProjectID,task.AssignedUsername, task.TaskCompletedDate,task.TaskApprovedDate); if err!=nil{
 		t.Errorlog.Println("Error creating project:",err)
 		return err
 	}
@@ -55,7 +55,7 @@ func (t *TaskModel)UpdateManagerTask(ctx context.Context,task Task)error{
 func(t *TaskModel)GetTasks(ctx context.Context,projectID int)([]*Task,error){
 	var tasks []*Task
 	query:=`
-		SELECT taskID, taskName, taskDescription, taskStatus, taskStartDate, taskDueDate, parentProjectID, assignedUsername, Approved
+		SELECT taskID, taskName, taskDescription, taskStatus, taskStartDate, taskDueDate, parentProjectID, assignedUsername, Approved, taskCompletedDate, taskApprovedDate
 		FROM tasks 
 		WHERE parentProjectID=$1
 	`
@@ -68,7 +68,7 @@ func(t *TaskModel)GetTasks(ctx context.Context,projectID int)([]*Task,error){
 	defer rows.Close()
 	for rows.Next(){
 		var task Task
-		if err=rows.Scan(&task.TaskID,&task.TaskName,&task.TaskDescription,&task.TaskStatus,&task.TaskStartDate,&task.TaskDueDate,&task.ParentProjectID,&task.AssignedUsername,&task.Approved);err!=nil{
+		if err=rows.Scan(&task.TaskID,&task.TaskName,&task.TaskDescription,&task.TaskStatus,&task.TaskStartDate,&task.TaskDueDate,&task.ParentProjectID,&task.AssignedUsername,&task.Approved, &task.TaskCompletedDate, &task.TaskApprovedDate);err!=nil{
 			return []*Task{},err
 		}
 		tasks=append(tasks, &task)

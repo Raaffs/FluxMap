@@ -21,6 +21,7 @@ type Models struct {
 	Users       UserModel
 	Projects    ProjectModel
 	Task      	TaskModel
+	Invitation	InvitationModel
 	Pert 		PertModel[Pert]
 	Cpm         CpmModel[Cpm]
 }
@@ -40,6 +41,11 @@ func NewModels(db *pgxpool.Pool) Models {
 			Errorlog: 	errorLog,
 		},
 		Task: TaskModel{
+			DB:			db,
+			Infolog: 	infoLog,
+			Errorlog: 	errorLog,
+		},
+		Invitation: InvitationModel{
 			DB:			db,
 			Infolog: 	infoLog,
 			Errorlog: 	errorLog,

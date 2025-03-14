@@ -3,10 +3,13 @@ package main
 import (
 	"net/http"
 	"time"
+    "encoding/gob"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"golang.org/x/time/rate"
+    "github.com/gorilla/sessions"
+    "github.com/labstack/echo-contrib/session"
 )
 func (app *Application)InitRoutes()*echo.Echo{
 	e := echo.New()
@@ -18,7 +21,9 @@ func (app *Application)InitRoutes()*echo.Echo{
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization },
 		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 	}))
-	
+	e.Use(session.Middleware(sessions.NewCookieStore([]byte("secret"))))
+    gob.Register(map[string][]int{})
+	gob.Register(map[string]string{})
 	// e.Use(middleware.CSRF())
 	config := middleware.RateLimiterConfig{
 		Skipper: middleware.DefaultSkipper,
@@ -53,14 +58,14 @@ func (app *Application)InitRoutes()*echo.Echo{
 	e.GET("/api/projects/assigned",app.GetAssignedProjects,IsAuthorizedUser)
 
 	e.POST("/api/project/:id/invite",app.Invite)
-	e.PUT("/api/project/:id/invite",app.Invite)
+	e.GET("/api/invitation",app.GetInvitations)
+	e.PUT("/api/invitation",app.ConfirmInvitation)
 	
 	e.GET("/api/project/:id/tasks",app.GetTasks,IsAuthorizedUser)
 	e.POST("/api/project/:id/task",app.CreateTask,app.ManagerLevelAccess)
 	e.GET("/api/project/:id/task/:taskID",app.GetTaskByID,IsAuthorizedUser)
 	e.PUT("/api/project/:id/task/:taskID/manager",app.ManagerRestrictedTask,app.ManagerLevelAccess)
 	e.PUT("/api/project/:id/task/:taskID",app.UpdateTask,IsAuthorizedUser)
-
 
 	e.PUT("/api/project/:id/task/:taskID/approve",app.ManagerRestrictedTask,app.ManagerLevelAccess)
 	e.PUT("/api/project/:id/task/:taskID/assign",app.ManagerRestrictedTask,app.ManagerLevelAccess)

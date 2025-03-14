@@ -4,18 +4,22 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/Raaffs/FluxMap/internal/sessionVar"
+	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 )
 
 func IsAuthorizedUser(next echo.HandlerFunc)echo.HandlerFunc{
 	return func (c echo.Context)error{
-		cookie,err:=c.Cookie("username"); if err!=nil{
+		sess,err:=session.Get(sessionvar.SESSION_NAME,c); if err!=nil{
 			log.Println("error getting cookie:",err)
-			return c.JSON(http.StatusUnauthorized,"Unauthorized")
+			
+			return c.JSON(http.StatusUnauthorized,map[string]string{"error":"you're not authorized"})
 			// return c.Redirect(http.StatusTemporaryRedirect,"http://localhost:5173/login")
 		}
-		if cookie.Value == ""{
-			return c.JSON(http.StatusUnauthorized,"Unauthorized")
+		 username,ok :=sess.Values[sessionvar.USERNAME].(string); if !ok ||username==""{
+			log.Println("username is empty",username,ok)
+			return c.JSON(http.StatusUnauthorized,map[string]string{"error":"you're not authorized"})
 		}
 		return next(c)
 	}
@@ -23,19 +27,22 @@ func IsAuthorizedUser(next echo.HandlerFunc)echo.HandlerFunc{
 
 func(app *Application)ManagerLevelAccess(next echo.HandlerFunc) echo.HandlerFunc {
     return IsAuthorizedUser(func(c echo.Context) error {
-        cookie, err := c.Cookie("username")
-        if err != nil {
+        sess, err := session.Get(sessionvar.SESSION_NAME,c);if err != nil {
             return c.JSON(http.StatusUnauthorized, map[string]string{"message": "Missing role cookie"})
         }
+		username,ok:=sess.Values[sessionvar.USERNAME].(string);if !ok{
+			return c.JSON(http.StatusUnauthorized,map[string]string{"error":"you're not authorized"})
+		}
 
-		isAdmin,err:=app.models.Users.IsAdmin(c.Request().Context(),cookie.Value,c.Param("id"));if err!=nil{
+		isAdmin,err:=app.models.Users.IsAdmin(c.Request().Context(),username,c.Param("id"));if err!=nil{
 			return c.JSON(http.StatusInternalServerError,map[string]string{"message":err.Error()})
 		}
+
 		if isAdmin{
 			return next(c)
 		}
 
-		isManager,err:=app.models.Users.IsManager(c.Request().Context(),cookie.Value,c.Param("id"))
+		isManager,err:=app.models.Users.IsManager(c.Request().Context(),username,c.Param("id"))
 		if err!=nil{
 			return c.JSON(http.StatusInternalServerError,map[string]string{"message":err.Error()})
 		}
@@ -48,12 +55,15 @@ func(app *Application)ManagerLevelAccess(next echo.HandlerFunc) echo.HandlerFunc
 
 func (app *Application)AdminLevelAccess(next echo.HandlerFunc)echo.HandlerFunc{
 	return IsAuthorizedUser(func(c echo.Context) error {
-		cookie, err := c.Cookie("username")
+		sess, err := session.Get(sessionvar.SESSION_NAME,c)
         if err != nil {
             return c.JSON(http.StatusUnauthorized, map[string]string{"message": "Missing role cookie"})
         }
+		username,ok:=sess.Values[sessionvar.USERNAME].(string);if !ok{
+			return c.JSON(http.StatusUnauthorized,map[string]string{"error":"you're not authorized"})
+		}
 
-		isAdmin,err:=app.models.Users.IsAdmin(c.Request().Context(),cookie.Value,c.Param("id"));if err!=nil{
+		isAdmin,err:=app.models.Users.IsAdmin(c.Request().Context(),username,c.Param("id"));if err!=nil{
 			return c.JSON(http.StatusInternalServerError,map[string]string{"message":err.Error()})
 		}
 		if !isAdmin{

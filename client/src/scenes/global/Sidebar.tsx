@@ -18,6 +18,9 @@ import PersonAddOutlinedIcon from '@mui/icons-material/PersonAddOutlined';
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
 import AutoModeOutlinedIcon from '@mui/icons-material/AutoModeOutlined';
 import EngineeringOutlinedIcon from '@mui/icons-material/EngineeringOutlined';
+import MarkunreadOutlinedIcon from '@mui/icons-material/MarkunreadOutlined';
+import PublishedWithChangesIcon from '@mui/icons-material/PublishedWithChanges';
+
 const SidebarEx = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
@@ -138,7 +141,21 @@ const SidebarEx = () => {
           }}>Pending</MenuItem>
       </SubMenu>
     </SubMenu>
-    <MenuItem icon={<NotificationsNoneOutlinedIcon/>} >Notifications</MenuItem>
+    <SubMenu
+    icon={<NotificationsNoneOutlinedIcon/>}
+    label="Notifications"
+    >
+      <MenuItem
+        icon={<PublishedWithChangesIcon/>}
+      >
+        Updates
+      </MenuItem>
+      <MenuItem
+        icon={<MarkunreadOutlinedIcon/>}
+      >
+        Invitations
+      </MenuItem>
+    </SubMenu>
     <MenuItem icon={<SettingsOutlinedIcon/>}>Settings</MenuItem>
     <MenuItem
 
@@ -155,7 +172,8 @@ const SidebarEx = () => {
     <MenuItem
       onClick={()=>navigate('/register')}
       icon={<PersonAddOutlinedIcon/>}
-    >Sign Up</MenuItem>
+    >Sign Up
+    </MenuItem>
   </Menu>
       </Sidebar>
   );

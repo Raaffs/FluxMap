@@ -1,8 +1,8 @@
 from flask import Flask, jsonify, request
-from cpm import get_task_distributions, get_critical_path_distributions
+from cpm import calculateCpm
 from pert import find_critical_path,get_pert_task_distributions,build_graph
 from flask_cors import CORS
-
+import json
 app = Flask(__name__)
 
 cors = CORS(app, resources={r"/api/*": {"origins": "http://localhost:4000"}})
@@ -16,19 +16,13 @@ def handle_cpm():
     print("Data received in Python: ", data)
 
     try:
-        task_distribution = get_task_distributions(data)
-        critical_path = get_critical_path_distributions(data)
-
-        print("Task Distribution: ", task_distribution)
-        print("Critical Path: ", critical_path)
-        
-        res = {
-            'mean': task_distribution,
-            'path': critical_path
+        result=calculateCpm(data)
+        resp={
+            'Result':result
         }
-        print("Result is: ", res)
+        print("Result is: ", resp)
 
-        return jsonify(res)  # Return the result as JSON
+        return jsonify(resp)  # Return the result as JSON
     except Exception as e:
         print("Error processing request: ", e)
         return jsonify({'error': 'An error occurred during processing'}), 500
@@ -70,3 +64,4 @@ def handle_pert():
 
 if __name__ == "__main__":
     app.run()
+

@@ -1,0 +1,6 @@
+package env
+var(
+	API_PORT="API_PORT"
+	DB_URL="DB_URL"
+	CLIENT_PORT="CLIENT_PORT"
+)

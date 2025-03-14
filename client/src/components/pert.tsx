@@ -1,0 +1,380 @@
+import React, { useEffect, useRef, useState } from "react";
+import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import {
+  Chart,
+  ChartData,
+  ChartOptions,
+  ChartDataset,
+} from "chart.js";
+import {
+  Chart as ChartJS,
+  LineElement,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  Tooltip,
+  Legend,
+} from "chart.js";
+import { TextField, Button, Box, SelectChangeEvent } from "@mui/material";
+import { erf } from "mathjs";
+import { ApiResponse,PertData, tasks } from "../hooks/types";
+import { Dialog, DialogActions, DialogContent, DialogTitle, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
+ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend);
+
+interface PertRows{
+  id: number // Update this to number
+  parentTaskID: number // Also update this field to match
+  predecessorTaskId?: number|null
+  optimistic: number
+  pessimistic: number
+  mostLikely: number
+  taskName?: string
+}
+
+export const PertTable: React.FC<{ pertTasks: PertData[] | undefined, tasks: tasks[] }> = ({ pertTasks, tasks }) => {
+  const [open, setOpen] = useState(false);
+  const [newTask, setNewTask] = useState<PertData>({
+    predecessorTaskId:0,
+    parentTaskID: 0,
+    optimistic: 0,
+    pessimistic: 0,
+    mostLikely: 0,
+  });
+
+  if (pertTasks === undefined || pertTasks === null) {
+    return <div>no pert data</div>
+  }
+
+  const tasksMap = new Map<number, boolean>()
+  const pertTaskMap = new Map<number, boolean>()
+  tasks.forEach(task => tasksMap.set(task.taskID, true))
+  pertTasks.forEach(pertTask=>pertTaskMap.set(pertTask.parentTaskID,true))
+
+  let PertAddableTask:PertData[]=[]
+  for(const task of tasks){
+    if(!pertTaskMap.has(task.taskID)){
+      PertAddableTask.push({
+        parentTaskID: task.taskID,
+        predecessorTaskId:0,
+        optimistic: 0,
+        pessimistic: 0,
+        mostLikely: 0,
+      })
+    }
+  }
+
+  // const PertAddableTask: PertData[] = (pertTasks || []).filter((task) => !tasksMap.has(task.parentTaskID))
+  console.log("pert addable: ", PertAddableTask)
+  console.log("pert tasks: ", pertTasks)
+  let rows:PertRows[]=[];
+  //for some reason even though PertData has field ParentTaskID
+  //here we've to use parentTaskId instead for tasks to render correctly
+  //I've no clue why. It might be because of how backend is send data but not gonna
+  //mess with it for now
+  for(const pertTask of pertTasks){
+    rows.push({
+      id: pertTask.parentTaskId,
+      parentTaskID: pertTask.parentTaskId,
+      predecessorTaskId: pertTask.predecessorTaskId,
+      optimistic: pertTask.optimistic,
+      pessimistic: pertTask.pessimistic,
+      mostLikely: pertTask.mostLikely,
+      taskName:tasks.find(task => task.taskID === pertTask.parentTaskId)?.taskName || ''
+    })
+  }
+
+  let addAbleRows:PertRows[]=[];
+    for(const pertTask of PertAddableTask){
+    addAbleRows.push({
+      id: pertTask.parentTaskID,
+      parentTaskID: pertTask.parentTaskID,
+      predecessorTaskId: pertTask.predecessorTaskId,
+      optimistic: pertTask.optimistic,
+      pessimistic: pertTask.pessimistic,
+      mostLikely: pertTask.mostLikely,
+      taskName:tasks.find(task => task.taskID === pertTask.parentTaskID)?.taskName || ''
+    })
+  }
+
+
+  console.log("rows: ",rows)
+  const columns: GridColDef[] = [
+    { field: 'taskName', headerName: 'Name', width: 150 },
+    { field: 'predecessorTaskId', headerName: 'Predecessor', width: 150 },
+    { field: 'optimistic', headerName: 'Optimistic', width: 150 },
+    { field: 'pessimistic', headerName: 'Pessimistic', width: 150 },
+    { field: 'mostLikely', headerName: 'Most Likely', width: 150 },
+    { field: 'edit', headerName: 'Edit', width: 150 }
+  ]
+
+
+
+  // Handle modal open and close
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => setOpen(false);
+
+  // Handle input change
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = event.target;
+    setNewTask((prevTask) => ({
+      ...prevTask,
+      [name]: value,
+    }));
+  };
+
+  // Handle Select change for predecessorTaskId
+  const handlePredecessorChange = (event: SelectChangeEvent<number>) => {
+    // If the value might be a string (e.g. empty ''), you might want to convert it.
+    // For example, if event.target.value is a string, convert it to a number:
+    const value = event.target.value;
+    setNewTask((prevTask) => ({
+      ...prevTask,
+      predecessorTaskId: Number(value),
+    }));
+  };
+
+  const handleSave = () => {
+    // Logic to save the new task
+    console.log(newTask);
+    // Close the modal after saving
+    handleClose();
+  };
+  // console.log("rows",rows)
+  return (
+    <Box>
+      <Button variant="outlined" onClick={handleOpen}>
+        Add New Task
+      </Button>
+      <DataGrid 
+      rows={rows} 
+      columns={columns} 
+      />
+
+      {/* Modal */}
+      <Dialog open={open} onClose={handleClose}>
+        <DialogTitle>Add/Edit Task</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Task ID"
+            name="parentTaskID"
+            value={newTask.parentTaskID}
+            onChange={handleInputChange}
+            fullWidth
+            margin="normal"
+            disabled
+          />
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Predecessor Task</InputLabel>
+            <Select
+              value={newTask.predecessorTaskId || ''}
+              onChange={handlePredecessorChange}
+              name="predecessorTaskId"
+              label="Predecessor Task"
+            >
+              <MenuItem value="">
+                <em>None</em>
+              </MenuItem>
+              {addAbleRows.map((task, index) => (
+              
+                <MenuItem key={index} value={task.parentTaskID}>
+                  {task.taskName}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <TextField
+            label="Optimistic"
+            name="optimistic"
+            value={newTask.optimistic}
+            onChange={handleInputChange}
+            fullWidth
+            margin="normal"
+            type="number"
+          />
+          <TextField
+            label="Pessimistic"
+            name="pessimistic"
+            value={newTask.pessimistic}
+            onChange={handleInputChange}
+            fullWidth
+            margin="normal"
+            type="number"
+          />
+          <TextField
+            label="Most Likely"
+            name="mostLikely"
+            value={newTask.mostLikely}
+            onChange={handleInputChange}
+            fullWidth
+            margin="normal"
+            type="number"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleSave} color="primary">
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+}
+
+const PertNormalDistributionChart: React.FC<{ apiResponse: ApiResponse | null, pertTasks:PertData[]|undefined , tasks:tasks[] }> = ({ apiResponse, pertTasks,tasks }) => {
+  const chartRef = useRef<HTMLCanvasElement | null>(null);
+  const chartInstanceRef = useRef<Chart | null>(null);
+  const [zValue, setZValue] = useState<number | null>(null);
+  const [probability, setProbability] = useState<number | null>(null);
+  const [xInput, setXInput] = useState<string>("");
+  const selectTasks=tasks?.map(task=>task.taskID )
+  const standardNormalCDF = (z: number): number => {
+    return 0.5 * (1 + erf(z / Math.sqrt(2)));
+  };
+  
+  useEffect(() => {
+    if (chartInstanceRef.current) {
+      chartInstanceRef.current.destroy();
+    }
+
+    if (!apiResponse) {
+      return; // Skip rendering the chart if there is no data
+    }
+
+    const labels = Array.from({ length: 101 }, (_, i) => (i / 10).toFixed(2)); // x-axis range: 0 to +10
+
+    const datasets: ChartDataset<"line">[] =
+      apiResponse.result.taskResults.map((task) => {
+        const { mean, stddev, taskId } = task;
+
+        const normalDistribution = (x: number): number => {
+          const exponent = -((x - mean) ** 2) / (2 * stddev ** 2);
+          return (1 / (stddev * Math.sqrt(2 * Math.PI))) * Math.exp(exponent);
+        };
+
+        const data = labels.map((x) =>
+          parseFloat(normalDistribution(parseFloat(x)).toFixed(2))
+        );
+
+        return {
+          label: `Task ${taskId}`,
+          data,
+          borderColor: `hsl(${Math.random() * 360}, 70%, 50%)`,
+          fill: false,
+        };
+      });
+
+    const chartData: ChartData<"line"> = {
+      labels,
+      datasets,
+    };
+
+    const chartOptions: ChartOptions<"line"> = {
+      responsive: true,
+      plugins: {
+        legend: {
+          display: true,
+        },
+        tooltip: {
+          mode: "index",
+          intersect: false,
+        },
+      },
+      scales: {
+        x: {
+          title: {
+            display: true,
+            text: "Standard Deviation from Mean",
+          },
+        },
+        y: {
+          title: {
+            display: true,
+            text: "Probability Density",
+          },
+        },
+      },
+    };
+
+    if (chartRef.current) {
+      chartInstanceRef.current = new Chart(chartRef.current, {
+        type: "line",
+        data: chartData,
+        options: chartOptions,
+      });
+    }
+
+    return () => {
+      if (chartInstanceRef.current) {
+        chartInstanceRef.current.destroy();
+      }
+    };
+  }, [apiResponse]);
+
+  const calculateZValue = () => {
+    if (!apiResponse || !xInput) return;
+
+    const criticalTasks = apiResponse.result.taskResults.filter(task =>
+      apiResponse.result.criticalPath.includes(task.taskId)
+    );
+
+    const mean = criticalTasks.reduce((acc, task) => acc + task.mean, 0);
+    const stddev = criticalTasks.reduce((acc, task) => acc + task.stddev, 0);
+
+    const x = parseFloat(xInput);
+    if (!isNaN(x)) {
+      const z = (x - mean) / stddev;
+      const probability = standardNormalCDF(z); // Calculate probability using CDF
+      setZValue(z);
+      setProbability(probability);
+    }
+  };
+
+  if (!apiResponse) {
+    return <p>No data available</p>;
+  }
+
+  const criticalTasks = apiResponse.result.taskResults.filter(task =>
+    apiResponse.result.criticalPath.includes(task.taskId)
+  );
+  const mean = criticalTasks.reduce((acc, task) => acc + task.mean, 0);
+  const stddev = criticalTasks.reduce((acc, task) => acc + task.stddev, 0);
+
+  return (
+    <div>
+      <div style={{ marginBottom: "20px", padding: "10px", border: "1px solid #ccc", borderRadius: "5px" }}>
+        <h3>Critical Path Information</h3>
+        <p><strong>Critical Path:</strong> {apiResponse.result.criticalPath.map((taskId, index) => (
+          <span key={taskId}>{taskId}{index < apiResponse.result.criticalPath.length - 1 ? " → " : ""}</span>
+        ))}</p>
+        <p><strong>Mean:</strong> {mean.toFixed(2)}</p>
+        <p><strong>Standard Deviation:</strong> {stddev.toFixed(2)}</p>
+        <div style={{ marginTop: "10px" }}>
+          <TextField
+            label="Input X"
+            type="number"
+            value={xInput}
+            onChange={(e) => setXInput(e.target.value)}
+            variant="outlined"
+            size="small"
+            style={{ marginRight: "10px" }}
+          />
+          <Button variant="contained" color="primary" onClick={calculateZValue}>
+            Calculate Z
+          </Button>
+        </div>
+        {zValue !== null && (
+          <p><strong>Z-Value:</strong> {zValue.toFixed(2)}</p>
+        )}
+        {probability !== null && (
+          <p><strong>Probability (P(Z ≤ z)):</strong> {probability.toFixed(4)}</p>
+        )}
+      </div>
+      <canvas ref={chartRef}></canvas>
+    </div>
+  );
+};
+
+export default PertNormalDistributionChart;

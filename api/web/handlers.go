@@ -13,18 +13,21 @@ import (
 
 	"github.com/Raaffs/FluxMap/api/external"
 	"github.com/Raaffs/FluxMap/internal/models"
+	"github.com/Raaffs/FluxMap/internal/sessionVar"
 	validator "github.com/Raaffs/FluxMap/internal/validators"
+	"github.com/gorilla/sessions"
 
+	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
+	// "github.com/labstack/echo-contrib/session"
 )
 
 func(app *Application)Login(c echo.Context)error{
 	var u models.User
-
 	err := c.Bind(&u); if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
     }
-	log.Println("lets see: ",u)
+
 	if err:=app.models.Users.Login(c.Request().Context(),u.Username,u.Password);err!=nil{
 		if errors.Is(err,models.ErrInvalidCredential){
 			return c.JSON(http.StatusUnauthorized,"invalid credential")
@@ -36,8 +39,25 @@ func(app *Application)Login(c echo.Context)error{
 		return c.JSON(http.StatusInternalServerError,err.Error())
 	}
 
-	SetCookie("username",u.Username,c)
-	log.Println("logged in successfully")
+
+	sess,err:=session.Get(sessionvar.SESSION_NAME,c)
+	if err!=nil{
+		c.Logger().Error("error creating session: ",err)
+		return c.JSON(http.StatusInternalServerError,"error creating session")
+	}
+	sess.Options=&sessions.Options{
+			Path: "/",
+			MaxAge: 86400*7,
+			HttpOnly: true,
+	}
+
+	sess.Values[sessionvar.USERNAME]=u.Username
+	
+	if err := sess.Save(c.Request(), c.Response()); err != nil {
+		c.Logger().Error("error saving session: ",err)
+		return c.JSON(http.StatusInternalServerError,"error saving session")
+	}
+
 	return c.JSON(http.StatusOK,"")
 }
 
@@ -75,7 +95,7 @@ func(app *Application)Register(c echo.Context)error{
 		return echo.NewHTTPError(echo.ErrInternalServerError.Code,"error creating user")
 	}
 
-
+	u.Created=time.Now().Format("2006-01-02")
 	u.HashedPassword=hash
 	if err:=app.models.Users.Create(context.Background(),u);err!=nil{
 		if errors.Is(err,models.ErrAlreadyExist){
@@ -101,43 +121,75 @@ func(app *Application)Logout(c echo.Context)error{
 	return c.JSON(http.StatusOK,"")
 }
 
-func (app *Application)CreateProject(c echo.Context)error{
+func (app *Application) CreateProject(c echo.Context) error {
 	var p models.Project
-	v:=validator.New()
-	if err:=c.Bind(&p);err!=nil{
-		return echo.NewHTTPError(http.StatusBadRequest,"invalid json")
-	}
+	v := validator.New()
 
+	// Bind JSON payload to the project struct
+	if err := c.Bind(&p); err != nil {
+		log.Println("Error json: ",err)
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": "Invalid JSON payload222",
+		})
+	}
+	p.ProjectStartDate.NullTime.Time=time.Now()
+	p.ProjectStartDate.NullTime.Valid=true
+	// Validate project name length
 	v.Check(
-		validator.MinNameLength(p.ProjectName,5),
+		validator.MinNameLength(p.ProjectName, 5),
 		validator.ErrNameTooShort.Key,
-		fmt.Sprintf(validator.ErrNameTooShort.Message,5),
+		fmt.Sprintf(validator.ErrNameTooShort.Message, 5),
 	)
 
+	// Validate project description length
 	v.Check(
-		validator.MinDescriptionLength(p.ProjectDescription.String,10),
+		validator.MinDescriptionLength(p.ProjectDescription.String, 10),
 		validator.ErrDescriptionTooShort.Key,
-		fmt.Sprintf(validator.ErrDescriptionTooShort.Message,10),
+		fmt.Sprintf(validator.ErrDescriptionTooShort.Message, 10),
 	)
 
-	if !v.Valid(){
-		return c.JSON(http.StatusBadRequest,v)
+	// Check if the username cookie exists
+	sess, err := session.Get(sessionvar.SESSION_NAME,c);if err != nil {
+		return c.JSON(http.StatusUnauthorized, map[string]string{
+			"error": "Unauthorized",
+		})
+	}
+	username,ok:=sess.Values[sessionvar.USERNAME].(string);if !ok{
+		return c.JSON(http.StatusUnauthorized, "unauthorized")
+	}
+	
+	p.Ownername = username
+
+	// If validation fails, return detailed validation errors
+	if !v.Valid() {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"error":  "Validation error",
+			"fields": v.Errors, // Assuming v.Errors contains the validation error details
+		})
 	}
 
-	if err:=app.models.Projects.Create(c.Request().Context(),p);err!=nil{
-		c.Logger().Error("Error creating project: ",err)
-		return c.JSON(http.StatusInternalServerError,"An error while creating project")
+	// Attempt to create the project
+	if err := app.models.Projects.Create(c.Request().Context(), p); err != nil {
+		c.Logger().Error("Error creating project: ", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "An error occurred while creating the project",
+		})
 	}
-	return c.JSON(http.StatusOK,"project created")
+
+	// Successfully created the project
+	return c.JSON(http.StatusOK, map[string]string{
+		"message": "Project created successfully",
+	})
 }
 
 func (app *Application) GetProjects(c echo.Context) error {
-	user, err := c.Cookie("username")
-	if err != nil {
-		return c.JSON(http.StatusUnauthorized, "Unauthorized")
+	sess, err := session.Get("session", c);if err != nil {
+		return err
 	}
-	username := user.Value
-
+	username,ok:=sess.Values[sessionvar.USERNAME].(string);if !ok{
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error":"you're not authorized"})
+	}
+	fmt.Println("username in get projects: ",username)
 	projects := struct {
 		AdminProjects    []*models.Project `json:"adminProjects"`
 		ManagerProjects  []*models.Project `json:"managerProjects"`
@@ -226,15 +278,19 @@ func (app *Application) GetProjects(c echo.Context) error {
 }
 
 func(app *Application)GetAdminProjects(c echo.Context)error{
-	user, err := c.Cookie("username")
-	if err != nil {
+	sess, err := session.Get(sessionvar.SESSION_NAME, c);if err != nil {
+		return err
+	}
+	fmt.Println("sess: ",sess.Values)
+
+	username,ok:=sess.Values[sessionvar.USERNAME].(string);if !ok{
 		return c.JSON(http.StatusUnauthorized, "Unauthorized")
 	}
-	adminProjects,err:=app.models.Projects.RetrieveAdminProjects(c.Request().Context(),user.Value); if err!=nil{
+
+	adminProjects,err:=app.models.Projects.RetrieveAdminProjects(c.Request().Context(),username); if err!=nil{
 		c.Logger().Error("Error retrieving projects : ",err)
 		c.JSON(http.StatusInternalServerError,MapMessage("Project","An error occurred while retrieving project"))
 	}
-	log.Println(adminProjects)
 	c.JSON(http.StatusOK,adminProjects)
 	return nil
 }
@@ -293,6 +349,7 @@ func(app *Application)Invite(c echo.Context)error{
 		Username  string `json:"username"`
 		ProjectID int `json:"projectID"`
 	}{}
+	
 	if err:=c.Bind(invitation);err!=nil{
 		return c.JSON(http.StatusBadRequest,MapMessage("Invite","Invalid JSON"))
 	}
@@ -305,7 +362,7 @@ func(app *Application)Invite(c echo.Context)error{
 		c.Logger().Error("Error inviting user:",err)
 		return c.JSON(http.StatusInternalServerError,MapMessage("Invite","Error while checking user existence"))
 	}
-	if err:=app.models.Users.Invite(c.Request().Context(),invitation.Username,invitation.ProjectID); err!=nil{
+	if err:=app.models.Invitation.Invite(c.Request().Context(),invitation.Username,invitation.ProjectID); err!=nil{
 		c.Logger().Error("Error inviting user: ",err)
 		return c.JSON(http.StatusInternalServerError,MapMessage("Invite","Failed to invite user"))
 	}
@@ -314,13 +371,31 @@ func(app *Application)Invite(c echo.Context)error{
 
 
 
+func (app *Application)GetInvitations(c echo.Context)error{
+	sess,err:=session.Get("session",c);if err!=nil{
+		c.Logger().Error("error getting session: ",err)
+		return c.JSON(http.StatusUnauthorized,MapMessage("session","Error getting session"))
+	}
+
+	username,ok:=sess.Values[sessionvar.USERNAME].(string)
+	if !ok{
+		c.Logger().Error("Error getting username from session")
+		return c.JSON(http.StatusUnauthorized,MapMessage("session","Error getting username from session"))
+	}
+
+	invitations,err:=app.models.Invitation.GetInvitations(c.Request().Context(),username);if err!=nil{
+		c.Logger().Error("Error getting invitations: ",err)
+		return c.JSON(http.StatusInternalServerError,MapMessage("Invitations","Failed to get invitations"))
+	}
+	return c.JSON(http.StatusOK,invitations)
+}
+
 func(app *Application)ConfirmInvitation(c echo.Context)error{
 	invitation:=struct{
 		ProjectID int `json:"projectID"`
-		Confirmation bool `json:"confirmation"`
 	}{}
 
-	if err:=app.models.Users.ConfirmInvitation(c.Request().Context(),invitation.Confirmation,invitation.ProjectID);err!=nil{
+	if err:=app.models.Users.ConfirmInvitation(c.Request().Context(),invitation.ProjectID);err!=nil{
 		c.Logger().Error("Error confirming invitation: ",err)
 		return c.JSON(http.StatusInternalServerError,MapMessage("Confirm Invitation","Failed to confirm invitation"))
 	}
@@ -331,11 +406,11 @@ func (app *Application)CreateTask(c echo.Context)error{
 	var t models.Task
 	v:= validator.New()
 	if err:=c.Bind(&t);err!=nil{
-		return c.JSON(http.StatusBadRequest,MapMessage("error",ErrInvalidJson.Error()))
+		return c.JSON(http.StatusBadRequest,map[string]string{"error":"Invalid Json payload"})
 	}
 	id,err:=strconv.Atoi(c.Param("id"));if err!=nil{
 		c.Logger().Error(MapMessage("error converting to string",err.Error()))
-		return c.JSON(http.StatusBadRequest,MapMessage("error","Invalid project ID"))
+		return c.JSON(http.StatusBadRequest,map[string]string{"error":"Invalid project ID"})
 	}
 	t.ParentProjectID=id
 	v.Check(
@@ -344,12 +419,11 @@ func (app *Application)CreateTask(c echo.Context)error{
 		validator.ErrNameTooShort.Message,
 	)
 	if !v.Valid(){
-		return c.JSON(http.StatusBadRequest,v)
+		return c.JSON(http.StatusBadRequest,map[string]any{"error":v.Errors})
 	}
-	fmt.Println("task",t)
 	if err:=app.models.Task.Create(c.Request().Context(),t);err!=nil{
 		c.Logger().Error(MapMessage("Error creating task",err.Error()))
-		return c.JSON(http.StatusInternalServerError,MapMessage("error","internal server error"))
+		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"An error occured"})
 	}
 	return c.JSON(http.StatusOK,"task created")
 }
@@ -358,7 +432,7 @@ func (app *Application)GetTasks(c echo.Context)error{
 	projectID:=c.Param("id")
 	id,err:=strconv.Atoi(projectID);if err!=nil{
 		if errors.Is(err,models.ErrRecordNotFound){
-			return c.JSON(http.StatusNotFound,MapMessage("error","Project not found"))
+			return c.JSON(http.StatusNotFound,map[string]string{"error":"Invalid project ID"})
 		}
 		c.Logger().Error(MapMessage("error converting to string",err.Error()))
 		return c.JSON(http.StatusNotFound,MapMessage("error","project not found"))
@@ -397,8 +471,24 @@ func (app *Application)UpdateProject(c echo.Context)error{
 
 func (app *Application)UpdateTask(c echo.Context)error{
 	var t models.Task
+	v:=validator.New()
 	if err:=c.Bind(&t);err!=nil{
 		return c.JSON(http.StatusBadRequest,MapMessage("error","invalid request"))
+	}
+	v.Check(
+		validator.MinNameLength(t.TaskName,3),
+		validator.ErrNameTooShort.Key,
+		validator.ErrNameTooShort.Message,
+	)
+	if !v.Valid(){
+		return c.JSON(http.StatusBadRequest,v)
+	}
+	if !t.AssignedUsername.Valid{
+		return c.JSON(http.StatusBadRequest,"task must be assigned to a user")
+	}
+	
+	if t.Approved.Bool==true{
+		t.TaskApprovedDate.Time =time.Now()
 	}
 	if err:=app.models.Task.UpdateTask(c.Request().Context(),t);err!=nil{
 		c.Logger().Error(MapMessage("Error updating task",err.Error()))
@@ -550,11 +640,14 @@ func(app *Application)CreateCpm(c echo.Context)error{
 	if err:=c.Bind(&cpm);err!=nil{
 		return c.JSON(http.StatusBadRequest,"Invalid request body")
 	}
-	
+	fmt.Println("before insert")
+
 	if err:=app.models.Cpm.Insert(c.Request().Context(),cpm);err!=nil{
 		c.Logger().Error(MapMessage("cpm Error",err.Error()))
 		return c.JSON(http.StatusInternalServerError,MapMessage("error","failed to insert cpm data"))
 	}
+	fmt.Println("after insert")
+
 	if err:=calculate(&app.models.Cpm,c.Request().Context(),cpm[0].ParentProjectID); err!=nil{
 		c.Logger().Error("Error calculating cpm data : ",err)
 		return c.JSON(http.StatusInternalServerError,MapMessage("error","Failed to calculate CPM values"))
@@ -578,22 +671,18 @@ func calculate[U models.Analytic,T models.ReadDatabase[U]](v T,ctx context.Conte
 	data,err:=v.GetData(ctx,id);if err!=nil{
 		return err 
 	}
-	fmt.Println("here1")
 	if data==nil{
 		return models.ErrRecordNotFound
 	}
-	fmt.Println("here2")
 
 	result,err:=external.RequestAndCalculatePERTCPM(data); if err!=nil{
 		log.Println("Error fetching result: ",err)
 		return ErrFetchingResult
 	}
-	fmt.Println("here3")
 
 	if err:=storeResult(v,ctx,id,result);err!=nil{
 		return err
 	}
-	fmt.Println("here4")
 	return nil
 }
 

@@ -8,6 +8,7 @@ import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined'
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined'
 import PersonOutlinedIcon from '@mui/icons-material/PersonOutlined'
 import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined'
+import MarkunreadOutlinedIcon from '@mui/icons-material/MarkunreadOutlined';
 import SearchIcon from '@mui/icons-material/Search'
 const Topbar=(setIsSidebar: any)=>{
     const theme =useTheme()
@@ -15,7 +16,7 @@ const Topbar=(setIsSidebar: any)=>{
     const colorMode=useContext(ColorModeContext)
 
      return (
-    <Box display="flex" justifyContent="space-between" p={2}>
+    <Box display="flex" justifyContent="space-between" p={2} maxWidth='99%'> 
       <Box
         display="flex"
         borderRadius="3px"
@@ -39,6 +40,9 @@ const Topbar=(setIsSidebar: any)=>{
         </IconButton>
         <IconButton>
           <NotificationsOutlinedIcon />
+        </IconButton>
+        <IconButton>
+          <MarkunreadOutlinedIcon />
         </IconButton>
         <IconButton>
           <SettingsOutlinedIcon />

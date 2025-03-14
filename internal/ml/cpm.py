@@ -1,84 +1,59 @@
-import numpy as np
-from scipy.stats import norm
+def calculateCpm(tasks):
+    """
+    Calculate CPM fields for tasks.
 
-# Function to compute mean and standard deviation for task duration
-def compute_distribution(task):
-    duration_mean = (task["earliestFinish"] + task["earliestStart"]) / 2
-    duration_std = (task["earliestFinish"] - task["earliestStart"]) / 6  # Approx. std dev using range / 6 rule
-    return duration_mean, duration_std
+    :param tasks: List of tasks where each task is a dictionary with:
+                  - taskId: int
+                  - projectId: int
+                  - dependencies: list of task IDs this task depends on
+                  - duration: int
+    :return: List of tasks with calculated fields (earliestStart, earliestFinish, etc.)
+    """
+    # Create a dictionary for quick lookup by taskId
+    taskDict = {task["taskId"]: task for task in tasks}
 
-# Function to calculate floats and distributions for tasks
-def get_task_distributions(tasks):
-    task_distributions = []
-    overall_mean = 0
-    overall_variance = 0
-
+    # Add required fields for CPM calculations
     for task in tasks:
-        mean, std_dev = compute_distribution(task)
-        task_distributions.append({
-            "taskId": task["taskId"],
-            "mean": mean,
-            "std_dev": std_dev,
-            "total_float": task["latestStart"] - task["earliestStart"],
-            "free_float": sanitize_float(compute_free_float(task, tasks)),  # Updated here
-            "independent_float": task["latestStart"] - task["earliestFinish"] - task["slackTime"]
-        })
-        
-        # Sum means and variances for overall distribution
-        overall_mean += mean
-        overall_variance += std_dev ** 2
+        task["earliestStart"] = 0
+        task["earliestFinish"] = 0
+        task["latestStart"] = -1  # Use -1 as a placeholder for infinity
+        task["latestFinish"] = -1  # Use -1 as a placeholder for infinity
+        task["totalFloat"] = 0
+        task["freeFloat"] = 0
+        task["independentFloat"] = 0
+        task["isCriticalPath"] = False
 
-    # Overall project mean and standard deviation
-    overall_std = np.sqrt(overall_variance)
-    task_distributions.append({
-        "taskId": "overall",
-        "mean": overall_mean,
-        "std_dev": overall_std
-    })
-
-    return task_distributions
-
-# Function to compute free float with handling for infinity
-def compute_free_float(task, tasks):
-    # Find the earliest start time of the next task
-    next_tasks = [t for t in tasks if task["taskId"] in t.get("dependencies", [])]
-    if not next_tasks:
-        return float('inf')  # No successors mean infinite free float
-
-    earliest_start_next = min(nt["earliestStart"] for nt in next_tasks)
-    return task["earliestFinish"] - earliest_start_next
-
-# Function to sanitize infinite and NaN float values
-def sanitize_float(value):
-    if np.isinf(value):
-        return None
-    return value
-
-def get_critical_path_distributions(tasks):
-    critical_path_distributions = []
-    critical_path_mean = 0
-    critical_path_variance = 0
-
+    # Forward pass to calculate earliestStart (ES) and earliestFinish (EF)
     for task in tasks:
-        if task.get("criticalPath", False):  # Check if the task is on the critical path
-            mean, std_dev = compute_distribution(task)
-            critical_path_distributions.append({
-                "taskId": task["taskId"],
-                "mean": mean,
-                "std_dev": std_dev,
-                "total_float": task["latestStart"] - task["earliestStart"],
-                "free_float": sanitize_float(compute_free_float(task, tasks)),  # Updated here
-                "independent_float": task["latestStart"] - task["earliestFinish"] - task["slackTime"]
-            })
+        if task["dependencies"]:
+            task["earliestStart"] = max(
+                taskDict[dep]["earliestFinish"] for dep in task["dependencies"]
+            )
+        task["earliestFinish"] = task["earliestStart"] + task["duration"]
 
-            critical_path_mean += mean
-            critical_path_variance += std_dev ** 2
+    # Backward pass to calculate latestStart (LS) and latestFinish (LF)
+    projectFinishTime = max(task["earliestFinish"] for task in tasks)
+    for task in reversed(tasks):
+        if not any(t["taskId"] in task["dependencies"] for t in tasks):
+            task["latestFinish"] = projectFinishTime
+        else:
+            task["latestFinish"] = min(
+                taskDict[dep]["latestStart"] for dep in task["dependencies"]
+            )
+        task["latestStart"] = task["latestFinish"] - task["duration"]
 
-    critical_path_std = np.sqrt(critical_path_variance)
-    critical_path_distributions.append({
-        "taskId": "criticalPathOverall",
-        "mean": critical_path_mean,
-        "std_dev": critical_path_std
-    })
+    # Calculate floats and determine the critical path
+    for task in tasks:
+        task["totalFloat"] = task["latestStart"] - task["earliestStart"]
+        task["freeFloat"] = min(
+            (taskDict[dep]["earliestStart"] - task["earliestFinish"])
+            for dep in task["dependencies"]
+        ) if task["dependencies"] else task["totalFloat"]
+        task["independentFloat"] = max(
+            0,
+            task["freeFloat"] - task["totalFloat"]
+        )
+        task["isCriticalPath"] = task["totalFloat"] == 0
 
-    return critical_path_distributions
+    # Return the updated task list with replaced placeholders for infinity/None values
+    return tasks

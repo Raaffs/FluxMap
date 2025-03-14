@@ -16,29 +16,28 @@ type CpmModel[T Analytic] struct{
 }
 
 func (m *CpmModel[T])Insert(ctx context.Context, cpmValues []Cpm) error {
+	fmt.Println("herereererere")
 	query := `
-	INSERT INTO Cpm (TaskID, EarliestStart, EarliestFinish, LatestStart, LatestFinish, SlackTime, CriticalPath, ParentProjectID, Dependencies)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+	INSERT INTO Cpm (TaskID, ParentProjectID, Dependencies, Duration)
+	VALUES ($1, $2, $3, $4)
 	ON CONFLICT (TaskID)
 	DO UPDATE
 	SET 
-    EarliestStart = $2, 
-    EarliestFinish = $3, 
-    LatestStart = $4, 
-    LatestFinish = $5, 
-    SlackTime = $6, 
-    CriticalPath = $7, 
-    ParentProjectID = $8, 
-    Dependencies = $9;
+	TaskID=$1,
+	ParentProjectID=$2,
+    Dependencies = $3, 
+    Duration = $4 
+	;
 	`
 	for _,cpm:=range cpmValues{
-		_, err := m.DB.Exec(ctx, query, cpm.TaskID, cpm.EarliestStart, cpm.EarliestFinish, cpm.LatestStart, cpm.LatestFinish, cpm.SlackTime, cpm.CriticalPath,cpm.ParentProjectID,cpm.Dependencies)
+		fmt.Println("inserting...")
+		_, err := m.DB.Exec(ctx, query, cpm.TaskID, cpm.ParentProjectID,cpm.Dependencies,cpm.Duration)
 		if err != nil {
-			log.Printf("Error inserting data into Cpm table: %v", err)
+			log.Printf("Error inserting data into Cpm table changelog: %v", err)
 			return err
 		}
 	}
-
+	
 	return nil
 }
 
@@ -48,7 +47,7 @@ func(m *CpmModel[T])Exist()(bool,error){
 
 func(m *CpmModel[T])GetData(ctx context.Context,projectID int)([]*T,error){
 	var cpmValues []*T
-	query:=`SELECT TaskID, EarliestStart, EarliestFinish, LatestStart, LatestFinish, SlackTime, CriticalPath, ParentProjectID, Dependencies
+	query:=`SELECT TaskID, Dependencies, Duration
 	FROM cpm
 	WHERE parentProjectID=$1
 
@@ -63,7 +62,7 @@ func(m *CpmModel[T])GetData(ctx context.Context,projectID int)([]*T,error){
 	defer rows.Close()
 	for rows.Next(){
 		var cpm Cpm
-		if err := rows.Scan(&cpm.TaskID,&cpm.EarliestStart,&cpm.EarliestFinish,&cpm.LatestStart,&cpm.LatestFinish,&cpm.SlackTime,&cpm.CriticalPath,&cpm.ParentProjectID, &cpm.Dependencies);err!=nil{
+		if err := rows.Scan(&cpm.TaskID,&cpm.Dependencies,&cpm.Duration);err!=nil{
 			m.Errorlog.Printf("An error occurred while scanning cpm values for projectID %v\n",err)
 			return []*T{},err
 		}

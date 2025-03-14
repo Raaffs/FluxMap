@@ -9,6 +9,8 @@ import LoginUser from './scenes/auth/login';
 import SignUpUser from './scenes/auth/signup';
 import { ProjectTaskDetailPage } from './components/task';
 import { ProjectOverview } from './scenes/projects/overview';
+import Graphs from './components/graphs/LineGraphs';
+import VoiceRecorder from './components/voiceRecorder';
 import { AdminProjects,ManagerProjects,AllocatedProjects } from './scenes/projects/projects';
 function App() {
   const [theme, colorMode] = useMode();
@@ -20,7 +22,7 @@ function App() {
           <div className="App">
           {isSidebar && <SidebarEx />}
             <main className="content">
-              <Topbar setIsSidebar={setIsSidebar} />
+              <Topbar />
               <Routes>
                 <Route path='/login' element={<LoginUser/>}/>
                 <Route path='/register' element={<SignUpUser/>}/>
@@ -28,6 +30,8 @@ function App() {
                 <Route path='/projects/manager' element={<ManagerProjects/>}/>
                 <Route path='/projects/allocated' element={<AllocatedProjects/>}/>
                 <Route path='/project/:id' element={<ProjectOverview/>}/>
+                <Route path='/dashboard/:id' element={<Graphs/>}/>
+                <Route path='/voice' element={<VoiceRecorder/>}/>
               </Routes>
             </main>
           </div>

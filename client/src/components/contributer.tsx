@@ -1,0 +1,173 @@
+import { Box, Button, Typography } from "@mui/material";
+import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import { LinearProgress } from "@mui/material";
+import { Bar } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+import { tasks } from "../hooks/types";
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+
+// Function to render the Task Table
+export const ContributerTaskTable = ({ tasksData }: { tasksData: tasks[] }) => {
+  const contributerMap: {
+    [username: string]: { completed: number; approved: number; pending: number; progress: number };
+  } = {};
+
+  for (const task of tasksData) {
+    const { assignedUsername, taskStatus, approved } = task;
+
+    if (!contributerMap[assignedUsername]) {
+      contributerMap[assignedUsername] = { completed: 0, approved: 0, pending: 0, progress: 0 };
+    }
+
+    const userStats = contributerMap[assignedUsername];
+
+    if (taskStatus === "completed") {
+      userStats.completed++;
+    } else {
+      userStats.pending++;
+    }
+
+    if (approved) {
+      userStats.approved++;
+    }
+
+    const totalTasks = userStats.completed + userStats.pending;
+    userStats.progress = totalTasks > 0 ? (userStats.completed / totalTasks) * 100 : 0;
+  }
+
+  const rows = Object.entries(contributerMap).map(([username, stats], index) => ({
+    id: index + 1,
+    assignedUsername: username,
+    taskCompleted: stats.completed,
+    taskPending: stats.pending,
+    approved: stats.approved,
+    progressPercent: stats.progress,
+  }));
+
+  const columns: GridColDef[] = [
+    { field: "assignedUsername", headerName: "Contributor", width: 200 },
+    { field: "taskCompleted", headerName: "Task Completed", width: 150 },
+    { field: "taskPending", headerName: "Pending", width: 150 },
+    { field: "approved", headerName: "Approved", width: 150 },
+    {
+      field: "progressPercent",
+      headerName: "Progress (%)",
+      renderCell: (params) => (
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "100%",
+          }}
+        >
+          <LinearProgress
+            variant="determinate"
+            value={params.value}
+            color="success"
+            sx={{ width: "100%", marginTop:"10px" }}
+          />
+          <Typography variant="body2" align="center" sx={{ marginTop: "4px" }}>
+            {params.value.toFixed(2)}%
+          </Typography>
+        </Box>
+      ),
+    },
+  ];
+
+  return (
+    <Box sx={{ height: "400px", width: "100%" }}>
+      <Box sx={{ padding: 1, display: 'flex', justifyContent: 'flex-end' }}>
+        <Button variant="contained" color="primary">
+          Add Contributer
+        </Button>
+    </Box>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <DataGrid rows={rows} columns={columns} />
+      </Box>
+    </Box>
+  );
+};
+
+
+// Function to render the Task Progress Chart
+export const ContributerTaskChart = ({ tasksData }: { tasksData: tasks[] }) => {
+  const contributerMap: {
+    [username: string]: { completed: number; approved: number; pending: number; progress: number };
+  } = {};
+
+  for (const task of tasksData) {
+    const { assignedUsername, taskStatus, approved } = task;
+
+    if (!contributerMap[assignedUsername]) {
+      contributerMap[assignedUsername] = { completed: 0, approved: 0, pending: 0, progress: 0 };
+    }
+
+    const userStats = contributerMap[assignedUsername];
+
+    if (taskStatus === "completed") {
+      userStats.completed++;
+    } else {
+      userStats.pending++;
+    }
+
+    if (approved) {
+      userStats.approved++;
+    }
+  }
+
+  const chartData = {
+    labels: Object.keys(contributerMap),
+    datasets: [
+      {
+        label: "Completed Tasks",
+        data: Object.values(contributerMap).map((stats) => stats.completed),
+        backgroundColor: "#4caf50",
+      },
+      {
+        label: "Pending Tasks",
+        data: Object.values(contributerMap).map((stats) => stats.pending),
+        backgroundColor: "#fbc02d",
+      },
+      {
+        label: "Approved Tasks",
+        data: Object.values(contributerMap).map((stats) => stats.approved),
+        backgroundColor: "#1976d2",
+      },
+    ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    scales: {
+      x: {
+        type: "category" as const,
+        categoryPercentage: 1,
+        barPercentage: 0.9,
+      },
+    },
+    plugins: {
+      legend: {
+        position: "top" as const,
+      },
+    },
+  };
+
+  return (
+    <Box p={4} maxHeight="50%" width="70%">
+      <Typography variant="h6" gutterBottom>
+        Task Progress Chart
+      </Typography>
+      <Bar data={chartData} options={chartOptions} />
+    </Box>
+  );
+};

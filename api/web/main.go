@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+
+	"github.com/Raaffs/FluxMap/internal/env"
 	"github.com/Raaffs/FluxMap/internal/models"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -15,15 +17,6 @@ type Application struct{
 	models	models.Models 
 }
 
-type config struct {
-	port string
-	env map[string]string
-	db struct {
-		dsn string
-	}
-}
-
-
 func main(){
 	if err:=godotenv.Load(".env");err!=nil{
 		log.Fatal("Error  loading .env file %w\n",err)
@@ -33,7 +26,7 @@ func main(){
 	}
 	ctx:=context.Background()
 
-	conn,err:=pgxpool.New(ctx,envMap["DB_URL"]);if err!=nil{
+	conn,err:=pgxpool.New(ctx,envMap[env.DB_URL]);if err!=nil{
 		log.Fatal("Error connecting to database %w\n",err)
 	}
 	app:=&Application{
@@ -41,7 +34,7 @@ func main(){
 		models: models.NewModels(conn),
 	}
 	e:=app.InitRoutes()
-	PORT:=fmt.Sprintf(":%s",app.env["API_PORT"])
+	PORT:=fmt.Sprintf(":%s",app.env[env.API_PORT])
 	if err:=e.Start(PORT);err!=nil{
 		log.Fatal("Error starting server %w\n",err)
 	}

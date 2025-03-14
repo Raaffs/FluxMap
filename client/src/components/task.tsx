@@ -1,41 +1,80 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Box, Typography, MenuItem, Select, FormControl, InputLabel, Checkbox, Modal, TextField, Button, useTheme } from "@mui/material";
+import { LinearProgress } from '@mui/material';
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { tokens } from "../theme";
-export const ProjectTaskDetailPage = () => {
+import { tasks } from "../hooks/types";
+import useFetchTaskData from "../hooks/task";
+
+export const ProjectTaskDetailPage = ({tasks,setFetchTrigger}: {tasks:tasks[],setFetchTrigger:React.Dispatch<React.SetStateAction<boolean>>}) => {
+
   const { id } = useParams(); // Get the project id from the URL
-  const [tasks, setTasks] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [openTaskNameModal, setOpenTaskNameModal] = useState(false);
   const [openDescriptionModal, setOpenDescriptionModal] = useState(false);
   const [currentTaskName, setCurrentTaskName] = useState("");
   const [currentDescription, setCurrentDescription] = useState("");
   const [selectedTaskID, setSelectedTaskID] = useState<number | null>(null);
-  const theme=useTheme()
-  const colors=tokens(theme.palette.mode)
-  useEffect(() => {
-    const fetchTasks = async () => {
-      try {
-        const response = await fetch(`http://localhost:4000/api/project/${id}/tasks`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include", // Include credentials (cookies, authentication tokens, etc.)
-        });
-        const data = await response.json();
-        setTasks(data);
-        setLoading(false);
-      } catch (err) {
-        setError("Failed to fetch tasks");
-        setLoading(false);
-      }
-    };
+  const [openNewTaskModal, setOpenNewTaskModal] = useState(false);
+  const [newTask, setNewTask] = useState<tasks>({
+    taskID: 0, // Set to 0 or another default value if necessary
+    taskName: '',
+    taskDescription: '',
+    taskStatus: '',
+    taskStartDate: null,
+    taskDueDate: null,
+    parentProjectID: Number(id), // Assuming the project ID is available
+    assignedUsername: '',
+    approved: false,
+    taskCompletedDate: null,
+    taskApprovedDate: null,
+  });
+const [error, setError] = useState<string | null>(null); // Define error state
+const theme = useTheme();
+const colors = tokens(theme.palette.mode);
 
-    fetchTasks();
-  }, [id]);
+const handleOpenNewTaskModal = () => setOpenNewTaskModal(true);
+const handleCloseNewTaskModal = () => {
+  setOpenNewTaskModal(false);
+  setError(null); // Reset errors when closing modal
+};
+
+const handleCreateNewTask = async () => {
+  try {
+    if (!newTask.taskName || !newTask.assignedUsername) {
+      setError('Task Name and Assigned User are required.');
+      return;
+    }
+    const formattedTask = {
+      ...newTask,
+      taskDueDate: newTask.taskDueDate
+        ? new Date(newTask.taskDueDate).toISOString()
+        : null,
+      taskStartDate: newTask.taskStartDate
+        ? new Date(newTask.taskStartDate).toISOString()
+        : null,
+    };
+    const response = await fetch(`http://localhost:4000/api/project/${id}/task`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials:'include',
+      body: JSON.stringify(formattedTask),
+    });
+
+    if (!response.ok) {
+      const errorData=await response.json()
+      console.error(errorData)
+      setError(errorData.error || 'Failed to save the task. Please try again.');
+    } else {
+      setFetchTrigger(true)
+      console.log("created task new task");
+    }
+  } catch (err) {
+    console.error("Failed to create task", err);
+  }
+};
 
   const toggleApproval = async (taskID: number, approved: boolean) => {
     try {
@@ -47,11 +86,7 @@ export const ProjectTaskDetailPage = () => {
         body: JSON.stringify({ approved: !approved }), // Toggle approval status
       });
       if (response.ok) {
-        setTasks(prevTasks => 
-          prevTasks.map(task => 
-            task.taskID === taskID ? { ...task, approved: !approved } : task
-          )
-        );
+        // Update tasks state after approval
       } else {
         setError("Failed to update approval status");
       }
@@ -70,11 +105,7 @@ export const ProjectTaskDetailPage = () => {
         body: JSON.stringify({ taskStatus: status }), // Update task status
       });
       if (response.ok) {
-        setTasks(prevTasks => 
-          prevTasks.map(task => 
-            task.taskID === taskID ? { ...task, taskStatus: status } : task
-          )
-        );
+        // Update tasks state after status change
       } else {
         setError("Failed to update task status");
       }
@@ -120,11 +151,7 @@ export const ProjectTaskDetailPage = () => {
           body: JSON.stringify({ taskName: currentTaskName }),
         });
         if (response.ok) {
-          setTasks(prevTasks => 
-            prevTasks.map(task => 
-              task.taskID === selectedTaskID ? { ...task, taskName: currentTaskName } : task
-            )
-          );
+          // Update tasks state after task name change
           handleCloseModal();
         } else {
           setError("Failed to update task name");
@@ -146,11 +173,7 @@ export const ProjectTaskDetailPage = () => {
           body: JSON.stringify({ taskDescription: currentDescription }),
         });
         if (response.ok) {
-          setTasks(prevTasks => 
-            prevTasks.map(task => 
-              task.taskID === selectedTaskID ? { ...task, taskDescription: currentDescription } : task
-            )
-          );
+          // Update tasks state after description change
           handleCloseModal();
         } else {
           setError("Failed to update task description");
@@ -161,14 +184,7 @@ export const ProjectTaskDetailPage = () => {
     }
   };
 
-  if (loading) {
-    return <Typography>Loading tasks...</Typography>;
-  }
-
-  if (error) {
-    return <Typography>{error}</Typography>;
-  }
-
+ 
   const columns: GridColDef[] = [
     { field: 'taskID', headerName: 'Task ID', width: 150 },
     {
@@ -237,18 +253,23 @@ export const ProjectTaskDetailPage = () => {
   }));
 
   return (
-    <Box sx={{ height:"100%", width: '90%', border:'5px', borderRadius:'10px' }}>
+    <Box sx={{ height: "100%", width: '99%', border: '5px', borderRadius: '10px' }}>
       <Typography variant="h4" gutterBottom>
         Tasks for Project {id}
       </Typography>
-      <DataGrid
-        rows={rows}
-        columns={columns}
-      />
+      <DataGrid rows={rows} columns={columns} />
+      <Button
+        onClick={handleOpenNewTaskModal} // Opens the modal
+        variant="contained"
+        color="primary"
+        sx={{ marginTop: 2 }}
+      >
+        Create New Task
+      </Button>
 
       {/* Task Name Modal */}
       <Modal open={openTaskNameModal} onClose={handleCloseModal}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 2, backgroundColor: theme.palette.mode==='dark'?colors.primary[400]:'grey', borderRadius: 2, maxWidth: 400, margin: 'auto', marginTop: 10 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 2, backgroundColor: theme.palette.mode === 'dark' ? colors.primary[400] : 'white', borderRadius: 2, maxWidth: 400, margin: 'auto', marginTop: 10 }}>
           <Typography variant="h6">Edit Task Name</Typography>
           <TextField
             label="Task Name"
@@ -264,21 +285,100 @@ export const ProjectTaskDetailPage = () => {
 
       {/* Task Description Modal */}
       <Modal open={openDescriptionModal} onClose={handleCloseModal}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 2, backgroundColor: 'white', borderRadius: 2, maxWidth: 400, margin: 'auto', marginTop: 10 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 2, backgroundColor: theme.palette.mode === 'dark' ? colors.primary[400] : 'white', borderRadius: 2, maxWidth: 400, margin: 'auto', marginTop: 10 }}>
           <Typography variant="h6">Edit Task Description</Typography>
           <TextField
-            label="Description"
+            label="Task Description"
             value={currentDescription}
             onChange={handleDescriptionChange}
             fullWidth
             variant="outlined"
             margin="normal"
-            multiline
-            rows={4}
           />
           <Button onClick={handleSaveDescription} color="primary" variant="contained">Save</Button>
+        </Box>
+      </Modal>
+      <Modal open={openNewTaskModal} onClose={handleCloseNewTaskModal}>
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            padding: 2,
+            backgroundColor: theme.palette.mode === 'dark' ? colors.primary[400] : 'white',
+            borderRadius: 2,
+            maxWidth: 400,
+            margin: 'auto',
+            marginTop: 10,
+          }}
+        >
+          <Typography variant="h6">Create New Task</Typography>
+        
+          <TextField
+            label="Task Name"
+            value={newTask.taskName}
+            onChange={(e) => setNewTask({ ...newTask, taskName: e.target.value })}
+            fullWidth
+            variant="outlined"
+            margin="normal"
+          />
+      
+          <TextField
+            label="Assigned User"
+            value={newTask.assignedUsername}
+            onChange={(e) => setNewTask({ ...newTask, assignedUsername: e.target.value })}
+            fullWidth
+            variant="outlined"
+            margin="normal"
+          />
+      
+          <TextField
+            label="Start Date"
+            type="date"
+            value={newTask.taskStartDate || ''}
+            onChange={(e) => setNewTask({ ...newTask, taskStartDate: e.target.value })}
+            fullWidth
+            variant="outlined"
+            margin="normal"
+            InputLabelProps={{
+              shrink: true, // Ensures the label doesn't overlap with the date value
+            }}
+          />
+          <TextField
+            label="Due Date"
+            type="date"
+            value={newTask.taskDueDate || ''}
+            onChange={(e) => setNewTask({ ...newTask, taskDueDate: e.target.value })}
+            fullWidth
+            variant="outlined"
+            margin="normal"
+            InputLabelProps={{
+              shrink: true,
+            }}
+          />
+      
+          <TextField
+            label="Description"
+            value={newTask.taskDescription || ''}
+            onChange={(e) => setNewTask({ ...newTask, taskDescription: e.target.value })}
+            fullWidth
+            variant="outlined"
+            margin="normal"
+          />
+      
+          <Button
+            onClick={handleCreateNewTask}
+            color="primary"
+            variant="contained"
+            sx={{ mt: 2 }}
+          >
+            Save Task
+          </Button>
         </Box>
       </Modal>
     </Box>
   );
 };
+
+
+export default ProjectTaskDetailPage;
