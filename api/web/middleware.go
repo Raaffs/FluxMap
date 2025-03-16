@@ -12,11 +12,12 @@ import (
 func IsAuthorizedUser(next echo.HandlerFunc)echo.HandlerFunc{
 	return func (c echo.Context)error{
 		sess,err:=session.Get(sessionvar.SESSION_NAME,c); if err!=nil{
-			log.Println("error getting cookie:",err)
+			log.Println("error getting session:",err)
 			
 			return c.JSON(http.StatusUnauthorized,map[string]string{"error":"you're not authorized"})
 			// return c.Redirect(http.StatusTemporaryRedirect,"http://localhost:5173/login")
 		}
+		log.Println("sess vals",sess.Values)
 		 username,ok :=sess.Values[sessionvar.USERNAME].(string); if !ok ||username==""{
 			log.Println("username is empty",username,ok)
 			return c.JSON(http.StatusUnauthorized,map[string]string{"error":"you're not authorized"})
@@ -27,28 +28,38 @@ func IsAuthorizedUser(next echo.HandlerFunc)echo.HandlerFunc{
 
 func(app *Application)ManagerLevelAccess(next echo.HandlerFunc) echo.HandlerFunc {
     return IsAuthorizedUser(func(c echo.Context) error {
+		log.Println("hererererere")
         sess, err := session.Get(sessionvar.SESSION_NAME,c);if err != nil {
+			c.Logger().Warn("unauthorized access\n","session: ",sess,"\nerror: ",err)
             return c.JSON(http.StatusUnauthorized, map[string]string{"message": "Missing role cookie"})
         }
+		log.Println("efefefefe")
 		username,ok:=sess.Values[sessionvar.USERNAME].(string);if !ok{
+			c.Logger().Warn("unauthorized access\n","session: ",sess,"\nerror: ",err)
 			return c.JSON(http.StatusUnauthorized,map[string]string{"error":"you're not authorized"})
 		}
 
 		isAdmin,err:=app.models.Users.IsAdmin(c.Request().Context(),username,c.Param("id"));if err!=nil{
+			c.Logger().Error("error getting access level: ",err)
 			return c.JSON(http.StatusInternalServerError,map[string]string{"message":err.Error()})
 		}
 
 		if isAdmin{
+		log.Println("finalll adminnnn")
 			return next(c)
 		}
 
 		isManager,err:=app.models.Users.IsManager(c.Request().Context(),username,c.Param("id"))
 		if err!=nil{
+			c.Logger().Error("error getting access level: ",err)
 			return c.JSON(http.StatusInternalServerError,map[string]string{"message":err.Error()})
 		}
 		if !isManager{
+			c.Logger().Warn("unauthorized access\n","session: ",sess,"\nerror: ",err)
 			return c.JSON(http.StatusForbidden,map[string]string{"message":"You are not a manager"})
 		}
+		log.Println("finalllll2")
+
 		return next(c)
     })
 }

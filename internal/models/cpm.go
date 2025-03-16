@@ -9,13 +9,14 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
-type CpmModel[T Analytic] struct{
-	DB 			*pgxpool.Pool
-	Infolog 	*log.Logger
-	Errorlog	*log.Logger
+
+type CpmModel[T Analytic] struct {
+	DB       *pgxpool.Pool
+	Infolog  *log.Logger
+	Errorlog *log.Logger
 }
 
-func (m *CpmModel[T])Insert(ctx context.Context, cpmValues []Cpm) error {
+func (m *CpmModel[T]) Insert(ctx context.Context, cpmValues []Cpm) error {
 	fmt.Println("herereererere")
 	query := `
 	INSERT INTO Cpm (TaskID, ParentProjectID, Dependencies, Duration)
@@ -27,44 +28,43 @@ func (m *CpmModel[T])Insert(ctx context.Context, cpmValues []Cpm) error {
 	ParentProjectID=$2,
     Dependencies = $3, 
     Duration = $4 
-	;
 	`
-	for _,cpm:=range cpmValues{
+	for _, cpm := range cpmValues {
 		fmt.Println("inserting...")
-		_, err := m.DB.Exec(ctx, query, cpm.TaskID, cpm.ParentProjectID,cpm.Dependencies,cpm.Duration)
+		_, err := m.DB.Exec(ctx, query, cpm.TaskID, cpm.ParentProjectID, cpm.Dependencies, cpm.Duration)
 		if err != nil {
 			log.Printf("Error inserting data into Cpm table changelog: %v", err)
 			return err
 		}
 	}
-	
+
 	return nil
 }
 
-func(m *CpmModel[T])Exist()(bool,error){
-	return true,nil
+func (m *CpmModel[T]) Exist() (bool, error) {
+	return true, nil
 }
 
-func(m *CpmModel[T])GetData(ctx context.Context,projectID int)([]*T,error){
+func (m *CpmModel[T]) GetData(ctx context.Context, projectID int) ([]*T, error) {
 	var cpmValues []*T
-	query:=`SELECT TaskID, Dependencies, Duration
+	query := `SELECT TaskID, Dependencies, Duration
 	FROM cpm
 	WHERE parentProjectID=$1
-
 	`
-	rows, err := m.DB.Query(ctx,query,projectID);if err!=nil{
-		m.Errorlog.Printf("An error occurred while getting cpm values for projectID %v\n",err)
-		if errors.Is(err,sql.ErrNoRows){
-			return []*T{},ErrRecordNotFound
+	rows, err := m.DB.Query(ctx, query, projectID)
+	if err != nil {
+		m.Errorlog.Printf("An error occurred while getting cpm values for projectID %v\n", err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return []*T{}, ErrRecordNotFound
 		}
-		return []*T{},err
+		return []*T{}, err
 	}
 	defer rows.Close()
-	for rows.Next(){
+	for rows.Next() {
 		var cpm Cpm
-		if err := rows.Scan(&cpm.TaskID,&cpm.Dependencies,&cpm.Duration);err!=nil{
-			m.Errorlog.Printf("An error occurred while scanning cpm values for projectID %v\n",err)
-			return []*T{},err
+		if err := rows.Scan(&cpm.TaskID, &cpm.Dependencies, &cpm.Duration); err != nil {
+			m.Errorlog.Printf("An error occurred while scanning cpm values for projectID %v\n", err)
+			return []*T{}, err
 		}
 		var t *T
 		var ok bool
@@ -74,42 +74,43 @@ func(m *CpmModel[T])GetData(ctx context.Context,projectID int)([]*T,error){
 		cpmValues = append(cpmValues, t)
 	}
 
-	if rows.Err()!=nil{
-		m.Errorlog.Printf("An error occurred while getting cpm values for projectID %v\n",err)
-		return []*T{},err
+	if rows.Err() != nil {
+		m.Errorlog.Printf("An error occurred while getting cpm values for projectID %v\n", err)
+		return []*T{}, err
 	}
 
-	return cpmValues,nil
+	return cpmValues, nil
 }
 
-func(m *CpmModel[T])InsertResult(ctx context.Context,projectID int, result Result)(error){
-	query:=`
+func (m *CpmModel[T]) InsertResult(ctx context.Context, projectID int, result Result) error {
+	query := `
 		INSERT into cpmResult(projectID, result)
 		VALUES($1,$2)
 		ON CONFLICT	(projectID)
 		DO UPDATE SET
 			result=EXCLUDED.result
 	`
-	_,err:=m.DB.Exec(ctx,query,projectID,result.Result);if err!=nil{
+	_, err := m.DB.Exec(ctx, query, projectID, result.Result)
+	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func(m *CpmModel[T])GetResult(ctx context.Context,projectID int)(Result,error){
-	result:=Result{
+func (m *CpmModel[T]) GetResult(ctx context.Context, projectID int) (Result, error) {
+	result := Result{
 		Result: map[string]any{},
 	}
-	query:=`SELECT result
+	query := `SELECT result
 	FROM cpmResult
 	WHERE projectID=$1
 	`
-	if err :=m.DB.QueryRow(ctx,query,projectID).Scan(&result.Result);err!=nil{
-		if errors.Is(err,sql.ErrNoRows){
-			return Result{},ErrRecordNotFound
+	if err := m.DB.QueryRow(ctx, query, projectID).Scan(&result.Result); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return Result{}, ErrRecordNotFound
 		}
-		m.Errorlog.Printf("An error occurred while getting cpm result for projectID %v\n",err)
-		return Result{},err
+		m.Errorlog.Printf("An error occurred while getting cpm result for projectID %v\n", err)
+		return Result{}, err
 	}
-	return result,nil
+	return result, nil
 }

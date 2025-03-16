@@ -24,7 +24,13 @@ import { Projects } from "../hooks/types";
 // }
 export const ProjectComponent = ({ URI }: { URI: string }) => {
   const { projects, loading, error } = useRetrieveProjectsFrom(URI);
-  const { postProject, loading: postLoading, error: postError, success } =usePostProject();
+  
+  const {
+    postProject,
+    loading: postLoading,
+    error: postError,
+    success,
+  } = usePostProject();
   const [modalOpen, setModalOpen] = useState(false);
   const [newProject, setNewProject] = useState<Projects>({
     projectID: 0,
@@ -32,15 +38,13 @@ export const ProjectComponent = ({ URI }: { URI: string }) => {
     projectDescription: "",
     projectStartDate: null,
     projectDueDate: null,
-    ownername:"",
-  })
+    ownername: "",
+  });
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   const navigate = useNavigate();
 
-  const handleInputChange = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
     setNewProject((prev) => ({ ...prev, [name]: value }));
   };
@@ -49,22 +53,22 @@ export const ProjectComponent = ({ URI }: { URI: string }) => {
   const handleCloseModal = () => setModalOpen(false);
 
   const handleSubmit = () => {
-  const formattedProject = {
-    ...newProject,
-    projectDueDate: newProject.projectDueDate
-      ? new Date(newProject.projectDueDate).toISOString()
-      : null,
-    projectStartDate: newProject.projectStartDate
-      ? new Date(newProject.projectStartDate).toISOString()
-      : null,
+    const formattedProject = {
+      ...newProject,
+      projectDueDate: newProject.projectDueDate
+        ? new Date(newProject.projectDueDate).toISOString()
+        : null,
+      projectStartDate: newProject.projectStartDate
+        ? new Date(newProject.projectStartDate).toISOString()
+        : null,
+    };
+
+    postProject(formattedProject, URI);
+
+    if (!postError) {
+      handleCloseModal(); // Close modal on successful creation
+    }
   };
-
-  postProject(formattedProject, URI);
-
-  if (!postError) {
-    handleCloseModal(); // Close modal on successful creation
-  }
-};
 
   if (loading) {
     return (
@@ -106,13 +110,15 @@ export const ProjectComponent = ({ URI }: { URI: string }) => {
           border: "5px #ddd",
           borderRadius: "8px",
           backgroundColor:
-            theme.palette.mode === "dark"
-              ? colors.primary[400]
-              : "white",
+            theme.palette.mode === "dark" ? colors.primary[400] : "white",
           boxShadow: "0 4px 8px rgba(0,0,0,0.5)",
         }}
       >
-        <Typography variant="h4" color="text.secondary" sx={{ color: "orangered" }}>
+        <Typography
+          variant="h4"
+          color="text.secondary"
+          sx={{ color: "orangered" }}
+        >
           No projects available.
         </Typography>
       </Box>
@@ -129,9 +135,7 @@ export const ProjectComponent = ({ URI }: { URI: string }) => {
         border: "5px #ddd",
         borderRadius: "8px",
         backgroundColor:
-          theme.palette.mode === "dark"
-            ? colors.primary[400]
-            : "white",
+          theme.palette.mode === "dark" ? colors.primary[400] : "white",
         boxShadow: "0 4px 8px rgba(0,0,0,0.5)",
         alignContent: "left",
       }}
@@ -140,15 +144,13 @@ export const ProjectComponent = ({ URI }: { URI: string }) => {
         <Card
           key={index}
           sx={{
-            minHeight:"15%",
+            minHeight: "15%",
             maxWidth: "100%",
             marginBottom: "16px",
             padding: "16px",
             borderRadius: "8px",
             backgroundColor:
-              theme.palette.mode === "dark"
-                ? colors.primary[400]
-                : "#f",
+              theme.palette.mode === "dark" ? colors.primary[400] : "#f",
             boxShadow: "0 2px 4px rgba(0,0,0,0.5)",
             alignContent: "left",
             alignItems: "left",
@@ -175,19 +177,21 @@ export const ProjectComponent = ({ URI }: { URI: string }) => {
             color="text.secondary"
             sx={{
               color:
-              project.projectDueDate && new Date(project.projectDueDate) < new Date()
-                ? colors.redAccent[500]
-                : colors.greenAccent[400],
-            fontWeight: "bold",            }}
+                project.projectDueDate &&
+                new Date(project.projectDueDate) < new Date()
+                  ? colors.redAccent[500]
+                  : colors.greenAccent[400],
+              fontWeight: "bold",
+            }}
           >
             <strong>Due:</strong>{" "}
             {project.projectDueDate
-            ? new Date(project.projectDueDate).toLocaleDateString("en-GB", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-      })
-    : "No due date"}
+              ? new Date(project.projectDueDate).toLocaleDateString("en-GB", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })
+              : "No due date"}
           </Typography>
         </Card>
       ))}

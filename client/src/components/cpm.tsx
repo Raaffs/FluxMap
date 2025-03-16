@@ -15,16 +15,16 @@ const CpmTable: React.FC<{ data: CpmResult |null}> = ({ data }) => {
   // }
   // Define columns for the DataGrid
   const columns: GridColDef[] = [
-    { field: 'taskId', headerName: 'Task ID', width: 150 },
-    { field: 'dependencies', headerName: 'Dependencies', width: 200 },
-    { field: 'duration', headerName: 'Duration', width: 150 },
-    { field: 'earliestStart', headerName: 'Earliest Start', width: 180 },
-    { field: 'earliestFinish', headerName: 'Earliest Finish', width: 180 },
-    { field: 'latestStart', headerName: 'Latest Start', width: 180 },
-    { field: 'latestFinish', headerName: 'Latest Finish', width: 180 },
-    { field: 'totalFloat', headerName: 'Total Float', width: 180 },
-    { field: 'freeFloat', headerName: 'Free Float', width: 180 },
-    { field: 'independentFloat', headerName: 'Independent Float', width: 200 },
+    { field: 'taskId', headerName: 'Task ID', flex:1 },
+    { field: 'dependencies', headerName: 'Dependencies', flex: 1 },
+    { field: 'duration', headerName: 'Duration', flex: 1 },
+    { field: 'earliestStart', headerName: 'Earliest Start', flex: 1 },
+    { field: 'earliestFinish', headerName: 'Earliest Finish', flex: 1 },
+    { field: 'latestStart', headerName: 'Latest Start', flex: 1 },
+    { field: 'latestFinish', headerName: 'Latest Finish', flex: 1 },
+    { field: 'totalFloat', headerName: 'Total Float', flex: 1 },
+    { field: 'freeFloat', headerName: 'Free Float', flex: 1 },
+    { field: 'independentFloat', headerName: 'Independent Float', flex: 1 },
   ];
 
   // Prepare rows for the DataGrid
@@ -43,7 +43,7 @@ const CpmTable: React.FC<{ data: CpmResult |null}> = ({ data }) => {
   }));
 
   return (
-    <Box sx={{ height: 400, width: '50%' }}>
+    <Box sx={{ height: 400, width: '100%' }}>
       <DataGrid rows={rows} columns={columns}  />
     </Box>
   );

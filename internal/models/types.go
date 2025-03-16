@@ -31,6 +31,7 @@ type Invitation struct{
     Username           string         `json:"username"`       
     ProjectID          int            `json:"projectID,omitempty"`           // Primary Key
     Accepted           bool           `json:"accepted"`
+    Role               string          `json:"role"`
 }
 
 // Project represents a project in the database

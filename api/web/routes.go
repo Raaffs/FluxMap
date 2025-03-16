@@ -65,7 +65,7 @@ func (app *Application)InitRoutes()*echo.Echo{
 	e.POST("/api/project/:id/task",app.CreateTask,app.ManagerLevelAccess)
 	e.GET("/api/project/:id/task/:taskID",app.GetTaskByID,IsAuthorizedUser)
 	e.PUT("/api/project/:id/task/:taskID/manager",app.ManagerRestrictedTask,app.ManagerLevelAccess)
-	e.PUT("/api/project/:id/task/:taskID",app.UpdateTask,IsAuthorizedUser)
+	e.PUT("/api/project/:id/task/:taskID",app.UpdateUserTask,IsAuthorizedUser)
 
 	e.PUT("/api/project/:id/task/:taskID/approve",app.ManagerRestrictedTask,app.ManagerLevelAccess)
 	e.PUT("/api/project/:id/task/:taskID/assign",app.ManagerRestrictedTask,app.ManagerLevelAccess)

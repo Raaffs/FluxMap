@@ -16,6 +16,7 @@ import (
 	"github.com/Raaffs/FluxMap/internal/sessionVar"
 	validator "github.com/Raaffs/FluxMap/internal/validators"
 	"github.com/gorilla/sessions"
+	"github.com/guregu/null/v5"
 
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
@@ -52,7 +53,7 @@ func(app *Application)Login(c echo.Context)error{
 	}
 
 	sess.Values[sessionvar.USERNAME]=u.Username
-	
+	log.Println("sess vals login",sess.Values)
 	if err := sess.Save(c.Request(), c.Response()); err != nil {
 		c.Logger().Error("error saving session: ",err)
 		return c.JSON(http.StatusInternalServerError,"error saving session")
@@ -157,7 +158,7 @@ func (app *Application) CreateProject(c echo.Context) error {
 	username,ok:=sess.Values[sessionvar.USERNAME].(string);if !ok{
 		return c.JSON(http.StatusUnauthorized, "unauthorized")
 	}
-	
+
 	p.Ownername = username
 
 	// If validation fails, return detailed validation errors
@@ -296,12 +297,16 @@ func(app *Application)GetAdminProjects(c echo.Context)error{
 }
 
 func(app *Application) GetManagerProjects(c echo.Context) error {
-	user, err := c.Cookie("username")
-	if err != nil {
-		return c.JSON(http.StatusUnauthorized, "Unauthorized")
+	sess, err := session.Get(sessionvar.SESSION_NAME,c);if err != nil {
+		return c.JSON(http.StatusUnauthorized, map[string]string{
+			"error": "Unauthorized",
+		})
+	}
+	username,ok:=sess.Values[sessionvar.USERNAME].(string);if !ok{
+		return c.JSON(http.StatusUnauthorized, "unauthorized")
 	}
 
-	managerProjects, err := app.models.Projects.RetrieveManagerProjects(c.Request().Context(), user.Value)
+	managerProjects, err := app.models.Projects.RetrieveManagerProjects(c.Request().Context(), username)
 	if err != nil {
 		c.Logger().Error("Error retrieving manager projects: ", err)
 		return c.JSON(http.StatusInternalServerError, MapMessage("Project", "An error occurred while retrieving manager projects"))
@@ -326,10 +331,6 @@ func(app *Application) GetAssignedProjects(c echo.Context) error {
 }
 
 func(app *Application)GetProjectByID(c echo.Context)error{
-	_, err := c.Cookie("username")
-	if err != nil {
-		return c.JSON(http.StatusUnauthorized, "Unauthorized")
-	}
 	id, err := strconv.Atoi(c.Param("id"));if err!=nil{
 		return c.JSON(http.StatusBadRequest,MapMessage("message","Invalid project id"))
 	}
@@ -347,24 +348,40 @@ func(app *Application)GetProjectByID(c echo.Context)error{
 func(app *Application)Invite(c echo.Context)error{
 	invitation:=struct{
 		Username  string `json:"username"`
-		ProjectID int `json:"projectID"`
+		Role	  string `json:"role"`
 	}{}
-	
-	if err:=c.Bind(invitation);err!=nil{
-		return c.JSON(http.StatusBadRequest,MapMessage("Invite","Invalid JSON"))
+
+	id, err := strconv.Atoi(c.Param("id"));if err!=nil{
+		return c.JSON(http.StatusBadRequest,map[string]string{"error":"invalid project id"})
 	}
 
+	if err:=c.Bind(&invitation);err!=nil{
+		return c.JSON(http.StatusBadRequest,map[string]string{"error":"invalid json"})
+	}
+
+	fmt.Println("username, role: ",invitation.Username,invitation.Role)
 	exist,err:=app.models.Users.Exist(c.Request().Context(),invitation.Username)
 	if !exist{
-		return c.JSON(http.StatusNotFound,MapMessage("Invite","User not found"))
+		c.Logger().Error("user doesn't exists")
+		return c.JSON(http.StatusNotFound,map[string]string{"error":"user doesn't exist"})
 	}
+
 	if err!=nil{
 		c.Logger().Error("Error inviting user:",err)
-		return c.JSON(http.StatusInternalServerError,MapMessage("Invite","Error while checking user existence"))
+		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"internal server error"})
 	}
-	if err:=app.models.Invitation.Invite(c.Request().Context(),invitation.Username,invitation.ProjectID); err!=nil{
+
+	alreadyInvited,err:=app.models.Invitation.Exist(c.Request().Context(),invitation.Username,id); if err!=nil{
+		c.Logger().Error("Error checking invitation:",err)
+		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"internal server error"})
+	}
+	if alreadyInvited{
+		return c.JSON(http.StatusConflict,map[string]string{"error":"user is already invited"})
+	}
+
+	if err:=app.models.Invitation.Invite(c.Request().Context(),invitation.Username,id,invitation.Role); err!=nil{
 		c.Logger().Error("Error inviting user: ",err)
-		return c.JSON(http.StatusInternalServerError,MapMessage("Invite","Failed to invite user"))
+		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"internal server error"})
 	}
 	return nil
 }
@@ -391,13 +408,32 @@ func (app *Application)GetInvitations(c echo.Context)error{
 }
 
 func(app *Application)ConfirmInvitation(c echo.Context)error{
-	invitation:=struct{
-		ProjectID int `json:"projectID"`
-	}{}
+	id,err:=strconv.Atoi(c.Param("id"));if err!=nil{
+		c.Logger().Error(MapMessage("error converting to string",err.Error()))
+		return c.JSON(http.StatusBadRequest,map[string]string{"error":"Invalid project ID"})
+	}
+	sess,err:=session.Get("session",c);if err!=nil{
+		c.Logger().Error("error getting session: ",err)
+		return c.JSON(http.StatusUnauthorized,MapMessage("session","Error getting session"))
+	}
 
-	if err:=app.models.Users.ConfirmInvitation(c.Request().Context(),invitation.ProjectID);err!=nil{
+	username,ok:=sess.Values[sessionvar.USERNAME].(string)
+	if !ok{
+		c.Logger().Error("Error getting username from session")
+		return c.JSON(http.StatusUnauthorized,MapMessage("session","Error getting username from session"))
+	}
+
+	inviteID,err:=app.models.Invitation.ConfirmInvitation(c.Request().Context(),id,username);if err!=nil{
 		c.Logger().Error("Error confirming invitation: ",err)
 		return c.JSON(http.StatusInternalServerError,MapMessage("Confirm Invitation","Failed to confirm invitation"))
+	}
+	invitationDetail,err:=app.models.Invitation.GetInvitationByID(c.Request().Context(),inviteID);if err!=nil{
+		c.Logger().Error("Error getting invitation detail: ",err)
+		return c.JSON(http.StatusInternalServerError,MapMessage("Confirm Invitation","Failed to get invitation detail"))
+	} 
+
+	if invitationDetail.Role=="manager"{
+		app.models.Projects.AssignManager(c.Request().Context(),username,id)
 	}
 	return nil
 }
@@ -429,19 +465,8 @@ func (app *Application)CreateTask(c echo.Context)error{
 }
 
 func (app *Application)GetTasks(c echo.Context)error{
-	projectID:=c.Param("id")
-	id,err:=strconv.Atoi(projectID);if err!=nil{
-		if errors.Is(err,models.ErrRecordNotFound){
-			return c.JSON(http.StatusNotFound,map[string]string{"error":"Invalid project ID"})
-		}
-		c.Logger().Error(MapMessage("error converting to string",err.Error()))
-		return c.JSON(http.StatusNotFound,MapMessage("error","project not found"))
-	}
-	tasks,err:=app.models.Task.GetTasks(c.Request().Context(),id);if err!=nil{
-		c.Logger().Error(MapMessage("Error retrieving tasks",err.Error()))
-		return c.JSON(http.StatusInternalServerError,MapMessage("error","internal server error"))
-	}
-	return c.JSON(http.StatusOK,tasks)
+	taskfunc:= app.GetTaskBasedOnAccess(app.ManagerTasks,app.UserTasks)
+	return taskfunc(c)
 }
 
 func (app *Application)GetTaskByID(c echo.Context)error{
@@ -469,7 +494,35 @@ func (app *Application)UpdateProject(c echo.Context)error{
 	return c.JSON(http.StatusOK,"updated successfully")
 }
 
-func (app *Application)UpdateTask(c echo.Context)error{
+func(app *Application)UpdateUserTask(c echo.Context)error{
+	status:=struct{
+		TaskStatus string `json:"taskStatus"`
+	}{}
+	v:=validator.New()
+
+	id,err:=strconv.Atoi(c.Param("taskID")); if err!=nil{
+		return c.JSON(http.StatusNotFound,MapMessage("error","task not found"))
+	}
+	log.Println("invalid task id ",id)
+	if err:=c.Bind(&status);err!=nil{
+		return c.JSON(http.StatusBadRequest,MapMessage("error","invalid request"))
+	}
+	v.Check(
+		status.TaskStatus=="completed"||status.TaskStatus=="pending",
+		"status",
+		"invalid status",
+	)
+	log.Println("invalid status")
+
+	if err:=app.models.Task.UpdateTask(c.Request().Context(),id,status.TaskStatus);err!=nil{
+		c.Logger().Error("error updating task: ",err)
+		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"internal server error"})
+	}
+
+	return nil
+}
+
+func (app *Application)UpdateManagerTask(c echo.Context)error{
 	var t models.Task
 	v:=validator.New()
 	if err:=c.Bind(&t);err!=nil{
@@ -487,10 +540,10 @@ func (app *Application)UpdateTask(c echo.Context)error{
 		return c.JSON(http.StatusBadRequest,"task must be assigned to a user")
 	}
 	
-	if t.Approved.Bool==true{
+	if t.Approved.Bool{
 		t.TaskApprovedDate.Time =time.Now()
 	}
-	if err:=app.models.Task.UpdateTask(c.Request().Context(),t);err!=nil{
+	if err:=app.models.Task.UpdateManagerTask(c.Request().Context(),t);err!=nil{
 		c.Logger().Error(MapMessage("Error updating task",err.Error()))
 		return c.JSON(http.StatusInternalServerError,MapMessage("error","internal server error"))
 	}
@@ -501,7 +554,10 @@ func(app *Application)AddManager(c echo.Context)error{
 	m:=struct{
 		Manager string `json:"manager"`
 	}{}
-	projectID:=c.Param("id")
+	projectID,err:=strconv.Atoi(c.Param("id"));if err!=nil{
+		c.Logger().Error(MapMessage("error converting to string",err.Error()))
+		return c.JSON(http.StatusBadRequest,map[string]string{"error":"Invalid project ID"})
+	}
 	fmt.Println(m.Manager,projectID)
 	fmt.Println(projectID,m.Manager)
 	if err:=c.Bind(&m);err!=nil{
@@ -519,6 +575,7 @@ func (app *Application)ManagerRestrictedTask(c echo.Context)error{
 	if err:=c.Bind(&t);err!=nil{
 		return c.JSON(http.StatusBadRequest,"Invalid request body")
 	}
+	log.Println("t.assigned user: ",t.AssignedUsername,t.AssignedUsername.Valid)
 	id:=c.Param("taskID")
 	taskID,err:=strconv.Atoi(id);if err!=nil{
 		return c.JSON(http.StatusNotFound,"Invalid task ID")
@@ -537,11 +594,16 @@ func (app *Application)ManagerRestrictedTask(c echo.Context)error{
 		"invalid status",
 	)
 
+	if t.Approved.ValueOrZero(){
+		t.TaskApprovedDate=null.NewTime(time.Now(),true)
+	}else{
+		t.TaskApprovedDate=null.NewTime(time.Time{},false)
+	}
+	
 	if !v.Valid(){
 		c.Logger().Error(v)
-		c.JSON(http.StatusBadRequest,v)
+		return c.JSON(http.StatusBadRequest,v)
 	}
-
 	if err:=app.models.Task.UpdateManagerTask(c.Request().Context(),t);err!=nil{
 		if errors.Is(err,models.ErrRecordNotFound){
 			c.Logger().Warn("Task not found :",err)

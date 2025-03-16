@@ -52,17 +52,14 @@ func(u *UserModel)Login(ctx context.Context, username, password string)(error){
 	return nil
 }
 
-func(u *UserModel)Exist(ctx context.Context,username string)(bool,error){
-	selectQuery:=`SELECT username FROM users WHERE username=$1`
-	var user string
-	err:=u.DB.QueryRow(ctx,selectQuery,username).Scan(&user)
-	if err!=nil{
-		if errors.Is(err,sql.ErrNoRows){
-			return false,nil
-		}
-		return false,err
+func (u *UserModel) Exist(ctx context.Context, username string) (bool, error) {
+	selectQuery := `SELECT EXISTS(SELECT 1 FROM users WHERE username = $1)`
+	var exists bool
+	err := u.DB.QueryRow(ctx, selectQuery, username).Scan(&exists)
+	if err != nil {
+		return false, err
 	}
-	return true,nil
+	return exists, nil
 }
 
 func(u *UserModel)IsManager(ctx context.Context,username string, projectID string)(bool,error){

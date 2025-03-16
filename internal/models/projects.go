@@ -119,7 +119,7 @@ func(p *ProjectModel)RetrieveAssginedProjects(ctx context.Context,username strin
 	return projects,nil
 }
 
-func(p *ProjectModel)AssignManager(ctx context.Context,manager , projectID string)(error){
+func(p *ProjectModel)AssignManager(ctx context.Context,manager string , projectID int)(error){
 	query:=`INSERT INTO managers(managername,projectid)VALUES($1,$2)`	
 	_,err:=p.DB.Exec(ctx,query,manager,projectID);if err!=nil{
 		p.Errorlog.Println("Error assigning manager: ",err)

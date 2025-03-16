@@ -1,11 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
-import {
-  Chart,
-  ChartData,
-  ChartOptions,
-  ChartDataset,
-} from "chart.js";
+import { Chart, ChartData, ChartOptions, ChartDataset } from "chart.js";
 import {
   Chart as ChartJS,
   LineElement,
@@ -17,24 +12,43 @@ import {
 } from "chart.js";
 import { TextField, Button, Box, SelectChangeEvent } from "@mui/material";
 import { erf } from "mathjs";
-import { ApiResponse,PertData, tasks } from "../hooks/types";
-import { Dialog, DialogActions, DialogContent, DialogTitle, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
-ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend);
+import { ApiResponse, PertData, tasks } from "../hooks/types";
+import {
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+} from "@mui/material";
+ChartJS.register(
+  LineElement,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  Tooltip,
+  Legend
+);
 
-interface PertRows{
-  id: number // Update this to number
-  parentTaskID: number // Also update this field to match
-  predecessorTaskId?: number|null
-  optimistic: number
-  pessimistic: number
-  mostLikely: number
-  taskName?: string
+interface PertRows {
+  id: number; // Update this to number
+  parentTaskID: number; // Also update this field to match
+  predecessorTaskId?: number | null;
+  optimistic: number;
+  pessimistic: number;
+  mostLikely: number;
+  taskName?: string;
 }
 
-export const PertTable: React.FC<{ pertTasks: PertData[] | undefined, tasks: tasks[] }> = ({ pertTasks, tasks }) => {
+export const PertTable: React.FC<{
+  pertTasks: PertData[] | undefined;
+  tasks: tasks[];
+}> = ({ pertTasks, tasks }) => {
   const [open, setOpen] = useState(false);
   const [newTask, setNewTask] = useState<PertData>({
-    predecessorTaskId:0,
+    predecessorTaskId: 0,
     parentTaskID: 0,
     optimistic: 0,
     pessimistic: 0,
@@ -42,36 +56,36 @@ export const PertTable: React.FC<{ pertTasks: PertData[] | undefined, tasks: tas
   });
 
   if (pertTasks === undefined || pertTasks === null) {
-    return <div>no pert data</div>
+    return <div>no pert data</div>;
   }
 
-  const tasksMap = new Map<number, boolean>()
-  const pertTaskMap = new Map<number, boolean>()
-  tasks.forEach(task => tasksMap.set(task.taskID, true))
-  pertTasks.forEach(pertTask=>pertTaskMap.set(pertTask.parentTaskID,true))
+  const tasksMap = new Map<number, boolean>();
+  const pertTaskMap = new Map<number, boolean>();
+  tasks.forEach((task) => tasksMap.set(task.taskID, true));
+  pertTasks.forEach((pertTask) => pertTaskMap.set(pertTask.parentTaskID, true));
 
-  let PertAddableTask:PertData[]=[]
-  for(const task of tasks){
-    if(!pertTaskMap.has(task.taskID)){
+  let PertAddableTask: PertData[] = [];
+  for (const task of tasks) {
+    if (!pertTaskMap.has(task.taskID)) {
       PertAddableTask.push({
         parentTaskID: task.taskID,
-        predecessorTaskId:0,
+        predecessorTaskId: 0,
         optimistic: 0,
         pessimistic: 0,
         mostLikely: 0,
-      })
+      });
     }
   }
 
   // const PertAddableTask: PertData[] = (pertTasks || []).filter((task) => !tasksMap.has(task.parentTaskID))
-  console.log("pert addable: ", PertAddableTask)
-  console.log("pert tasks: ", pertTasks)
-  let rows:PertRows[]=[];
+  console.log("pert addable: ", PertAddableTask);
+  console.log("pert tasks: ", pertTasks);
+  let rows: PertRows[] = [];
   //for some reason even though PertData has field ParentTaskID
   //here we've to use parentTaskId instead for tasks to render correctly
   //I've no clue why. It might be because of how backend is send data but not gonna
   //mess with it for now
-  for(const pertTask of pertTasks){
+  for (const pertTask of pertTasks) {
     rows.push({
       id: pertTask.parentTaskId,
       parentTaskID: pertTask.parentTaskId,
@@ -79,12 +93,14 @@ export const PertTable: React.FC<{ pertTasks: PertData[] | undefined, tasks: tas
       optimistic: pertTask.optimistic,
       pessimistic: pertTask.pessimistic,
       mostLikely: pertTask.mostLikely,
-      taskName:tasks.find(task => task.taskID === pertTask.parentTaskId)?.taskName || ''
-    })
+      taskName:
+        tasks.find((task) => task.taskID === pertTask.parentTaskId)?.taskName ||
+        "",
+    });
   }
 
-  let addAbleRows:PertRows[]=[];
-    for(const pertTask of PertAddableTask){
+  let addAbleRows: PertRows[] = [];
+  for (const pertTask of PertAddableTask) {
     addAbleRows.push({
       id: pertTask.parentTaskID,
       parentTaskID: pertTask.parentTaskID,
@@ -92,22 +108,21 @@ export const PertTable: React.FC<{ pertTasks: PertData[] | undefined, tasks: tas
       optimistic: pertTask.optimistic,
       pessimistic: pertTask.pessimistic,
       mostLikely: pertTask.mostLikely,
-      taskName:tasks.find(task => task.taskID === pertTask.parentTaskID)?.taskName || ''
-    })
+      taskName:
+        tasks.find((task) => task.taskID === pertTask.parentTaskID)?.taskName ||
+        "",
+    });
   }
 
-
-  console.log("rows: ",rows)
+  console.log("rows: ", rows);
   const columns: GridColDef[] = [
-    { field: 'taskName', headerName: 'Name', width: 150 },
-    { field: 'predecessorTaskId', headerName: 'Predecessor', width: 150 },
-    { field: 'optimistic', headerName: 'Optimistic', width: 150 },
-    { field: 'pessimistic', headerName: 'Pessimistic', width: 150 },
-    { field: 'mostLikely', headerName: 'Most Likely', width: 150 },
-    { field: 'edit', headerName: 'Edit', width: 150 }
-  ]
-
-
+    { field: "taskName", headerName: "Name", width: 150 },
+    { field: "predecessorTaskId", headerName: "Predecessor", width: 150 },
+    { field: "optimistic", headerName: "Optimistic", width: 150 },
+    { field: "pessimistic", headerName: "Pessimistic", width: 150 },
+    { field: "mostLikely", headerName: "Most Likely", width: 150 },
+    { field: "edit", headerName: "Edit", width: 150 },
+  ];
 
   // Handle modal open and close
   const handleOpen = () => setOpen(true);
@@ -145,10 +160,7 @@ export const PertTable: React.FC<{ pertTasks: PertData[] | undefined, tasks: tas
       <Button variant="outlined" onClick={handleOpen}>
         Add New Task
       </Button>
-      <DataGrid 
-      rows={rows} 
-      columns={columns} 
-      />
+      <DataGrid rows={rows} columns={columns} />
 
       {/* Modal */}
       <Dialog open={open} onClose={handleClose}>
@@ -166,7 +178,7 @@ export const PertTable: React.FC<{ pertTasks: PertData[] | undefined, tasks: tas
           <FormControl fullWidth margin="normal">
             <InputLabel>Predecessor Task</InputLabel>
             <Select
-              value={newTask.predecessorTaskId || ''}
+              value={newTask.predecessorTaskId || ""}
               onChange={handlePredecessorChange}
               name="predecessorTaskId"
               label="Predecessor Task"
@@ -175,7 +187,6 @@ export const PertTable: React.FC<{ pertTasks: PertData[] | undefined, tasks: tas
                 <em>None</em>
               </MenuItem>
               {addAbleRows.map((task, index) => (
-              
                 <MenuItem key={index} value={task.parentTaskID}>
                   {task.taskName}
                 </MenuItem>
@@ -221,19 +232,23 @@ export const PertTable: React.FC<{ pertTasks: PertData[] | undefined, tasks: tas
       </Dialog>
     </Box>
   );
-}
+};
 
-const PertNormalDistributionChart: React.FC<{ apiResponse: ApiResponse | null, pertTasks:PertData[]|undefined , tasks:tasks[] }> = ({ apiResponse, pertTasks,tasks }) => {
+const PertNormalDistributionChart: React.FC<{
+  apiResponse: ApiResponse | null;
+  pertTasks: PertData[] | undefined;
+  tasks: tasks[];
+}> = ({ apiResponse, pertTasks, tasks }) => {
   const chartRef = useRef<HTMLCanvasElement | null>(null);
   const chartInstanceRef = useRef<Chart | null>(null);
   const [zValue, setZValue] = useState<number | null>(null);
   const [probability, setProbability] = useState<number | null>(null);
   const [xInput, setXInput] = useState<string>("");
-  const selectTasks=tasks?.map(task=>task.taskID )
+  const selectTasks = tasks?.map((task) => task.taskID);
   const standardNormalCDF = (z: number): number => {
     return 0.5 * (1 + erf(z / Math.sqrt(2)));
   };
-  
+
   useEffect(() => {
     if (chartInstanceRef.current) {
       chartInstanceRef.current.destroy();
@@ -245,8 +260,8 @@ const PertNormalDistributionChart: React.FC<{ apiResponse: ApiResponse | null, p
 
     const labels = Array.from({ length: 101 }, (_, i) => (i / 10).toFixed(2)); // x-axis range: 0 to +10
 
-    const datasets: ChartDataset<"line">[] =
-      apiResponse.result.taskResults.map((task) => {
+    const datasets: ChartDataset<"line">[] = apiResponse.result.taskResults.map(
+      (task) => {
         const { mean, stddev, taskId } = task;
 
         const normalDistribution = (x: number): number => {
@@ -264,7 +279,8 @@ const PertNormalDistributionChart: React.FC<{ apiResponse: ApiResponse | null, p
           borderColor: `hsl(${Math.random() * 360}, 70%, 50%)`,
           fill: false,
         };
-      });
+      }
+    );
 
     const chartData: ChartData<"line"> = {
       labels,
@@ -316,7 +332,7 @@ const PertNormalDistributionChart: React.FC<{ apiResponse: ApiResponse | null, p
   const calculateZValue = () => {
     if (!apiResponse || !xInput) return;
 
-    const criticalTasks = apiResponse.result.taskResults.filter(task =>
+    const criticalTasks = apiResponse.result.taskResults.filter((task) =>
       apiResponse.result.criticalPath.includes(task.taskId)
     );
 
@@ -336,7 +352,7 @@ const PertNormalDistributionChart: React.FC<{ apiResponse: ApiResponse | null, p
     return <p>No data available</p>;
   }
 
-  const criticalTasks = apiResponse.result.taskResults.filter(task =>
+  const criticalTasks = apiResponse.result.taskResults.filter((task) =>
     apiResponse.result.criticalPath.includes(task.taskId)
   );
   const mean = criticalTasks.reduce((acc, task) => acc + task.mean, 0);
@@ -344,13 +360,30 @@ const PertNormalDistributionChart: React.FC<{ apiResponse: ApiResponse | null, p
 
   return (
     <div>
-      <div style={{ marginBottom: "20px", padding: "10px", border: "1px solid #ccc", borderRadius: "5px" }}>
+      <div
+        style={{
+          marginBottom: "20px",
+          padding: "10px",
+          border: "1px solid #ccc",
+          borderRadius: "5px",
+        }}
+      >
         <h3>Critical Path Information</h3>
-        <p><strong>Critical Path:</strong> {apiResponse.result.criticalPath.map((taskId, index) => (
-          <span key={taskId}>{taskId}{index < apiResponse.result.criticalPath.length - 1 ? " → " : ""}</span>
-        ))}</p>
-        <p><strong>Mean:</strong> {mean.toFixed(2)}</p>
-        <p><strong>Standard Deviation:</strong> {stddev.toFixed(2)}</p>
+        <p>
+          <strong>Critical Path:</strong>{" "}
+          {apiResponse.result.criticalPath.map((taskId, index) => (
+            <span key={taskId}>
+              {taskId}
+              {index < apiResponse.result.criticalPath.length - 1 ? " → " : ""}
+            </span>
+          ))}
+        </p>
+        <p>
+          <strong>Mean:</strong> {mean.toFixed(2)}
+        </p>
+        <p>
+          <strong>Standard Deviation:</strong> {stddev.toFixed(2)}
+        </p>
         <div style={{ marginTop: "10px" }}>
           <TextField
             label="Input X"
@@ -366,10 +399,14 @@ const PertNormalDistributionChart: React.FC<{ apiResponse: ApiResponse | null, p
           </Button>
         </div>
         {zValue !== null && (
-          <p><strong>Z-Value:</strong> {zValue.toFixed(2)}</p>
+          <p>
+            <strong>Z-Value:</strong> {zValue.toFixed(2)}
+          </p>
         )}
         {probability !== null && (
-          <p><strong>Probability (P(Z ≤ z)):</strong> {probability.toFixed(4)}</p>
+          <p>
+            <strong>Probability (P(Z ≤ z)):</strong> {probability.toFixed(4)}
+          </p>
         )}
       </div>
       <canvas ref={chartRef}></canvas>

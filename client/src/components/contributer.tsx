@@ -2,6 +2,7 @@ import { Box, Button, Typography } from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { LinearProgress } from "@mui/material";
 import { Bar } from "react-chartjs-2";
+import InviteModal from "./modals/invite";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -12,19 +13,40 @@ import {
   Legend,
 } from "chart.js";
 import { tasks } from "../hooks/types";
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+import { useState } from "react";
+import { useParams } from "react-router-dom";
+import { useInvite } from "../hooks/projects";
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 // Function to render the Task Table
 export const ContributerTaskTable = ({ tasksData }: { tasksData: tasks[] }) => {
+  const [isInviteModal, setInviteModal] = useState(false);
   const contributerMap: {
-    [username: string]: { completed: number; approved: number; pending: number; progress: number };
+    [username: string]: {
+      completed: number;
+      approved: number;
+      pending: number;
+      progress: number;
+    };
   } = {};
 
   for (const task of tasksData) {
     const { assignedUsername, taskStatus, approved } = task;
 
     if (!contributerMap[assignedUsername]) {
-      contributerMap[assignedUsername] = { completed: 0, approved: 0, pending: 0, progress: 0 };
+      contributerMap[assignedUsername] = {
+        completed: 0,
+        approved: 0,
+        pending: 0,
+        progress: 0,
+      };
     }
 
     const userStats = contributerMap[assignedUsername];
@@ -40,23 +62,26 @@ export const ContributerTaskTable = ({ tasksData }: { tasksData: tasks[] }) => {
     }
 
     const totalTasks = userStats.completed + userStats.pending;
-    userStats.progress = totalTasks > 0 ? (userStats.completed / totalTasks) * 100 : 0;
+    userStats.progress =
+      totalTasks > 0 ? (userStats.completed / totalTasks) * 100 : 0;
   }
 
-  const rows = Object.entries(contributerMap).map(([username, stats], index) => ({
-    id: index + 1,
-    assignedUsername: username,
-    taskCompleted: stats.completed,
-    taskPending: stats.pending,
-    approved: stats.approved,
-    progressPercent: stats.progress,
-  }));
+  const rows = Object.entries(contributerMap).map(
+    ([username, stats], index) => ({
+      id: index + 1,
+      assignedUsername: username,
+      taskCompleted: stats.completed,
+      taskPending: stats.pending,
+      approved: stats.approved,
+      progressPercent: stats.progress,
+    })
+  );
 
   const columns: GridColDef[] = [
-    { field: "assignedUsername", headerName: "Contributor", width: 200 },
-    { field: "taskCompleted", headerName: "Task Completed", width: 150 },
-    { field: "taskPending", headerName: "Pending", width: 150 },
-    { field: "approved", headerName: "Approved", width: 150 },
+    { field: "assignedUsername", headerName: "Contributor", flex: 2 },
+    { field: "taskCompleted", headerName: "Task Completed", flex: 2 },
+    { field: "taskPending", headerName: "Pending", flex: 2 },
+    { field: "approved", headerName: "Approved", flex: 2 },
     {
       field: "progressPercent",
       headerName: "Progress (%)",
@@ -74,7 +99,7 @@ export const ContributerTaskTable = ({ tasksData }: { tasksData: tasks[] }) => {
             variant="determinate"
             value={params.value}
             color="success"
-            sx={{ width: "100%", marginTop:"10px" }}
+            sx={{ width: "100%", marginTop: "10px" }}
           />
           <Typography variant="body2" align="center" sx={{ marginTop: "4px" }}>
             {params.value.toFixed(2)}%
@@ -86,30 +111,55 @@ export const ContributerTaskTable = ({ tasksData }: { tasksData: tasks[] }) => {
 
   return (
     <Box sx={{ height: "400px", width: "100%" }}>
-      <Box sx={{ padding: 1, display: 'flex', justifyContent: 'flex-end' }}>
-        <Button variant="contained" color="primary">
+      <Box sx={{ padding: 1, display: "flex", justifyContent: "flex-end" }}>
+        <Button
+          variant="contained"
+          color="primary"
+          sx={{ backgroundColor: "royalblue", marginBottom: 2 }}
+          onClick={() => {
+            setInviteModal(true);
+          }}
+        >
           Add Contributer
         </Button>
-    </Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <InviteModal
+          open={isInviteModal}
+          onClose={() => setInviteModal(false)}
+        />
+      </Box>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        mb={2}
+      >
         <DataGrid rows={rows} columns={columns} />
       </Box>
     </Box>
   );
 };
 
-
 // Function to render the Task Progress Chart
 export const ContributerTaskChart = ({ tasksData }: { tasksData: tasks[] }) => {
   const contributerMap: {
-    [username: string]: { completed: number; approved: number; pending: number; progress: number };
+    [username: string]: {
+      completed: number;
+      approved: number;
+      pending: number;
+      progress: number;
+    };
   } = {};
 
   for (const task of tasksData) {
     const { assignedUsername, taskStatus, approved } = task;
 
     if (!contributerMap[assignedUsername]) {
-      contributerMap[assignedUsername] = { completed: 0, approved: 0, pending: 0, progress: 0 };
+      contributerMap[assignedUsername] = {
+        completed: 0,
+        approved: 0,
+        pending: 0,
+        progress: 0,
+      };
     }
 
     const userStats = contributerMap[assignedUsername];
