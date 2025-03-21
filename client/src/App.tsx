@@ -11,6 +11,7 @@ import { ProjectTaskDetailPage } from "./components/task";
 import { ProjectOverview } from "./scenes/projects/overview";
 import Graphs from "./components/graphs/LineGraphs";
 import VoiceRecorder from "./components/voiceRecorder";
+import { Invitation } from "./scenes/invitation";
 import {
   AdminProjects,
   ManagerProjects,
@@ -38,6 +39,7 @@ function App() {
               />
               <Route path="/project/:id" element={<ProjectOverview />} />
               <Route path="/dashboard/:id" element={<Graphs />} />
+              <Route path="/invitations" element={<Invitation />} />
               <Route path="/voice" element={<VoiceRecorder />} />
             </Routes>
           </main>

@@ -28,7 +28,12 @@ func (i *InvitationModel)Invite(ctx context.Context,username string, projectID i
 
 func (i *InvitationModel)GetInvitations(ctx context.Context, username string)([]*Invitation,error){
 	var invitations []*Invitation
-	get:=`SELECT * FROM INVITATION WHERE username=$1`
+	get:=`
+		select projects.projectid, projects.projectname, projects.projectdescription, projects.ownername, invitation.id, invitation.role, invitation.username
+		from projects, invitation 
+		where projects.projectid=invitation.projectid
+		and invitation.username=$1
+	`
 	rows,err:=i.DB.Query(ctx,get,username); if err!=nil{
 		if errors.Is(err,sql.ErrNoRows){
 			return []*Invitation{},ErrRecordNotFound
@@ -97,3 +102,9 @@ func (i *InvitationModel) GetInvitationByID(ctx context.Context, invitationID in
 	}
 	return &invitation, nil
 }
+
+
+//saving this query for later
+// select projects.projectid, projects.projectname, projects.projectdescription, projects.ownername, invitation.id, invitation.role, invitation.username
+// from projects, invitation 
+// where projects.projectid=invitation.projectid

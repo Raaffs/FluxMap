@@ -29,7 +29,7 @@ export interface PertData {
     mostLikely: number;          // Required
 }
 
-interface PertTaskResult {
+interface PertTaskResult {  
     mean: number;
     stddev: number;
     taskId: number;

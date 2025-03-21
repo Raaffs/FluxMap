@@ -317,6 +317,7 @@ export const ProjectTaskDetailPage = ({
       flex: 2,
       renderCell: (params) => (
         <Checkbox
+          color="info"
           checked={params.value}
           onChange={() => toggleApproval(params.row.taskID, params.value)}
         />

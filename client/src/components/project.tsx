@@ -135,7 +135,7 @@ export const ProjectComponent = ({ URI }: { URI: string }) => {
         border: "5px #ddd",
         borderRadius: "8px",
         backgroundColor:
-          theme.palette.mode === "dark" ? colors.primary[400] : "white",
+        theme.palette.mode === "dark" ? colors.primary[400] : "white",
         boxShadow: "0 4px 8px rgba(0,0,0,0.5)",
         alignContent: "left",
       }}
@@ -150,7 +150,7 @@ export const ProjectComponent = ({ URI }: { URI: string }) => {
             padding: "16px",
             borderRadius: "8px",
             backgroundColor:
-              theme.palette.mode === "dark" ? colors.primary[400] : "#f",
+            theme.palette.mode === "dark" ? colors.primary[400] : "#f",
             boxShadow: "0 2px 4px rgba(0,0,0,0.5)",
             alignContent: "left",
             alignItems: "left",

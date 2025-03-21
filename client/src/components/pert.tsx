@@ -55,6 +55,9 @@ export const PertTable: React.FC<{
     mostLikely: 0,
   });
 
+
+  console.log("pertTasks",pertTasks)
+
   if (pertTasks === undefined || pertTasks === null) {
     return <div>no pert data</div>;
   }
@@ -78,23 +81,23 @@ export const PertTable: React.FC<{
   }
 
   // const PertAddableTask: PertData[] = (pertTasks || []).filter((task) => !tasksMap.has(task.parentTaskID))
-  console.log("pert addable: ", PertAddableTask);
-  console.log("pert tasks: ", pertTasks);
   let rows: PertRows[] = [];
   //for some reason even though PertData has field ParentTaskID
   //here we've to use parentTaskId instead for tasks to render correctly
   //I've no clue why. It might be because of how backend is send data but not gonna
   //mess with it for now
+
+  //20/30/25: solved, it was indeed the problem with wrong json format in backend
   for (const pertTask of pertTasks) {
-    rows.push({
-      id: pertTask.parentTaskId,
-      parentTaskID: pertTask.parentTaskId,
+    rows.push({ 
+      id: pertTask.parentTaskID,
+      parentTaskID: pertTask.parentTaskID,
       predecessorTaskId: pertTask.predecessorTaskId,
       optimistic: pertTask.optimistic,
       pessimistic: pertTask.pessimistic,
       mostLikely: pertTask.mostLikely,
       taskName:
-        tasks.find((task) => task.taskID === pertTask.parentTaskId)?.taskName ||
+        tasks.find((task) => task.taskID === pertTask.parentTaskID)?.taskName ||
         "",
     });
   }

@@ -152,6 +152,7 @@ const SidebarEx = () => {
       </MenuItem>
       <MenuItem
         icon={<MarkunreadOutlinedIcon/>}
+        onClick={()=>navigate('/invitations')}
       >
         Invitations
       </MenuItem>
