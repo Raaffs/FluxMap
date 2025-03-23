@@ -59,7 +59,7 @@ func (app *Application)InitRoutes()*echo.Echo{
 
 	e.POST("/api/project/:id/invite",app.Invite)
 	e.GET("/api/invitation",app.GetInvitations)
-	e.PUT("/api/invitation",app.ConfirmInvitation)
+	e.PUT("/api/invitation/:id",app.ConfirmInvitation)
 	
 	e.GET("/api/project/:id/tasks",app.GetTasks,IsAuthorizedUser)
 	e.POST("/api/project/:id/task",app.CreateTask,app.ManagerLevelAccess)

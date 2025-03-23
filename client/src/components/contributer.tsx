@@ -15,7 +15,6 @@ import {
 import { tasks } from "../hooks/types";
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import { useInvite } from "../hooks/projects";
 ChartJS.register(
   CategoryScale,
   LinearScale,

@@ -74,42 +74,6 @@ export const usePostProject = () => {
 };
 
 
-export const useInvite = (id: string) => {
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<boolean>(false);
-
-  const inviteUser = async (username: string, role: string) => {
-    setLoading(true);
-    setError(null);
-    setSuccess(false);
-
-    try {
-      const res = await fetch(`http://localhost:4000/api/project/${id}/invite`, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ username, role }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        console.log("error: ",data)
-        throw new Error(data.error || "Failed to send invite");
-      }
-
-      setSuccess(true);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return { inviteUser, loading, error, success };
-};
 
 export const usePutProject = () => {
   const [loading, setLoading] = useState<boolean>(false);

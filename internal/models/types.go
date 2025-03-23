@@ -27,11 +27,21 @@ type User struct {
 }
 
 type Invitation struct{
-    ID                 string         `json:"id"`
-    Username           string         `json:"username"`       
-    ProjectID          int            `json:"projectID,omitempty"`           // Primary Key
-    Accepted           bool           `json:"accepted"`
-    Role               string          `json:"role"`
+    ID                  string         `json:"id"`
+    Username            string         `json:"username"`       
+    ProjectID           int            `json:"projectID,omitempty"`           // Primary Key
+    Status              string           `json:"status"`
+    Role                string         `json:"role"`
+}
+
+type DisplayInvitations struct {
+	ProjectID           int    `json:"projectID"`
+	ProjectName         string `json:"projectName"`
+	ProjectDescription  string `json:"projectDescription"`
+	OwnerName           string `json:"ownerName"`
+	InvitationID        int    `json:"invitationID"`
+	Role                string `json:"role"`
+	Username            string `json:"invitationUsername"`
 }
 
 // Project represents a project in the database

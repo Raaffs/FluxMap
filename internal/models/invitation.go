@@ -26,46 +26,66 @@ func (i *InvitationModel)Invite(ctx context.Context,username string, projectID i
 	return nil
 }
 
-func (i *InvitationModel)GetInvitations(ctx context.Context, username string)([]*Invitation,error){
-	var invitations []*Invitation
+func (i *InvitationModel)GetInvitations(ctx context.Context, username string)([]*DisplayInvitations,error){
+	var invitations []*DisplayInvitations
 	get:=`
-		select projects.projectid, projects.projectname, projects.projectdescription, projects.ownername, invitation.id, invitation.role, invitation.username
+		select 
+		projects.projectid,
+	    projects.projectname, 
+		projects.projectdescription, 
+		projects.ownername, 
+		invitation.id, 
+		invitation.role, 
+		invitation.username
+
 		from projects, invitation 
+
 		where projects.projectid=invitation.projectid
+
 		and invitation.username=$1
+		and invitation.status = 'pending'
 	`
 	rows,err:=i.DB.Query(ctx,get,username); if err!=nil{
 		if errors.Is(err,sql.ErrNoRows){
-			return []*Invitation{},ErrRecordNotFound
+			return []*DisplayInvitations{},ErrRecordNotFound
 		}
-		return []*Invitation{},err
+		return []*DisplayInvitations{},err
 	}
 
 	defer rows.Close()
 
 	for rows.Next(){
-		var invitation Invitation
-		err=rows.Scan(&invitation.ID,&invitation.Username,&invitation.ProjectID,&invitation.Accepted);if err!=nil{
-			return []*Invitation{},err
+		var invitation DisplayInvitations
+		err=rows.Scan(
+			&invitation.ProjectID,
+			&invitation.ProjectName,
+			&invitation.ProjectDescription,
+			&invitation.OwnerName,
+			&invitation.InvitationID,
+			&invitation.Role,
+			&invitation.Username,
+		);if err!=nil{
+			return []*DisplayInvitations{},err
 		}
 		invitations=append(invitations, &invitation)
 	}
 	if err=rows.Err();err!=nil{
-		return []*Invitation{},err
+		return []*DisplayInvitations{},err
 	}
 	return invitations,nil
 }
 
-func (i *InvitationModel)ConfirmInvitation(ctx context.Context, projectID int,username string)(int,error){
+func (i *InvitationModel)ConfirmInvitation(ctx context.Context, status string, id int,username string)(int,error){
 	query:=`
 		UPDATE 	invitation
-		SET 	accepted=true
-		WHERE 	projectID=$1
-		AND		username=$2
+		SET 	status=$1
+		WHERE 	id=$2
+		AND		username=$3
 		RETURNING id
 	`
+
 	var invitationID int
-	err := i.DB.QueryRow(ctx, query, projectID).Scan(&invitationID)
+	err := i.DB.QueryRow(ctx, query, status, id,username).Scan(&invitationID)
 	if err != nil {
 		return 0, err
 	}
@@ -84,7 +104,7 @@ func (i *InvitationModel) Exist(ctx context.Context, username string, projectID 
 
 func (i *InvitationModel) GetInvitationByID(ctx context.Context, invitationID int) (*Invitation, error) {
 	query := `
-		SELECT id, projectID, username, accepted, role
+		SELECT id, projectID, username, status, role
 		FROM invitation
 		WHERE id = $1
 	`
@@ -94,7 +114,7 @@ func (i *InvitationModel) GetInvitationByID(ctx context.Context, invitationID in
 		&invitation.ID,
 		&invitation.ProjectID,
 		&invitation.Username,
-		&invitation.Accepted,
+		&invitation.Status,
 		&invitation.Role,
 	)
 	if err != nil {

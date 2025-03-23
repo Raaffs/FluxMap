@@ -63,3 +63,20 @@ export interface CpmResult {
     Result: CpmApiResponse[];
 }
 
+export interface DisplayInvitations {
+  projectID: number;
+  projectName: string;
+  projectDescription: string;
+  ownerName: string;
+  invitationID: number;
+  role: string;
+  invitationUsername: string;
+}
+
+export interface Invitation {
+  id: string;
+  username: string;
+  projectID?: number; 
+  accepted: boolean;
+  role: string;
+}

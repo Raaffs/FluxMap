@@ -11,7 +11,7 @@ import {
   Alert,
   CircularProgress,
 } from "@mui/material";
-import { useInvite } from "../../hooks/projects";
+import { useInvite } from "../../hooks/invite";
 import { useParams } from "react-router-dom";
 
 interface InviteModalProps {

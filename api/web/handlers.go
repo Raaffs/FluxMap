@@ -310,7 +310,7 @@ func(app *Application) GetManagerProjects(c echo.Context) error {
 	if err != nil {
 		c.Logger().Error("Error retrieving manager projects: ", err)
 		return c.JSON(http.StatusInternalServerError, MapMessage("Project", "An error occurred while retrieving manager projects"))
-	}
+	}	
 
 	return c.JSON(http.StatusOK, managerProjects)
 }
@@ -401,42 +401,70 @@ func (app *Application)GetInvitations(c echo.Context)error{
 	}
 
 	invitations,err:=app.models.Invitation.GetInvitations(c.Request().Context(),username);if err!=nil{
+		
 		c.Logger().Error("Error getting invitations: ",err)
 		return c.JSON(http.StatusInternalServerError,MapMessage("Invitations","Failed to get invitations"))
 	}
 	return c.JSON(http.StatusOK,invitations)
 }
 
-func(app *Application)ConfirmInvitation(c echo.Context)error{
-	id,err:=strconv.Atoi(c.Param("id"));if err!=nil{
-		c.Logger().Error(MapMessage("error converting to string",err.Error()))
-		return c.JSON(http.StatusBadRequest,map[string]string{"error":"Invalid project ID"})
+func (app *Application) ConfirmInvitation(c echo.Context) error {
+
+	invitation:=struct{
+		Status string `json:"status"`
+	}{}
+
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.Logger().Error("Error converting id to int: ", err)
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid project ID"})
 	}
-	sess,err:=session.Get("session",c);if err!=nil{
-		c.Logger().Error("error getting session: ",err)
-		return c.JSON(http.StatusUnauthorized,MapMessage("session","Error getting session"))
+	
+	if err:=c.Bind(&invitation);err!=nil{
+		c.Logger().Error("Error binding request body: ",err)
+		return c.JSON(http.StatusBadRequest,map[string]string{"error":"Invalid request body"})
 	}
 
-	username,ok:=sess.Values[sessionvar.USERNAME].(string)
-	if !ok{
-		c.Logger().Error("Error getting username from session")
-		return c.JSON(http.StatusUnauthorized,MapMessage("session","Error getting username from session"))
+	if invitation.Status!="rejected" && invitation.Status!="accepted"{
+		return c.JSON(http.StatusBadRequest,map[string]string{"error":"Invalid invitation status"})
 	}
 
-	inviteID,err:=app.models.Invitation.ConfirmInvitation(c.Request().Context(),id,username);if err!=nil{
-		c.Logger().Error("Error confirming invitation: ",err)
-		return c.JSON(http.StatusInternalServerError,MapMessage("Confirm Invitation","Failed to confirm invitation"))
+	sess, err := session.Get("session", c)
+	if err != nil {
+		c.Logger().Error("Error getting session: ", err)
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Error getting session"})
 	}
-	invitationDetail,err:=app.models.Invitation.GetInvitationByID(c.Request().Context(),inviteID);if err!=nil{
-		c.Logger().Error("Error getting invitation detail: ",err)
-		return c.JSON(http.StatusInternalServerError,MapMessage("Confirm Invitation","Failed to get invitation detail"))
-	} 
 
-	if invitationDetail.Role=="manager"{
-		app.models.Projects.AssignManager(c.Request().Context(),username,id)
+	username, ok := sess.Values[sessionvar.USERNAME].(string)
+	if !ok {
+		c.Logger().Error("Error retrieving username from session")
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Error getting username from session"})
 	}
-	return nil
+
+	inviteID, err := app.models.Invitation.ConfirmInvitation(c.Request().Context(), invitation.Status, id, username)
+	if err != nil {
+		c.Logger().Error("Error confirming invitation: ", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to confirm invitation"})
+	}
+	log.Println("invite returningid: ",inviteID)
+	invitationDetail, err := app.models.Invitation.GetInvitationByID(c.Request().Context(), inviteID)
+	log.Println("invitation details: ",invitationDetail)
+	if err != nil {
+		c.Logger().Error("Error retrieving invitation detail: ", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to get invitation detail"})
+	}
+
+	if invitationDetail.Role == "manager" {
+		log.Println("added to manager")
+		if err := app.models.Projects.AssignManager(c.Request().Context(), username, invitationDetail.ProjectID); err != nil {
+			c.Logger().Error("Error assigning manager: ", err)
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to assign manager role"})
+		}
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"message": "Invitation confirmed successfully"})
 }
+
 
 func (app *Application)CreateTask(c echo.Context)error{
 	var t models.Task
