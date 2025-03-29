@@ -61,6 +61,7 @@ func(t *TaskModel)GetTasks(ctx context.Context,projectID int)([]*Task,error){
 		SELECT taskID, taskName, taskDescription, taskStatus, taskStartDate, taskDueDate, parentProjectID, assignedUsername, Approved, taskCompletedDate, taskApprovedDate
 		FROM tasks 
 		WHERE parentProjectID=$1
+		ORDER BY taskID
 	`
 	rows,err:=t.DB.Query(ctx,query,projectID);if err!=nil{
 		if errors.Is(err,sql.ErrNoRows){
@@ -89,6 +90,7 @@ func(t *TaskModel)GetUserTasks(ctx context.Context,projectID int,username string
 		FROM tasks 
 		WHERE parentProjectID=$1
 		AND assignedUsername=$2
+		ORDER BY taskIDp
 	`
 	rows,err:=t.DB.Query(ctx,query,projectID,username);if err!=nil{
 		if errors.Is(err,sql.ErrNoRows){

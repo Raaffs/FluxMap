@@ -15,6 +15,7 @@ import {
 import { tasks } from "../hooks/types";
 import { useState } from "react";
 import { useParams } from "react-router-dom";
+import { useMemo } from "react";
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -140,60 +141,63 @@ export const ContributerTaskTable = ({ tasksData }: { tasksData: tasks[] }) => {
 
 // Function to render the Task Progress Chart
 export const ContributerTaskChart = ({ tasksData }: { tasksData: tasks[] }) => {
-  const contributerMap: {
-    [username: string]: {
-      completed: number;
-      approved: number;
-      pending: number;
-      progress: number;
-    };
-  } = {};
-
-  for (const task of tasksData) {
-    const { assignedUsername, taskStatus, approved } = task;
-
-    if (!contributerMap[assignedUsername]) {
-      contributerMap[assignedUsername] = {
-        completed: 0,
-        approved: 0,
-        pending: 0,
-        progress: 0,
+  const contributerMap = useMemo(() => {
+    const map: {
+      [username: string]: {
+        completed: number;
+        approved: number;
+        pending: number;
       };
+    } = {};
+
+    for (const task of tasksData) {
+      const { assignedUsername, taskStatus, approved } = task;
+
+      if (!map[assignedUsername]) {
+        map[assignedUsername] = {
+          completed: 0,
+          approved: 0,
+          pending: 0,
+        };
+      }
+
+      if (taskStatus === "completed") {
+        map[assignedUsername].completed++;
+      } else {
+        map[assignedUsername].pending++;
+      }
+
+      if (approved) {
+        map[assignedUsername].approved++;
+      }
     }
 
-    const userStats = contributerMap[assignedUsername];
+    return map;
+  }, [tasksData]);
 
-    if (taskStatus === "completed") {
-      userStats.completed++;
-    } else {
-      userStats.pending++;
-    }
-
-    if (approved) {
-      userStats.approved++;
-    }
-  }
-
-  const chartData = {
-    labels: Object.keys(contributerMap),
-    datasets: [
-      {
-        label: "Completed Tasks",
-        data: Object.values(contributerMap).map((stats) => stats.completed),
-        backgroundColor: "#4caf50",
-      },
-      {
-        label: "Pending Tasks",
-        data: Object.values(contributerMap).map((stats) => stats.pending),
-        backgroundColor: "#fbc02d",
-      },
-      {
-        label: "Approved Tasks",
-        data: Object.values(contributerMap).map((stats) => stats.approved),
-        backgroundColor: "#1976d2",
-      },
-    ],
-  };
+  const chartData = useMemo(
+    () => ({
+      labels: Object.keys(contributerMap),
+      datasets: [
+        {
+          label: "Completed Tasks",
+          data: Object.values(contributerMap).map((stats) => stats.completed),
+          backgroundColor: "#4caf50",
+        },
+        {
+          label: "Pending Tasks",
+          data: Object.values(contributerMap).map((stats) => stats.pending),
+          backgroundColor: "#fbc02d",
+        },
+        {
+          label: "Approved Tasks",
+          data: Object.values(contributerMap).map((stats) => stats.approved),
+          backgroundColor: "#1976d2",
+        },
+      ],
+    }),
+    [contributerMap]
+  );
 
   const chartOptions = {
     responsive: true,
@@ -210,6 +214,7 @@ export const ContributerTaskChart = ({ tasksData }: { tasksData: tasks[] }) => {
       },
     },
   };
+
 
   return (
     <Box p={4} maxHeight="50%" width="70%">

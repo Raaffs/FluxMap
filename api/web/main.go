@@ -29,6 +29,7 @@ func main(){
 	conn,err:=pgxpool.New(ctx,envMap[env.DB_URL]);if err!=nil{
 		log.Fatal("Error connecting to database %w\n",err)
 	}
+	
 	app:=&Application{
 		env:	envMap,
 		models: models.NewModels(conn),

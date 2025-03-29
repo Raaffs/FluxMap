@@ -599,8 +599,11 @@ func(app *Application)AddManager(c echo.Context)error{
 
 func (app *Application)ManagerRestrictedTask(c echo.Context)error{
 	var t models.Task
+	log.Println("t.assigned user: ",t.AssignedUsername,t.AssignedUsername.Valid)
+
 	v:=validator.New()
 	if err:=c.Bind(&t);err!=nil{
+		c.Logger().Error("error reading json,",err)
 		return c.JSON(http.StatusBadRequest,"Invalid request body")
 	}
 	log.Println("t.assigned user: ",t.AssignedUsername,t.AssignedUsername.Valid)
@@ -632,6 +635,7 @@ func (app *Application)ManagerRestrictedTask(c echo.Context)error{
 		c.Logger().Error(v)
 		return c.JSON(http.StatusBadRequest,v)
 	}
+	log.Println("tasks: ",t)
 	if err:=app.models.Task.UpdateManagerTask(c.Request().Context(),t);err!=nil{
 		if errors.Is(err,models.ErrRecordNotFound){
 			c.Logger().Warn("Task not found :",err)
@@ -640,7 +644,7 @@ func (app *Application)ManagerRestrictedTask(c echo.Context)error{
 		c.Logger().Error("error updating manager task : ",err)
 		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"failed to update task"})
 	}
-
+	log.Println("before deferred")
 	return c.JSON(http.StatusOK,"task approved")
 }
 

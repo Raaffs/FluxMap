@@ -24,6 +24,7 @@ type Models struct {
 	Invitation	InvitationModel
 	Pert 		PertModel[Pert]
 	Cpm         CpmModel[Cpm]
+	Notify		UpdateModel
 }
 
 func NewModels(db *pgxpool.Pool) Models {
@@ -46,6 +47,11 @@ func NewModels(db *pgxpool.Pool) Models {
 			Errorlog: 	errorLog,
 		},
 		Invitation: InvitationModel{
+			DB:			db,
+			Infolog: 	infoLog,
+			Errorlog: 	errorLog,
+		},
+		Notify: UpdateModel{
 			DB:			db,
 			Infolog: 	infoLog,
 			Errorlog: 	errorLog,

@@ -118,7 +118,23 @@ export const ProjectTaskDetailPage = ({
             "Content-Type": "application/json",
           },
           credentials: "include",
-          body: JSON.stringify(task), // Toggle approval status
+          body: JSON.stringify({
+            taskID: task?.taskID,
+            approved: !approved, // toggling approval
+            taskName: task?.taskName,
+            taskDescription: task?.taskDescription,
+            taskStatus: task?.taskStatus,
+            taskStartDate: task?.taskStartDate,
+            taskDueDate: task?.taskDueDate,
+            parentProjectId: task?.parentProjectID,
+            assignedUsername: task?.assignedUsername,
+            taskCompletedDate: task?.taskCompletedDate,
+            taskApprovedDate: task?.taskApprovedDate,
+            targetUsername:task?.assignedUsername,
+            targetType:'user',
+            msg:''
+          })
+          
         }
       );
       console.log("updated task: ",task)

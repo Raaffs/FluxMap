@@ -2,6 +2,7 @@ package models
 
 import (
 	"context"
+	"time"
 
 	"github.com/guregu/null/v5"
 )
@@ -43,6 +44,17 @@ type DisplayInvitations struct {
 	Role                string `json:"role"`
 	Username            string `json:"invitationUsername"`
 }
+
+type Update struct {
+    ID             int              `db:"id"`
+    ProjectID      int              `db:"projectid"`
+    Msg            string           `db:"msg"`
+    CreatedAt      time.Time        `db:"createdat"`
+    CreatedBy      string           `db:"createdby"`      // references users.username
+    TargetType     string           `db:"targettype"`     // either "all" or "user"
+    TargetUsername null.String      `db:"targetusername"` // nullable, only set if TargetType = "user"
+}
+
 
 // Project represents a project in the database
 type Project struct {

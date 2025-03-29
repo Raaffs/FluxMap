@@ -106,3 +106,25 @@ create table pertResult(
 
 alter table cpm
 add column dependencies INT[]
+
+create table updates (
+    id serial primary key,
+    projectid int not null,
+    msg text not null,
+    createdat timestamp default now(),
+    createdby varchar(255) not null, -- references username
+    targettype varchar(10) not null check (targettype in ('all', 'user')),
+    targetusername varchar(255), -- only filled if targettype = 'user'
+
+    constraint fk_project foreign key (projectid) references projects(projectid),
+    constraint fk_creator foreign key (createdby) references users(username),
+    constraint fk_target_user foreign key (targetusername) references users(username)
+);
+
+--not yet added
+create table userupdatestatus (
+    id serial primary key,
+    updateid int not null references updates(id),
+    username varchar(255) not null references users(username),
+    readat timestamp
+);

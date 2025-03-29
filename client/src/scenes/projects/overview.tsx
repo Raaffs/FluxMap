@@ -172,7 +172,7 @@ export const ProjectOverview = () => {
           {selectedTab === 1 && (
             <Box>
               <ContributerTaskTable tasksData={tasks} />
-              <ContributerTaskChart tasksData={tasks} />
+              <ContributerTaskChart key={tasks.length} tasksData={tasks} />
             </Box>
           )}
           {selectedTab === 2 && (

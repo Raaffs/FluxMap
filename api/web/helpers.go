@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"log"
 	"net/http"
@@ -13,6 +14,15 @@ import (
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
 )
+
+type UserRole string
+
+const (
+	AdminRole   UserRole = "admin"
+	ManagerRole UserRole = "manager"
+	UserRoleVal UserRole = "user"
+)
+
 
 var(
     ErrInvalidJson=errors.New("Invalid JSON")
@@ -83,28 +93,49 @@ func HashPassword(password string)(string,error){
     return string(hashedPassword), nil
 }
 
-func(app *Application)GetTaskBasedOnAccess(managerFunc echo.HandlerFunc,userFunc echo.HandlerFunc) echo.HandlerFunc {
+func (app *Application) getUserRole(ctx context.Context, username, resourceID string) (UserRole, error) {
+	isAdmin, err := app.models.Users.IsAdmin(ctx, username, resourceID)
+	if err != nil {
+		return "", err
+	}
+	if isAdmin {
+		return AdminRole, nil
+	}
+
+	isManager, err := app.models.Users.IsManager(ctx, username, resourceID)
+	if err != nil {
+		return "", err
+	}
+	if isManager {
+		return ManagerRole, nil
+	}
+
+    	return UserRoleVal, nil
+}
+
+func (app *Application) GetTaskBasedOnAccess(managerFunc echo.HandlerFunc, userFunc echo.HandlerFunc) echo.HandlerFunc {
     return func(c echo.Context) error {
-        sess, err := session.Get(sessionvar.SESSION_NAME,c);if err != nil {
-        log.Println("sess in access task0",sess.Values)
+        sess, err := session.Get(sessionvar.SESSION_NAME, c)
+        if err != nil {
+            log.Println("sess in access task0", sess.Values)
             return c.JSON(http.StatusUnauthorized, map[string]string{"message": "Missing role cookie"})
         }
-        log.Println("sess in access task1",sess.Values)
-		username,ok:=sess.Values[sessionvar.USERNAME].(string);if !ok{
-			return c.JSON(http.StatusUnauthorized,map[string]string{"error":"you're not authorized"})
-		}
+        log.Println("sess in access task1", sess.Values)
 
-		isAdmin,err:=app.models.Users.IsAdmin(c.Request().Context(),username,c.Param("id"));if err!=nil{
-			return c.JSON(http.StatusInternalServerError,map[string]string{"message":err.Error()})
-		}
+        username, ok := sess.Values[sessionvar.USERNAME].(string)
+        if !ok {
+            return c.JSON(http.StatusUnauthorized, map[string]string{"error": "you're not authorized"})
+        }
 
-		isManager,err:=app.models.Users.IsManager(c.Request().Context(),username,c.Param("id"))
-		if err!=nil{
-            c.Logger().Error("error checking access level: ",err)
-			return c.JSON(http.StatusInternalServerError,map[string]string{"message":err.Error()})
-		}
-		
-        if isAdmin||isManager{
+        // Get the user's role
+        role, err := app.getUserRole(c.Request().Context(), username, c.Param("id"))
+        if err != nil {
+            c.Logger().Error("error getting user role: ", err)
+            return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+        }
+
+        // Execute based on role
+        if role == AdminRole || role == ManagerRole {
             return managerFunc(c)
         }
         return userFunc(c)

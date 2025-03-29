@@ -50,6 +50,7 @@ func (app *Application)InitRoutes()*echo.Echo{
 	e.POST("/api/projects",app.CreateProject,IsAuthorizedUser)
 	e.GET("/api/project/:id",app.GetProjectByID,IsAuthorizedUser)
 	e.PUT("/api/project/:id",app.UpdateProject,app.ManagerLevelAccess)
+	
 	e.PUT("/api/project/admin/:id",app.UpdateProject,app.AdminLevelAccess)
 	e.POST("/api/project/:id/manager", app.AddManager,app.AdminLevelAccess)
 
@@ -62,12 +63,12 @@ func (app *Application)InitRoutes()*echo.Echo{
 	e.PUT("/api/invitation/:id",app.ConfirmInvitation)
 	
 	e.GET("/api/project/:id/tasks",app.GetTasks,IsAuthorizedUser)
-	e.POST("/api/project/:id/task",app.CreateTask,app.ManagerLevelAccess)
+	e.POST("/api/project/:id/task",app.CreateTask,app.ManagerLevelAccess,app.SendNotification)
 	e.GET("/api/project/:id/task/:taskID",app.GetTaskByID,IsAuthorizedUser)
-	e.PUT("/api/project/:id/task/:taskID/manager",app.ManagerRestrictedTask,app.ManagerLevelAccess)
-	e.PUT("/api/project/:id/task/:taskID",app.UpdateUserTask,IsAuthorizedUser)
+	e.PUT("/api/project/:id/task/:taskID/manager",app.ManagerRestrictedTask,app.SendNotification,app.ManagerLevelAccess)
+	e.PUT("/api/project/:id/task/:taskID",app.UpdateUserTask,IsAuthorizedUser,app.SendNotification)
 
-	e.PUT("/api/project/:id/task/:taskID/approve",app.ManagerRestrictedTask,app.ManagerLevelAccess)
+	e.PUT("/api/project/:id/task/:taskID/approve",app.ManagerRestrictedTask,app.ManagerLevelAccess,app.SendNotification)
 	e.PUT("/api/project/:id/task/:taskID/assign",app.ManagerRestrictedTask,app.ManagerLevelAccess)
 	
 	e.GET("/api/project/:id/pert",app.GetPert,IsAuthorizedUser)
