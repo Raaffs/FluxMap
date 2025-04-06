@@ -33,12 +33,10 @@ func IsAuthorizedUser(next echo.HandlerFunc)echo.HandlerFunc{
 func(app *Application)ManagerLevelAccess(next echo.HandlerFunc) echo.HandlerFunc {
     return IsAuthorizedUser(func(c echo.Context) error {
 		
-		log.Println("in managerlevelaccess")
         sess, err := session.Get(sessionvar.SESSION_NAME,c);if err != nil {
 			c.Logger().Warn("unauthorized access\n","session: ",sess,"\nerror: ",err)
             return c.JSON(http.StatusUnauthorized, map[string]string{"message": "Missing role cookie"})
         }
-		log.Println("efefefefe")
 		username,ok:=sess.Values[sessionvar.USERNAME].(string);if !ok{
 			c.Logger().Warn("unauthorized access\n","session: ",sess,"\nerror: ",err)
 			return c.JSON(http.StatusUnauthorized,map[string]string{"error":"you're not authorized"})
@@ -50,7 +48,6 @@ func(app *Application)ManagerLevelAccess(next echo.HandlerFunc) echo.HandlerFunc
 		}
 
 		if isAdmin{
-		log.Println("finalll adminnnn")
 			return next(c)
 		}
 
@@ -63,7 +60,6 @@ func(app *Application)ManagerLevelAccess(next echo.HandlerFunc) echo.HandlerFunc
 			c.Logger().Warn("unauthorized access\n","session: ",sess,"\nerror: ",err)
 			return c.JSON(http.StatusForbidden,map[string]string{"message":"You are not a manager"})
 		}
-		log.Println("finalllll2")
 
 		return next(c)
     })
@@ -91,7 +87,6 @@ func (app *Application)AdminLevelAccess(next echo.HandlerFunc)echo.HandlerFunc{
 
 func (app *Application) SendNotification(next echo.HandlerFunc) echo.HandlerFunc {
     return func(c echo.Context) error {
-        log.Println("inside the send noti")
 
         sess, err := session.Get(sessionvar.SESSION_NAME, c)
         if err != nil {

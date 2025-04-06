@@ -26,10 +26,12 @@ def handle_cpm():
     except Exception as e:
         print("Error processing request: ", e)
         return jsonify({'error': 'An error occurred during processing'}), 500
-    
+
 @app.route("/api/pert",methods=['POST'])
 def handle_pert():
     data=request.json
+    print("Data received in Python: ", data)
+
     if not data:
         return jsonify({'error':'invalid data'}),400
     try:
@@ -59,7 +61,7 @@ def handle_pert():
         print("pert result ",res)
         return jsonify(res)
     except Exception as e:
-        print("Error calculating pert: ",e)
+        print("Error calculating pert: ",e.with_traceback)
         return jsonify({'error':'an error occurred during processing'}),500
 
 if __name__ == "__main__":

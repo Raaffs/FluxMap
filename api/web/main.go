@@ -34,7 +34,7 @@ func main(){
 		env:	envMap,
 		models: models.NewModels(conn),
 	}
-	e:=app.InitRoutes()
+	e:=app.Init()
 	PORT:=fmt.Sprintf(":%s",app.env[env.API_PORT])
 	if err:=e.Start(PORT);err!=nil{
 		log.Fatal("Error starting server %w\n",err)

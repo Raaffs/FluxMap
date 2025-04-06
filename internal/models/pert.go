@@ -29,12 +29,15 @@ func(p *PertModel[T])Insert(ctx context.Context,PertValues []Pert)error{
 			ParentProjectID = $6
 
 	`
+	
 	for _,val :=range PertValues{
 		_, err := p.DB.Exec(ctx,query,val.ParentTaskID, val.PredecessorTaskID,val.Optimistic,val.Pessimistic,val.MostLikely,val.ParentProjectID);if err!=nil{
 			p.Errorlog.Printf("An error occurred wile inserting %v in pert table",val)
 			return err
 		}
 	}
+
+	log.Println("ADED THE FUCKING THINGS")
 
 	return nil
 }

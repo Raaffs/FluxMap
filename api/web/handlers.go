@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Raaffs/FluxMap/api/external"
 	"github.com/Raaffs/FluxMap/internal/models"
 	"github.com/Raaffs/FluxMap/internal/sessionVar"
 	validator "github.com/Raaffs/FluxMap/internal/validators"
@@ -485,6 +484,13 @@ func (app *Application)CreateTask(c echo.Context)error{
 	if !v.Valid(){
 		return c.JSON(http.StatusBadRequest,map[string]any{"error":v.Errors})
 	}
+	sess, err := session.Get("session", c);if err != nil {
+		return err
+	}
+	username,ok:=sess.Values[sessionvar.USERNAME].(string);if !ok{
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error":"you're not authorized"})
+	}
+	t.Createdby=username
 	if err:=app.models.Task.Create(c.Request().Context(),t);err!=nil{
 		c.Logger().Error(MapMessage("Error creating task",err.Error()))
 		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"An error occured"})
@@ -664,7 +670,7 @@ func(app *Application)GetPert(c echo.Context)error{
 		return c.JSON(http.StatusNotFound,"Invalid project ID")
 	}
 
-	data,result,err:=getAnalytics(&app.models.Pert,c.Request().Context(),projectID); if err!=nil{
+	data,result,err:=GetAnalytics(&app.models.Pert,c.Request().Context(),projectID); if err!=nil{
 		if errors.Is(err,models.ErrRecordNotFound){
 			return c.JSON(http.StatusNotFound,MapMessage("message","No data CPM related data found"))
 		}
@@ -685,22 +691,30 @@ func(app *Application)GetPert(c echo.Context)error{
 func(app *Application)CreatePert(c echo.Context)error{
 	var pert []models.Pert	
 	if err:=c.Bind(&pert);err!=nil{
-		return c.JSON(http.StatusBadRequest,"Invalid request body")
+		c.Logger().Error("error binding pert : ",err)
+		return c.JSON(http.StatusBadRequest,map[string]string{"error":"invalid json body"})
 	}
+	id:=c.Param("id")
+	log.Println("HTE OF PROJE ",id)
+	projectID,err:=strconv.Atoi(id);if err!=nil{
+		return c.JSON(http.StatusNotFound,"Invalid project ID")
+	}
+	pert[0].ParentProjectID=projectID
+	log.Println("new pert inseret: ",pert)
+
 	if err:=app.models.Pert.Insert(c.Request().Context(),pert);err!=nil{
 		c.Logger().Error(MapMessage("Pert Error",err.Error()))
 		return c.JSON(http.StatusInternalServerError,MapMessage("error","failed to insert pert data"))
 	}
-	if err:=calculate[models.Pert,*models.PertModel[models.Pert]](&app.models.Pert,c.Request().Context(),pert[0].ParentProjectID);err!=nil{
+	log.Println("new pert inseret: ",pert)
+	if err:=Calculate[models.Pert,*models.PertModel[models.Pert]](&app.models.Pert,c.Request().Context(),pert[0].ParentProjectID);err!=nil{
 		c.Logger().Error("Error calculating pert : ",err)
 		return c.JSON(http.StatusInternalServerError,MapMessage("Error","Failed to calculate values"))
 	}
 	return c.JSON(http.StatusOK,MapMessage("PERT","data and result inserted successfully"))
 }
 
-func(app *Application)UpdatePert(c echo.Context)error{
-	return c.JSON(http.StatusOK,"done")
-}
+
 
 func(app *Application)GetCpm(c echo.Context)error{
 	r:=struct{
@@ -713,7 +727,7 @@ func(app *Application)GetCpm(c echo.Context)error{
 		return c.JSON(http.StatusNotFound,"Invalid project ID")
 	}
 
-	data,result,err:=getAnalytics(&app.models.Cpm,c.Request().Context(),projectID); if err!=nil{
+	data,result,err:=GetAnalytics(&app.models.Cpm,c.Request().Context(),projectID); if err!=nil{
 		if errors.Is(err,models.ErrRecordNotFound){
 			return c.JSON(http.StatusNotFound,MapMessage("message","No data CPM related data found"))
 		}
@@ -734,15 +748,17 @@ func(app *Application)CreateCpm(c echo.Context)error{
 	if err:=c.Bind(&cpm);err!=nil{
 		return c.JSON(http.StatusBadRequest,"Invalid request body")
 	}
-	fmt.Println("before insert")
-
+	if err:=DetectCycleCpm(cpm);err!=nil{
+		c.Logger().Warn(err)
+		return c.JSON(http.StatusBadRequest,"Cyclic dependencies are not allowed")
+	}
 	if err:=app.models.Cpm.Insert(c.Request().Context(),cpm);err!=nil{
 		c.Logger().Error(MapMessage("cpm Error",err.Error()))
 		return c.JSON(http.StatusInternalServerError,MapMessage("error","failed to insert cpm data"))
 	}
 	fmt.Println("after insert")
 
-	if err:=calculate(&app.models.Cpm,c.Request().Context(),cpm[0].ParentProjectID); err!=nil{
+	if err:=Calculate(&app.models.Cpm,c.Request().Context(),cpm[0].ParentProjectID); err!=nil{
 		c.Logger().Error("Error calculating cpm data : ",err)
 		return c.JSON(http.StatusInternalServerError,MapMessage("error","Failed to calculate CPM values"))
 	}
@@ -754,46 +770,5 @@ func(app *Application)UpdateCpm(c echo.Context)error{
 }
 
 
-func storeResult[U models.Analytic, T models.ReadDatabase[U]](t T,ctx context.Context,id int, result models.Result)error{
-	if err:=t.InsertResult(ctx,id,result);err!=nil{
-		return err
-	}
-	return nil
-}
-
-func calculate[U models.Analytic,T models.ReadDatabase[U]](v T,ctx context.Context, id int)(error){
-	data,err:=v.GetData(ctx,id);if err!=nil{
-		return err 
-	}
-	if data==nil{
-		return models.ErrRecordNotFound
-	}
-
-	result,err:=external.RequestAndCalculatePERTCPM(data); if err!=nil{
-		log.Println("Error fetching result: ",err)
-		return ErrFetchingResult
-	}
-
-	if err:=storeResult(v,ctx,id,result);err!=nil{
-		return err
-	}
-	return nil
-}
-
-func getAnalytics[U models.Analytic,T models.ReadDatabase[U]](v T,ctx context.Context, id int)([]*U,models.Result,error){
-	data,err:=v.GetData(ctx,id);if err!=nil{
-		return nil,models.Result{},err 
-	}
-	if data==nil{
-		return nil,models.Result{},models.ErrRecordNotFound
-	}
-	result,err:=v.GetResult(ctx,id); if err!=nil{
-		if !errors.Is(err, models.ErrRecordNotFound){
-			return data,models.Result{},ErrFetchingResult
-		}
-	}
-	return data,result,nil
-
-}
 
 

@@ -13,16 +13,9 @@ import {
 import { TextField, Button, Box, SelectChangeEvent } from "@mui/material";
 import { erf } from "mathjs";
 import { ApiResponse, PertData, tasks } from "../hooks/types";
-import {
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-} from "@mui/material";
+import AddPertTaskModal from "./modals/pert";
+import { useParams } from "react-router-dom";
+import { useAddPert } from "../hooks/pert";
 ChartJS.register(
   LineElement,
   CategoryScale,
@@ -46,17 +39,22 @@ export const PertTable: React.FC<{
   pertTasks: PertData[] | undefined;
   tasks: tasks[];
 }> = ({ pertTasks, tasks }) => {
+  const {id}=useParams()
+  console.log("USER PARAMS ID ", Number(id))
   const [open, setOpen] = useState(false);
-  const [newTask, setNewTask] = useState<PertData>({
-    predecessorTaskId: 0,
-    parentTaskID: 0,
-    optimistic: 0,
-    pessimistic: 0,
-    mostLikely: 0,
-  });
+  const [predecessorPertTasks, setpredecessorPertTasks] = useState<PertRows[]>([]);
+  const [pertData, setPertData] = useState<PertData[]>(pertTasks || []);
+
+  const {addPert,pertloading,perterror,pertsuccess}=useAddPert(String(id))
+
+  const handleAddTask = (newTask: PertData) => {
+    setPertData([...pertData, newTask]);
+    console.log("nex perx tsx ",newTask)
+    addPert(newTask)
+  };
 
 
-  console.log("pertTasks",pertTasks)
+  console.log("pertTasks", pertTasks);
 
   if (pertTasks === undefined || pertTasks === null) {
     return <div>no pert data</div>;
@@ -67,15 +65,17 @@ export const PertTable: React.FC<{
   tasks.forEach((task) => tasksMap.set(task.taskID, true));
   pertTasks.forEach((pertTask) => pertTaskMap.set(pertTask.parentTaskID, true));
 
-  let PertAddableTask: PertData[] = [];
+  let PertAddableTask: PertRows[] = [];
   for (const task of tasks) {
     if (!pertTaskMap.has(task.taskID)) {
       PertAddableTask.push({
+        id:0,
         parentTaskID: task.taskID,
         predecessorTaskId: 0,
         optimistic: 0,
         pessimistic: 0,
         mostLikely: 0,
+        taskName: task.taskName,
       });
     }
   }
@@ -88,8 +88,9 @@ export const PertTable: React.FC<{
   //mess with it for now
 
   //20/30/25: solved, it was indeed the problem with wrong json format in backend
+  //I don't understand why ts doesn't throw an error when it gets wrong json
   for (const pertTask of pertTasks) {
-    rows.push({ 
+    rows.push({
       id: pertTask.parentTaskID,
       parentTaskID: pertTask.parentTaskID,
       predecessorTaskId: pertTask.predecessorTaskId,
@@ -126,113 +127,20 @@ export const PertTable: React.FC<{
     { field: "mostLikely", headerName: "Most Likely", width: 150 },
     { field: "edit", headerName: "Edit", width: 150 },
   ];
-
-  // Handle modal open and close
-  const handleOpen = () => setOpen(true);
-  const handleClose = () => setOpen(false);
-
-  // Handle input change
-  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = event.target;
-    setNewTask((prevTask) => ({
-      ...prevTask,
-      [name]: value,
-    }));
-  };
-
-  // Handle Select change for predecessorTaskId
-  const handlePredecessorChange = (event: SelectChangeEvent<number>) => {
-    // If the value might be a string (e.g. empty ''), you might want to convert it.
-    // For example, if event.target.value is a string, convert it to a number:
-    const value = event.target.value;
-    setNewTask((prevTask) => ({
-      ...prevTask,
-      predecessorTaskId: Number(value),
-    }));
-  };
-
-  const handleSave = () => {
-    // Logic to save the new task
-    console.log(newTask);
-    // Close the modal after saving
-    handleClose();
-  };
-  // console.log("rows",rows)
   return (
     <Box>
-      <Button variant="outlined" onClick={handleOpen}>
+      <Button variant="outlined" onClick={() => setOpen(true)}>
         Add New Task
       </Button>
+      <AddPertTaskModal
+        open={open}
+        onClose={() => setOpen(false)}
+        onAddTask={handleAddTask}
+        pertAddableTasks={PertAddableTask}
+        pertTasks={rows}
+      />
       <DataGrid rows={rows} columns={columns} />
-
       {/* Modal */}
-      <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>Add/Edit Task</DialogTitle>
-        <DialogContent>
-          <TextField
-            label="Task ID"
-            name="parentTaskID"
-            value={newTask.parentTaskID}
-            onChange={handleInputChange}
-            fullWidth
-            margin="normal"
-            disabled
-          />
-          <FormControl fullWidth margin="normal">
-            <InputLabel>Predecessor Task</InputLabel>
-            <Select
-              value={newTask.predecessorTaskId || ""}
-              onChange={handlePredecessorChange}
-              name="predecessorTaskId"
-              label="Predecessor Task"
-            >
-              <MenuItem value="">
-                <em>None</em>
-              </MenuItem>
-              {addAbleRows.map((task, index) => (
-                <MenuItem key={index} value={task.parentTaskID}>
-                  {task.taskName}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <TextField
-            label="Optimistic"
-            name="optimistic"
-            value={newTask.optimistic}
-            onChange={handleInputChange}
-            fullWidth
-            margin="normal"
-            type="number"
-          />
-          <TextField
-            label="Pessimistic"
-            name="pessimistic"
-            value={newTask.pessimistic}
-            onChange={handleInputChange}
-            fullWidth
-            margin="normal"
-            type="number"
-          />
-          <TextField
-            label="Most Likely"
-            name="mostLikely"
-            value={newTask.mostLikely}
-            onChange={handleInputChange}
-            fullWidth
-            margin="normal"
-            type="number"
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose} color="primary">
-            Cancel
-          </Button>
-          <Button onClick={handleSave} color="primary">
-            Save
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 };

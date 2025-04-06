@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Raaffs/FluxMap/api/external"
+	"github.com/Raaffs/FluxMap/internal/models"
 	sessionvar "github.com/Raaffs/FluxMap/internal/sessionVar"
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo-contrib/session"
@@ -172,4 +174,101 @@ func (app *Application)ManagerTasks(c echo.Context)error{
         return c.JSON(http.StatusInternalServerError,map[string]string{"error":"internal server error"})
     }
     return c.JSON(http.StatusOK, tasks)
+}
+
+func detectCycle(graph map[int][]int) error {
+	visited := make(map[int]bool)
+	onStack := make(map[int]bool)
+
+	var dfs func(int) bool
+	dfs = func(node int) bool {
+		if onStack[node] {
+			return true // Cycle detected
+		}
+		if visited[node] {
+			return false
+		}
+		visited[node] = true
+		onStack[node] = true
+		for _, neighbor := range graph[node] {
+			if dfs(neighbor) {
+				return true
+			}
+		}
+		onStack[node] = false
+		return false
+	}
+
+	for node := range graph {
+		if !visited[node] {
+			if dfs(node) {
+				return errors.New("dependency cycle detected")
+			}
+		}
+	}
+	return nil
+}
+
+// Detect cycle for CPM
+func DetectCycleCpm(tasks []models.Cpm) error {
+	graph := make(map[int][]int)
+	for _, task := range tasks {
+		for _, dep := range task.Dependencies {
+			graph[dep] = append(graph[dep], task.TaskID)
+		}
+	}
+	return detectCycle(graph)
+}
+
+func DetectCyclePert(tasks []models.Pert) error {
+	graph := make(map[int][]int)
+	for _, task := range tasks {
+		if task.PredecessorTaskID.Valid {
+			graph[int(task.PredecessorTaskID.Int64)] = append(graph[int(task.PredecessorTaskID.Int64)], task.ParentTaskID)
+		}
+	}
+	return detectCycle(graph)
+}
+
+
+func StoreResult[U models.Analytic, T models.ReadDatabase[U]](t T,ctx context.Context,id int, result models.Result)error{
+	if err:=t.InsertResult(ctx,id,result);err!=nil{
+		return err
+	}
+	return nil
+}
+
+func Calculate[U models.Analytic,T models.ReadDatabase[U]](v T,ctx context.Context, id int)(error){
+	data,err:=v.GetData(ctx,id);if err!=nil{
+		return err 
+	}
+	if data==nil{
+		return models.ErrRecordNotFound
+	}
+
+	result,err:=external.RequestAndCalculatePERTCPM(data); if err!=nil{
+		log.Println("Error fetching result: ",err)
+		return ErrFetchingResult
+	}
+
+	if err:=StoreResult(v,ctx,id,result);err!=nil{
+		return err
+	}
+	return nil
+}
+
+func GetAnalytics[U models.Analytic,T models.ReadDatabase[U]](v T,ctx context.Context, id int)([]*U,models.Result,error){
+	data,err:=v.GetData(ctx,id);if err!=nil{
+		return nil,models.Result{},err 
+	}
+	if data==nil{
+		return nil,models.Result{},models.ErrRecordNotFound
+	}
+	result,err:=v.GetResult(ctx,id); if err!=nil{
+		if !errors.Is(err, models.ErrRecordNotFound){
+			return data,models.Result{},ErrFetchingResult
+		}
+	}
+	return data,result,nil
+
 }

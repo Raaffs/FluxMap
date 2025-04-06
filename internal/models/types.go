@@ -85,6 +85,7 @@ type Task struct {
     Approved            null.Bool      `json:"approved"`
     TaskCompletedDate   null.Time      `json:"taskCompletedDate"`
     TaskApprovedDate    null.Time      `json:"taskApprovedDate"`
+    Createdby           string 
 }
 
 // Pert represents a PERT record in the database

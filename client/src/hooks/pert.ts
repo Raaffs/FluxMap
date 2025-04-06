@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { ApiResponse } from "./types";
+import { ApiResponse, PertData } from "./types";
+import { useParams } from "react-router-dom";
 
 export const useFetchPertData = (id: any): [ApiResponse | null, boolean, any] => {
   const [apiResponse, setApiResponse] = useState<ApiResponse | null>(null);
@@ -20,7 +21,7 @@ export const useFetchPertData = (id: any): [ApiResponse | null, boolean, any] =>
 
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
-        }
+        } 
 
         const data = await response.json();
         setApiResponse(data);
@@ -37,3 +38,39 @@ export const useFetchPertData = (id: any): [ApiResponse | null, boolean, any] =>
 
   return [apiResponse, loading, error];
 };
+
+
+export const useAddPert=(id:string)=>{
+  const [pertloading, setLoading] = useState<boolean>(false);
+  const [perterror, setError] = useState<string | null>(null);
+  const [pertsuccess, setSuccess] = useState<boolean>(false);
+  const addPert= async (pert:PertData)=>{
+    setLoading(true);
+    setError(null);
+    setSuccess(false);
+    console.log("add pert: ",pert)
+    try{
+      const res=await fetch(`http://localhost:4000/api/project/${id}/pert`,{
+        method:"POST",
+        credentials:'include',
+        headers:{
+          'Content-Type':'application/json'
+        },
+        //backend takes this as an array for some reason. I don't know why. 
+        body:JSON.stringify([{
+          parentTaskID: pert.parentTaskID,
+          predecessorTaskId: pert.predecessorTaskId,
+          optimistic: pert.optimistic,
+          pessimistic: pert.pessimistic,
+          mostLikely: pert.mostLikely,
+        }])
+      })
+    }catch(err:any){
+      console.error(err)
+      setError(err.error)
+    }finally{
+      setLoading(false)
+    }
+  }
+  return {addPert,pertloading,perterror,pertsuccess}
+}

@@ -18,7 +18,7 @@ def get_pert_task_distributions(tasks):
     for task in tasks:
         expected_time, variance, stddev = calculate_pert_values(task)
         task_info = {
-            'taskId': task['parentTaskId'],
+            'taskId': task['parentTaskID'],
             'mean': expected_time,
             'variance': variance,
             'stddev': stddev,
