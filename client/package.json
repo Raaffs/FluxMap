@@ -27,6 +27,7 @@
     "chart.js": "^4.4.7",
     "chartjs-adapter-date-fns": "^3.0.0",
     "formik": "^2.4.6",
+    "js-cookie": "^3.0.5",
     "mathjs": "^14.0.1",
     "react": "^18.3.1",
     "react-chartjs-2": "^5.2.0",
@@ -61,5 +62,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@types/js-cookie": "^3.0.6"
   }
 }

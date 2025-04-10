@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/Raaffs/FluxMap/api/external"
@@ -24,6 +25,13 @@ const (
 	ManagerRole UserRole = "manager"
 	UserRoleVal UserRole = "user"
 )
+
+type ProjectResult struct {
+	AdminProjects    []*models.Project
+	ManagerProjects  []*models.Project
+	AssignedProjects []*models.Project
+	Err              error
+}
 
 
 var(
@@ -60,19 +68,56 @@ func MapMessage(key string,msg string)struct{Key string; Message string}{
 
 
 func AppendToSessionArray(session *sessions.Session, key string, value int) error {
-	// Try to assert the session value to []string
+	// Check if value exists and is of correct type
 	arr, ok := session.Values[key].([]int)
 	if !ok {
-		// Return an error if the type assertion fails
-		return errors.New("session value is not of the expected type []string")
+		// Initialize if not present or wrong type
+		arr = []int{}
 	}
-
-	// Append the new value to the existing array
 	session.Values[key] = append(arr, value)
-
 	return nil
 }
 
+func (app *Application) CacheUserProjectsToSession(c echo.Context) error {
+	projectschan := make(chan ProjectResult)
+
+	sess, err := session.Get(sessionvar.SESSION_NAME, c)
+	if err != nil {
+		log.Println("sess in store session projects", sess.Values)
+		return err
+	}
+
+	username, ok := sess.Values[sessionvar.USERNAME].(string)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, "Unauthorized")
+	}
+	ctx,cancel:=context.WithTimeout(c.Request().Context(),10*time.Second)
+	defer cancel()
+
+	go app.FetchProjects(ctx,username, projectschan)
+	projects := <-projectschan
+
+	if projects.Err != nil {
+		return c.JSON(http.StatusInternalServerError, "failed to fetch projects")
+	}
+
+	projectRoleMap := map[string][]*models.Project{
+		string(AdminRole):   projects.AdminProjects,
+		string(ManagerRole): projects.ManagerProjects,
+		string(UserRoleVal):    projects.AssignedProjects,
+	}
+
+	for role, projectList := range projectRoleMap {
+		for _, project := range projectList {
+			err := AppendToSessionArray(sess, role, project.ProjectID)
+			if err != nil {
+				log.Printf("error appending to session for role %s: %v", role, err)
+			}
+		}
+	}
+	log.Println(sess.Values)
+	return nil
+}
 
 func addToSession(c echo.Context, key string, value int)error{
     sess,err:=session.Get("session",c); if err!=nil{
@@ -111,8 +156,7 @@ func (app *Application) getUserRole(ctx context.Context, username, resourceID st
 	if isManager {
 		return ManagerRole, nil
 	}
-
-    	return UserRoleVal, nil
+	return UserRoleVal, nil
 }
 
 func (app *Application) GetTaskBasedOnAccess(managerFunc echo.HandlerFunc, userFunc echo.HandlerFunc) echo.HandlerFunc {
@@ -130,7 +174,11 @@ func (app *Application) GetTaskBasedOnAccess(managerFunc echo.HandlerFunc, userF
         }
 
         // Get the user's role
-        role, err := app.getUserRole(c.Request().Context(), username, c.Param("id"))
+		id:=c.Param("id")
+		if _,err:=strconv.Atoi(id);err!=nil{
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid ID"})
+		}
+        role, err := app.getUserRole(c.Request().Context(), username, id)
         if err != nil {
             c.Logger().Error("error getting user role: ", err)
             return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
@@ -142,6 +190,86 @@ func (app *Application) GetTaskBasedOnAccess(managerFunc echo.HandlerFunc, userF
         }
         return userFunc(c)
     }
+}
+
+
+func (app *Application) FetchProjects(ctx context.Context, username string, resultChan chan<- ProjectResult) {
+	var wg sync.WaitGroup
+	wg.Add(3)
+	
+
+	adminChan := make(chan []*models.Project, 1)
+	managerChan := make(chan []*models.Project, 1)
+	assignedChan := make(chan []*models.Project, 1)
+	errorChan := make(chan error, 3) // buffered so goroutines don’t block
+	done:=make(chan struct{})
+	go func() {
+		defer wg.Done()
+		projects, err := app.models.Projects.RetrieveAdminProjects(ctx, username)
+		if err != nil {
+			errorChan <- err
+			return
+		}
+		adminChan <- projects
+	}()
+
+	go func() {
+		defer wg.Done()
+		projects, err := app.models.Projects.RetrieveManagerProjects(ctx, username)
+		if err != nil {
+			errorChan <- err
+			return
+		}
+		managerChan <- projects
+	}()
+
+	go func() {
+		defer wg.Done()
+		projects, err := app.models.Projects.RetrieveAssginedProjects(ctx, username)
+		if err != nil {
+			errorChan <- err
+			return
+		}
+		assignedChan <- projects
+	}()
+
+	// Wait for all goroutines
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	var res ProjectResult
+
+	for {
+		select {
+		case admin, ok := <-adminChan:
+			if ok {
+				res.AdminProjects = admin
+			}
+		case manager, ok := <-managerChan:
+			if ok {
+				res.ManagerProjects = manager
+			}
+		case assigned, ok := <-assignedChan:
+			if ok {
+				res.AssignedProjects = assigned
+			}
+		case err, ok := <-errorChan:
+			if ok && err != nil {
+				res.Err = err
+				resultChan <- res
+				return
+			}
+		case <-done:
+			resultChan <- res
+			return
+		case <-ctx.Done():
+			res.Err = ctx.Err()
+			resultChan <- res
+			return
+		}
+	}
 }
 
 

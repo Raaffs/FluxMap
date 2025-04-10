@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/Raaffs/FluxMap/internal/models"
@@ -23,11 +22,12 @@ import (
 )
 
 func(app *Application)Login(c echo.Context)error{
+	defer app.CacheUserProjectsToSession(c)
 	var u models.User
 	err := c.Bind(&u); if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
     }
-
+	log.Println("user : ",u)
 	if err:=app.models.Users.Login(c.Request().Context(),u.Username,u.Password);err!=nil{
 		if errors.Is(err,models.ErrInvalidCredential){
 			return c.JSON(http.StatusUnauthorized,"invalid credential")
@@ -109,6 +109,24 @@ func(app *Application)Register(c echo.Context)error{
 	return c.JSON(http.StatusOK,"user registered successfully")
 }
 
+func (app *Application) SessionCheck(c echo.Context) error {
+	sess, err := session.Get(sessionvar.SESSION_NAME, c)
+	if err != nil {
+		c.Logger().Error("failed to get session: ", err)
+		return c.JSON(http.StatusInternalServerError, map[string]bool{"isAuthenticated":false})
+	}
+
+	username, ok := sess.Values[sessionvar.USERNAME].(string)
+	if !ok || username == "" {
+		return c.JSON(http.StatusOK, map[string]bool{"isAuthenticated": false})
+	}
+
+	return c.JSON(http.StatusOK, map[string]bool{
+		"isAuthenticated": true,
+	})
+}
+
+
 func(app *Application)Logout(c echo.Context)error{
 	cookie := &http.Cookie{
 		Name:     "username",
@@ -183,98 +201,30 @@ func (app *Application) CreateProject(c echo.Context) error {
 }
 
 func (app *Application) GetProjects(c echo.Context) error {
-	sess, err := session.Get("session", c);if err != nil {
+	sess, err := session.Get("session", c)
+	if err != nil {
 		return err
 	}
-	username,ok:=sess.Values[sessionvar.USERNAME].(string);if !ok{
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error":"you're not authorized"})
+	username, ok := sess.Values[sessionvar.USERNAME].(string)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "you're not authorized"})
 	}
-	fmt.Println("username in get projects: ",username)
-	projects := struct {
-		AdminProjects    []*models.Project `json:"adminProjects"`
-		ManagerProjects  []*models.Project `json:"managerProjects"`
-		AssignedProjects []*models.Project `json:"assignedProjects"`
-	}{}
 
-	adminchan := make(chan []*models.Project)
-	managerchan := make(chan []*models.Project)
-	assginedchan := make(chan []*models.Project)
-	errorchan := make(chan error)
-	done:=make(chan struct{})
-	log.Println("username:", username)
 
-	ctx, cancel := context.WithTimeout(c.Request().Context(), 5*time.Second)
+	resultChan := make(chan ProjectResult, 1)
+	ctx,cancel:=context.WithTimeout(c.Request().Context(),10*time.Second)
 	defer cancel()
-	
-	var wg sync.WaitGroup
-	wg.Add(3)
+	go app.FetchProjects(ctx,username, resultChan)
 
-	go func() {
-		defer wg.Done()
-		projects, err := app.models.Projects.RetrieveAdminProjects(ctx, username)
-		if err != nil {
-			errorchan <- err
-			return
+	result := <-resultChan
+	if result.Err != nil {
+		if errors.Is(result.Err, context.DeadlineExceeded) {
+			return c.JSON(http.StatusPartialContent, result)
 		}
-		adminchan <- projects
-	}()
-
-	go func() {
-		defer wg.Done()
-		projects, err := app.models.Projects.RetrieveManagerProjects(ctx, username)
-		if err != nil {
-			errorchan <- err
-			return
-		}
-		managerchan <- projects
-	}()
-
-	go func() {
-		defer wg.Done()
-		projects, err := app.models.Projects.RetrieveAssginedProjects(ctx, username)
-		if err != nil {
-			c.Logger().Error("Error retrieving projects: ",err)
-			errorchan <- err
-			return
-		}
-		assginedchan <- projects
-	}()
-
-
-	go func() {
-		wg.Wait()
-		close(adminchan)
-		close(managerchan)
-		close(assginedchan)
-		close(errorchan)
-		close(done)
-	}()
-
-	for {
-		select {
-		case admin, ok := <-adminchan:
-			if ok {
-				projects.AdminProjects = admin
-			}
-		case manager, ok := <-managerchan:
-			if ok {
-				projects.ManagerProjects = manager
-			}
-		case assgined,ok:=<-assginedchan:
-			if ok{
-				projects.AssignedProjects=assgined
-			}
-		case err := <-errorchan:
-			if err!=nil{
-				c.Logger().Error("Error retrieving projects: ", err)
-				return c.JSON(http.StatusInternalServerError, "An error while retrieving projects")	
-			}
-		case <-done:
-			return c.JSON(http.StatusOK, projects)
-		case <-ctx.Done():
-			return c.JSON(http.StatusPartialContent, projects)
-		}
+		c.Logger().Error("Error fetching projects: ", result.Err)
+		return c.JSON(http.StatusInternalServerError, "error retrieving projects")
 	}
+	return c.JSON(http.StatusOK, result)
 }
 
 func(app *Application)GetAdminProjects(c echo.Context)error{
@@ -315,12 +265,17 @@ func(app *Application) GetManagerProjects(c echo.Context) error {
 }
 
 func(app *Application) GetAssignedProjects(c echo.Context) error {
-	user, err := c.Cookie("username")
+	sess, err := session.Get("session", c)
 	if err != nil {
-		return c.JSON(http.StatusUnauthorized, "Unauthorized")
+		return err
+	}
+	username, ok := sess.Values[sessionvar.USERNAME].(string)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "you're not authorized"})
 	}
 
-	assignedProjects, err := app.models.Projects.RetrieveAssginedProjects(c.Request().Context(), user.Value)
+
+	assignedProjects, err := app.models.Projects.RetrieveAssginedProjects(c.Request().Context(), username)
 	if err != nil {
 		// Log and handle errors
 		c.Logger().Error("Error retrieving assigned projects: ", err)
@@ -330,10 +285,12 @@ func(app *Application) GetAssignedProjects(c echo.Context) error {
 }
 
 func(app *Application)GetProjectByID(c echo.Context)error{
-	id, err := strconv.Atoi(c.Param("id"));if err!=nil{
+	id := c.Param("id");
+	projID,err:=strconv.Atoi(id);if err!=nil{
 		return c.JSON(http.StatusBadRequest,MapMessage("message","Invalid project id"))
 	}
-	projects,err:=app.models.Projects.RetrieveProjectByID(c.Request().Context(),id);if err!=nil{
+
+	projects,err:=app.models.Projects.RetrieveProjectByID(c.Request().Context(),projID);if err!=nil{
 		if errors.Is(err,models.ErrRecordNotFound){
 			return c.JSON(http.StatusNotFound,MapMessage("message","Project not found"))
 		}
@@ -654,11 +611,6 @@ func (app *Application)ManagerRestrictedTask(c echo.Context)error{
 	return c.JSON(http.StatusOK,"task approved")
 }
 
-func (app *Application)AdminRestrictedProject(c echo.Context)error{
-	return c.JSON(http.StatusOK,"task approved")
-}
-
-
 func(app *Application)GetPert(c echo.Context)error{
 	r:=struct{
 		Data 	[]*models.Pert 	`json:"data"`
@@ -764,11 +716,5 @@ func(app *Application)CreateCpm(c echo.Context)error{
 	}
 	return c.JSON(http.StatusOK,MapMessage("message","cpm data inserted successfully"))
 }
-
-func(app *Application)UpdateCpm(c echo.Context)error{
-	return c.JSON(http.StatusOK,"done")
-}
-
-
 
 

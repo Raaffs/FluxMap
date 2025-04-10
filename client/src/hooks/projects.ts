@@ -15,6 +15,11 @@ export const useRetrieveProjectsFrom = (link: string) => {
     })
       .then((response) => response.json()) // Proceed without checking `response.ok`
       .then((data) => {
+        if(!data){
+          setProjects([])
+          setLoading(false)
+          return
+        }
         const mappedProjects: Projects[] = data.map((item: any) => ({
           projectID: item.projectID,
           projectName: item.projectName,

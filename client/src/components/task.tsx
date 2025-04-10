@@ -428,6 +428,8 @@ export const ProjectTaskDetailPage = ({
             fullWidth
             variant="outlined"
             margin="normal"
+            multiline
+            rows={6} // You can adjust this to fit your desired height
           />
           <Button
             onClick={handleSaveDescription}

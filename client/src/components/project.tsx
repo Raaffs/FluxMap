@@ -24,7 +24,7 @@ import { Projects } from "../hooks/types";
 // }
 export const ProjectComponent = ({ URI }: { URI: string }) => {
   const { projects, loading, error } = useRetrieveProjectsFrom(URI);
-  
+
   const {
     postProject,
     loading: postLoading,
@@ -49,7 +49,11 @@ export const ProjectComponent = ({ URI }: { URI: string }) => {
     setNewProject((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleOpenModal = () => setModalOpen(true);
+  const handleOpenModal = () => {
+    console.log("opened");
+    setModalOpen(true);
+    console.log(modalOpen);
+  };
   const handleCloseModal = () => setModalOpen(false);
 
   const handleSubmit = () => {
@@ -92,35 +96,173 @@ export const ProjectComponent = ({ URI }: { URI: string }) => {
   }
 
   if (error) {
-    return <div>Error: {error}</div>;
+    return (
+      <Box
+        sx={{
+          margin: "20px",
+          padding: "24px",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          textAlign: "center",
+          height: "60vh",
+          borderRadius: "12px",
+          backgroundColor:
+            theme.palette.mode === "dark" ? colors.grey[800] : "white",
+          boxShadow: "0 6px 12px rgba(0,0,0,0.1)",
+          border: `2px solid ${theme.palette.divider}`,
+        }}
+      >
+        <Typography
+          variant="h4"
+          color="error"
+          sx={{
+            marginBottom: "16px",
+            fontWeight: "bold",
+          }}
+        >
+          Error Loading Projects
+        </Typography>
+        <Typography
+          variant="body1"
+          color="text.secondary"
+          sx={{
+            marginBottom: "24px",
+            maxWidth: "400px",
+            lineHeight: "1.5",
+            fontSize: "1.2rem",
+          }}
+        >
+          {error}
+        </Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => window.location.reload()}
+        >
+          Try Again
+        </Button>
+      </Box>
+    );
   }
 
   if (!projects.length) {
     return (
       <Box
         sx={{
-          margin: "5px",
-          overflowY: "auto",
           display: "flex",
+          flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
           textAlign: "center",
-          height: "50vh",
-          padding: "16px",
-          border: "5px #ddd",
-          borderRadius: "8px",
+          height: "60vh", // Increased height for more space
           backgroundColor:
-            theme.palette.mode === "dark" ? colors.primary[400] : "white",
-          boxShadow: "0 4px 8px rgba(0,0,0,0.5)",
+            theme.palette.mode === "dark" ? colors.primary[500] : "white",
         }}
       >
         <Typography
           variant="h4"
           color="text.secondary"
-          sx={{ color: "orangered" }}
+          sx={{
+            marginBottom: "16px",
+            color: theme.palette.mode === "dark" ? "orangered" : "crimson",
+            fontWeight: "bold",
+          }}
         >
           No projects available.
         </Typography>
+        <Typography
+          variant="body1"
+          color="text.secondary"
+          sx={{
+            marginBottom: "24px",
+            maxWidth: "400px",
+            lineHeight: "1.5",
+            fontSize: "1.2rem",
+            fontStyle: "italic",
+          }}
+        >
+          Looks like you don't have any projects yet. Create one to get started
+          and bring your ideas to life!
+        </Typography>
+        <Button
+          variant="contained"
+          color="secondary"
+          size="large"
+          onClick={handleOpenModal}
+          sx={{
+            backgroundColor: "royalblue",
+            padding: "12px 32px",
+            fontSize: "1.1rem",
+            borderRadius: "50px",
+            boxShadow: "0 6px 12px rgba(0,0,0,0.2)",
+            "&:hover": {
+              backgroundColor: "darkorange",
+              boxShadow: "0 8px 16px rgba(0,0,0,0.3)",
+            },
+          }}
+        >
+          Create a New Project
+        </Button>
+        {/* I should really make a separate component for this modal */}
+        <Modal open={modalOpen} onClose={handleCloseModal}>
+          <Box
+            sx={{
+              width: "400px",
+              padding: "16px",
+              backgroundColor: "white",
+              borderRadius: "8px",
+              boxShadow: "0 4px 8px rgba(0,0,0,0.5)",
+              margin: "auto",
+              marginTop: "10%",
+            }}
+          >
+            <Typography variant="h6" sx={{ marginBottom: "16px" }}>
+              Create New Project
+            </Typography>
+            <TextField
+              fullWidth
+              label="Project Name"
+              name="projectName"
+              value={newProject.projectName || ""}
+              onChange={handleInputChange}
+              sx={{ marginBottom: "16px" }}
+            />
+            <TextField
+              fullWidth
+              label="Description"
+              name="projectDescription"
+              value={newProject.projectDescription || ""}
+              onChange={handleInputChange}
+              sx={{ marginBottom: "16px" }}
+            />
+            <TextField
+              fullWidth
+              label="Due Date"
+              name="projectDueDate"
+              type="date"
+              variant="outlined"
+              value={newProject.projectDueDate || ""}
+              onChange={handleInputChange}
+              sx={{ marginBottom: "16px" }}
+            />
+            <Button
+              fullWidth
+              variant="contained"
+              color="primary"
+              onClick={handleSubmit}
+              disabled={postLoading}
+            >
+              Create
+            </Button>
+            {postError && (
+              <Typography color="error" sx={{ marginTop: "16px" }}>
+                {postError}
+              </Typography>
+            )}
+          </Box>
+        </Modal>
       </Box>
     );
   }
@@ -135,7 +277,7 @@ export const ProjectComponent = ({ URI }: { URI: string }) => {
         border: "5px #ddd",
         borderRadius: "8px",
         backgroundColor:
-        theme.palette.mode === "dark" ? colors.primary[400] : "white",
+          theme.palette.mode === "dark" ? colors.primary[400] : "white",
         boxShadow: "0 4px 8px rgba(0,0,0,0.5)",
         alignContent: "left",
       }}
@@ -150,7 +292,7 @@ export const ProjectComponent = ({ URI }: { URI: string }) => {
             padding: "16px",
             borderRadius: "8px",
             backgroundColor:
-            theme.palette.mode === "dark" ? colors.primary[400] : "#f",
+              theme.palette.mode === "dark" ? colors.primary[400] : "#f",
             boxShadow: "0 2px 4px rgba(0,0,0,0.5)",
             alignContent: "left",
             alignItems: "left",
@@ -226,7 +368,7 @@ export const ProjectComponent = ({ URI }: { URI: string }) => {
             fullWidth
             label="Project Name"
             name="projectName"
-            value={newProject.projectName}
+            value={newProject.projectName || ""}
             onChange={handleInputChange}
             sx={{ marginBottom: "16px" }}
           />
@@ -244,8 +386,7 @@ export const ProjectComponent = ({ URI }: { URI: string }) => {
             name="projectDueDate"
             type="date"
             variant="outlined"
-            InputLabelProps={{ shrink: true }} // Forces the label to stay on top
-            value={newProject.projectDueDate}
+            value={newProject.projectDueDate || ""}
             onChange={handleInputChange}
             sx={{ marginBottom: "16px" }}
           />

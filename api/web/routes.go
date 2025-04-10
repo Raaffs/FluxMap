@@ -57,6 +57,7 @@ func (app *Application) Routes(e *echo.Echo) {
 	// Auth routes
 	e.POST("/api/login", app.Login)
 	e.POST("/api/register", app.Register)
+	e.GET("/api/auth/session",app.SessionCheck)
 	e.POST("/api/logout", app.Logout)
 
 	// Project routes

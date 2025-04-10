@@ -6,6 +6,7 @@ import Button from "@mui/material/Button";
 import Link from "@mui/material/Link";
 import Card from "@mui/material/Card";
 import Grid2 from "@mui/material/Grid2";
+import { useAuth } from "../../context/authContext";
 interface userAuth {
   username: string;
   password: string;
@@ -19,8 +20,10 @@ const LoginUser: React.FC = () => {
     password: ""
   });
 
+  
   const [error, setError] = useState<string | null>(null); // State for error message
-
+  const {login}=useAuth()
+  
   const handleClick = () => {
     fetch('http://localhost:4000/api/login',{
       method:'POST',
@@ -37,6 +40,7 @@ const LoginUser: React.FC = () => {
       }
       const data = await response.json(); // Parse the response data
       console.log("Login successful:", data);
+      login()
       navigate('/'); // Redirect to the home page
     })  
     .catch(err=>{

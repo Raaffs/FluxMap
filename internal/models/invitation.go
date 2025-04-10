@@ -102,7 +102,7 @@ func (i *InvitationModel) Exist(ctx context.Context, username string, projectID 
 	return exists, nil
 }
 
-func (i *InvitationModel) GetInvitationByID(ctx context.Context, invitationID int) (*Invitation, error) {
+func (i *InvitationModel)GetInvitationByID(ctx context.Context, invitationID int) (*Invitation, error) {
 	query := `
 		SELECT id, projectID, username, status, role
 		FROM invitation
