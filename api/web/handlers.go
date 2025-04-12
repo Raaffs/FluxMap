@@ -494,7 +494,6 @@ func(app *Application)UpdateUserTask(c echo.Context)error{
 	id,err:=strconv.Atoi(c.Param("taskID")); if err!=nil{
 		return c.JSON(http.StatusNotFound,MapMessage("error","task not found"))
 	}
-	log.Println("invalid task id ",id)
 	if err:=c.Bind(&status);err!=nil{
 		return c.JSON(http.StatusBadRequest,MapMessage("error","invalid request"))
 	}
@@ -503,8 +502,6 @@ func(app *Application)UpdateUserTask(c echo.Context)error{
 		"status",
 		"invalid status",
 	)
-	log.Println("invalid status")
-
 	if err:=app.models.Task.UpdateTask(c.Request().Context(),id,status.TaskStatus);err!=nil{
 		c.Logger().Error("error updating task: ",err)
 		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"internal server error"})
@@ -717,4 +714,46 @@ func(app *Application)CreateCpm(c echo.Context)error{
 	return c.JSON(http.StatusOK,MapMessage("message","cpm data inserted successfully"))
 }
 
+func(app *Application)GetAllUpdates(c echo.Context)error{
+	sess,err:=session.Get(sessionvar.SESSION_NAME,c);if err!=nil{
+		c.Logger().Warn("error getting session :",err)
+		return c.JSON(http.StatusUnauthorized,"Unauthorized")
+	}
+	username,ok:=sess.Values[sessionvar.USERNAME].(string); if !ok{
+		c.Logger().Warn("username not found in session")
+		return c.JSON(http.StatusUnauthorized,"Unauthorized")
+	}
+	updates,err:=app.models.Update.GetAllUpdates(c.Request().Context(),username);if err!=nil{
+		if errors.Is(err,sql.ErrNoRows){
+			c.Logger().Warn("not updates : ",err)
+			return c.JSON(http.StatusNotFound,MapMessage("error","No updates found"))
+		}
+		c.Logger().Error("error getting updates : ",err)
+		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"internal server error"})
+	}
+	return c.JSON(http.StatusOK,updates)
+}
 
+func (app *Application)GetProjectUpdates(c echo.Context)error{
+	sess,err:=session.Get(sessionvar.SESSION_NAME,c);if err!=nil{
+		c.Logger().Warn("error getting session :",err)
+		return c.JSON(http.StatusUnauthorized,"Unauthorized")
+	}
+	username,ok:=sess.Values[sessionvar.USERNAME].(string); if !ok{
+		c.Logger().Warn("username not found in session")
+		return c.JSON(http.StatusUnauthorized,"Unauthorized")
+	}
+	projectID,err:=strconv.Atoi(c.Param("id")); if err!=nil{
+		c.Logger().Warn("invalid project id")
+		return c.JSON(http.StatusBadRequest,"Invalid project id")
+	}
+	updates,err:=app.models.Update.GetProjectUpdates(c.Request().Context(),projectID,username);if err!=nil{
+		if errors.Is(err,sql.ErrNoRows){
+			c.Logger().Warn("not updates : ",err)
+			return c.JSON(http.StatusNotFound,MapMessage("error","No updates found"))
+		}
+		c.Logger().Error("error getting updates : ",err)
+		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"internal server error"})
+	}
+	return c.JSON(http.StatusOK,updates)
+}

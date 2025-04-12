@@ -132,7 +132,7 @@ export const ProjectTaskDetailPage = ({
             taskApprovedDate: task?.taskApprovedDate,
             targetUsername:task?.assignedUsername,
             targetType:'user',
-            msg:''
+            msg:`task ${task?.taskName} ${!approved?'approved':'disapproved'} by`,
           })
           
         }
@@ -150,7 +150,7 @@ export const ProjectTaskDetailPage = ({
     }
   };
 
-  const handleStatusChange = async (taskID: number, status: string) => {
+  const handleStatusChange = async (taskID: number, taskName:string, status: string, username:string) => {
     console.log("status: ", status);
     try {
       const response = await fetch(
@@ -161,7 +161,12 @@ export const ProjectTaskDetailPage = ({
             "Content-Type": "application/json",
           },
           credentials: "include",
-          body: JSON.stringify({ taskStatus: status }), // Update task status
+          body: JSON.stringify({ 
+            taskStatus: status ,
+            targetUsername:username,
+            targetType:'user',
+            msg:`task ${taskName} status set to ${status} by`,
+          }), // Update task status
         }
       );
       if (response.ok) {
@@ -317,7 +322,7 @@ export const ProjectTaskDetailPage = ({
           <Select
             value={params.value || ""}
             onChange={(e) =>
-              handleStatusChange(params.row.taskID, e.target.value)
+              handleStatusChange(params.row.taskID, params.row.taskName, e.target.value, params.row.assignedUsername)
             }
             label="Status"
           >

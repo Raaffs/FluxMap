@@ -84,6 +84,7 @@ func (app *Application) Routes(e *echo.Echo) {
 	e.POST("/api/project/:id/task", app.CreateTask, app.ManagerLevelAccess, app.SendNotification)
 	e.GET("/api/project/:id/task/:taskID", app.GetTaskByID, IsAuthorizedUser)
 	e.PUT("/api/project/:id/task/:taskID/manager", app.ManagerRestrictedTask, app.SendNotification, app.ManagerLevelAccess)
+
 	e.PUT("/api/project/:id/task/:taskID", app.UpdateUserTask, IsAuthorizedUser, app.SendNotification)
 
 	e.PUT("/api/project/:id/task/:taskID/approve", app.ManagerRestrictedTask, app.ManagerLevelAccess, app.SendNotification)
@@ -95,4 +96,7 @@ func (app *Application) Routes(e *echo.Echo) {
 
 	e.GET("/api/project/:id/cpm", app.GetCpm, IsAuthorizedUser)
 	e.POST("/api/project/:id/cpm", app.CreateCpm, IsAuthorizedUser)
+
+	e.GET("/api/project/:id/update",app.GetProjectUpdates,IsAuthorizedUser)
+	e.GET("/api/updates",app.GetAllUpdates,IsAuthorizedUser)
 }

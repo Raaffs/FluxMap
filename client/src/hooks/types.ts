@@ -80,3 +80,20 @@ export interface Invitation {
   accepted: boolean;
   role: string;
 }
+
+export interface Update {
+  id: number;
+  projectID: number;
+  msg: string;
+  createdAt: string; // ISO timestamp string
+  createdBy: string; // references users.username
+  targetType: 'all' | 'user';
+  targetUsername: string | null; // nullable, only set if targetType = 'user'
+}
+
+// let u :Update[]=[]
+
+// const grouped: Record<number, Update[]> = {};
+// u.forEach(update => {
+//   (grouped[update.projectID] ||= []).push(update);
+// });

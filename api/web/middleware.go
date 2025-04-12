@@ -119,7 +119,7 @@ func (app *Application) SendNotification(next echo.HandlerFunc) echo.HandlerFunc
                 return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid JSON"})
             }
         }
-
+        log.Println("NOTIFYING THE USER: ",Notify)
         id := c.Param("id")
         projectID, err := strconv.Atoi(id)
         if err != nil {
@@ -127,15 +127,15 @@ func (app *Application) SendNotification(next echo.HandlerFunc) echo.HandlerFunc
             return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid project ID"})
         }
 
-        if Notify.TargetType != "" && Notify.TargetType != "user" && Notify.TargetType != "all" {
+        if Notify.TargetType != "user" && Notify.TargetType != "all" {
             c.Logger().Error("Error sending notification\ninvalid target type: ", Notify.TargetType)
-            return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid target type"})
         }
+
+
 
         role, err := app.getUserRole(c.Request().Context(), username, id)
         if err != nil {
             c.Logger().Error("Error sending notification\nerror getting user role: ", err)
-            return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to get user role"})
         }
 
         var msg string
@@ -152,11 +152,15 @@ func (app *Application) SendNotification(next echo.HandlerFunc) echo.HandlerFunc
                 return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Unexpected role"})
             }
         } else {
-            msg = Notify.Msg
+            msg = fmt.Sprintf("%s %s",Notify.Msg,username)
         }
 
         // Defer notification, so it's only sent if the handler executes successfully
         defer func() {
+            if err!=nil{
+                c.Logger().Error("Error sending notification: ", err, Notify)
+                return
+            }
             if c.Response().Status >= 200 && c.Response().Status < 300 { // Only proceed if the handler succeeds
                 if err := app.models.Notify.CreateUpdate(c.Request().Context(), projectID, msg, username, Notify.TargetType, Notify.TargetUsername); err != nil {
                     c.Logger().Error("Error sending notification\nerror creating notification: ", err)
@@ -166,4 +170,4 @@ func (app *Application) SendNotification(next echo.HandlerFunc) echo.HandlerFunc
 
         return next(c)
     }
-}
+}   

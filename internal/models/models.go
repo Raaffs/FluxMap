@@ -25,6 +25,7 @@ type Models struct {
 	Pert 		PertModel[Pert]
 	Cpm         CpmModel[Cpm]
 	Notify		UpdateModel
+	Update 		UpdateModel
 }
 
 func NewModels(db *pgxpool.Pool) Models {
@@ -62,6 +63,11 @@ func NewModels(db *pgxpool.Pool) Models {
 			Errorlog: 	errorLog,
 		},
 		Cpm: CpmModel[Cpm]{
+			DB:			db,
+			Infolog: 	infoLog,
+			Errorlog: 	errorLog,
+		},
+		Update: UpdateModel{
 			DB:			db,
 			Infolog: 	infoLog,
 			Errorlog: 	errorLog,

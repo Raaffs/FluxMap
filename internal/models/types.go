@@ -47,7 +47,7 @@ type DisplayInvitations struct {
 
 type Update struct {
     ID             int              `db:"id"`
-    ProjectID      int              `db:"projectid"`
+    ProjectID      int              `db:"projectID"`
     Msg            string           `db:"msg"`
     CreatedAt      time.Time        `db:"createdat"`
     CreatedBy      string           `db:"createdby"`      // references users.username
