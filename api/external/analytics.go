@@ -12,7 +12,7 @@ import (
 
 
 func RequestAndCalculatePERTCPM[T models.Analytic](a []*T) (models.Result, error) {
-	pertData := models.Result{}
+	resultData := models.Result{}
 	data, err := json.Marshal(a)
 	if err != nil {
 		return models.Result{}, err
@@ -39,10 +39,10 @@ func RequestAndCalculatePERTCPM[T models.Analytic](a []*T) (models.Result, error
 		return models.Result{}, fmt.Errorf("received non-200 response: %s", resp.Status)
 	}
 
-	err = json.NewDecoder(resp.Body).Decode(&pertData.Result)
+	err = json.NewDecoder(resp.Body).Decode(&resultData.Result)
 	if err != nil {
 		return models.Result{}, err
 	}
-	log.Println("data pert",pertData)
-	return pertData, nil
+	log.Println("data pert",resultData)
+	return resultData, nil
 }

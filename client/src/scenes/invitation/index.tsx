@@ -2,7 +2,10 @@ import {
   Box,
   Button,
   Card,
+  Divider,
   LinearProgress,
+  Paper,
+  Stack,
   Typography,
   useTheme,
 } from "@mui/material";
@@ -10,7 +13,8 @@ import { tokens } from "../../theme";
 import { useConfirmInvitation, useFetchInvitations } from "../../hooks/invite";
 import { DisplayInvitations } from "../../hooks/types";
 import { useState } from "react";
-
+import { NoUpdates } from "../../components/cards/noUpdates";
+import NotificationsOffOutlinedIcon from '@mui/icons-material/NotificationsOffOutlined';
 export const Invitation = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
@@ -35,19 +39,10 @@ export const Invitation = () => {
   }
 
   if (invitations === null || invitations === undefined) {
-    return (
-      <Box
-        sx={{
-          margin: "5px",
-          padding: "16px",
-          backgroundColor:
-            theme.palette.mode === "dark" ? colors.primary[400] : "white",
-          textAlign: "left",
-        }}
-      >
-        No invitations
-      </Box>
-    );
+    return <NoUpdates
+        title="You're All Caught Up"
+        description="There are currently no updates requiring your attention."
+    />;
   }
 
   return (

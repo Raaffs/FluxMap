@@ -43,7 +43,7 @@ func(u *UpdateModel)GetProjectUpdates(ctx context.Context, projectID int, userna
 			return nil, err
 		}
 		updates = append(updates, upd)
-	}
+	}	
 	return updates, rows.Err()
 }
 

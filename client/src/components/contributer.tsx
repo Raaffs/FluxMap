@@ -25,7 +25,7 @@ ChartJS.register(
   Legend
 );
 
-// Function to render the Task Table
+// Function to render the Task Table 
 export const ContributerTaskTable = ({ tasksData }: { tasksData: tasks[] }) => {
   const [isInviteModal, setInviteModal] = useState(false);
   const contributerMap: {

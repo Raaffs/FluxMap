@@ -129,9 +129,16 @@ export const PertTable: React.FC<{
   ];
   return (
     <Box>
-      <Button variant="outlined" onClick={() => setOpen(true)}>
-        Add New Task
-      </Button>
+       <Box sx={{ padding: 1, display: "flex", justifyContent: "flex-end" }}>
+        <Button
+          onClick={()=>setOpen(true)} // Opens the modal
+          variant="contained"
+          color="primary"
+          sx={{ marginBottom: 2, backgroundColor: "royalblue" }}
+        >
+          Add New Task
+        </Button>
+      </Box>
       <AddPertTaskModal
         open={open}
         onClose={() => setOpen(false)}

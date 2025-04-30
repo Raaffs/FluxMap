@@ -21,6 +21,7 @@ import useFetchTaskData from "../hooks/task";
 
 export const ProjectTaskDetailPage = ({
   tasks,
+  //to re-renders the component on adding/modifying a task
   setFetchTrigger,
 }: {
   tasks: tasks[];

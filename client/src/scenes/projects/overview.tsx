@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { ProjectTaskDetailPage } from "../../components/task";
 import { useParams } from "react-router-dom";
 import { Projects } from "../../hooks/types";
-import { Tab, Tabs, Box, Card, useTheme, Typography } from "@mui/material";
+import { Tab, Tabs, Box, Card, useTheme, Typography, Button, TextField, Modal } from "@mui/material";
 import { tokens } from "../../theme";
 import Graphs from "../../components/graphs/LineGraphs";
 import PertNormalDistributionChart, { PertTable } from "../../components/pert";
@@ -25,6 +25,8 @@ export const ProjectOverview = () => {
   console.log("PERT API: ", apiResponse);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<any | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+
   const [selectedTab, setSelectedTab] = useState<number>(0);
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
@@ -54,8 +56,132 @@ export const ProjectOverview = () => {
     };
     fetchProjectOverviewByID();
   }, [id]);
+  const handleOpenModal = () => {
+    console.log("opened");
+    setModalOpen(true);
+    console.log(modalOpen);
+  };
+  const handleCloseModal = () => setModalOpen(false);
+
   if (tasks === null) {
-    return <div>This Project is empty D:</div>;
+        return (
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          textAlign: "center",
+          height: "60vh", // Increased height for more space
+          backgroundColor:
+            theme.palette.mode === "dark" ? colors.primary[500] : "white",
+        }}
+      >
+        <Typography
+          variant="h4"
+          color="text.secondary"
+          sx={{
+            marginBottom: "16px",
+            color: theme.palette.mode === "dark" ? "orangered" : "crimson",
+            fontWeight: "bold",
+          }}
+        >
+          No Task available.
+        </Typography>
+        <Typography
+          variant="body1"
+          color="text.secondary"
+          sx={{
+            marginBottom: "24px",
+            maxWidth: "400px",
+            lineHeight: "1.5",
+            fontSize: "1.2rem",
+            fontStyle: "italic",
+          }}
+        >
+          Looks like you don't have any task yet. Create one to get started
+          and bring your ideas to life!
+        </Typography>
+        <Button
+          variant="contained"
+          color="secondary"
+          size="large"
+          onClick={handleOpenModal}
+          sx={{
+            backgroundColor: "royalblue",
+            padding: "12px 32px",
+            fontSize: "1.1rem",
+            borderRadius: "50px",
+            boxShadow: "0 6px 12px rgba(0,0,0,0.2)",
+            "&:hover": {
+              backgroundColor: "darkorange",
+              boxShadow: "0 8px 16px rgba(0,0,0,0.3)",
+            },
+          }}
+        >
+          Create a New Task
+        </Button>
+        {/* I should really make a separate component for this modal */}
+        <Modal open={modalOpen} onClose={handleCloseModal}>
+          <Box
+            sx={{
+              width: "400px",
+              padding: "16px",
+              backgroundColor: "white",
+              borderRadius: "8px",
+              boxShadow: "0 4px 8px rgba(0,0,0,0.5)",
+              margin: "auto",
+              marginTop: "10%",
+            }}
+          >
+            <Typography variant="h6" sx={{ marginBottom: "16px" }}>
+              Create New Project
+            </Typography>
+            <TextField
+              fullWidth
+              label="Project Name"
+              name="projectName"
+              // value={newProject.projectName || ""}
+              // onChange={handleInputChange}
+              sx={{ marginBottom: "16px" }}
+            />
+            <TextField
+              fullWidth
+              label="Description"
+              name="projectDescription"
+              // value={newProject.projectDescription || ""}
+              // onChange={handleInputChange}
+              sx={{ marginBottom: "16px" }}
+            />
+            <TextField
+              fullWidth
+              label="Due Date"
+              name="projectDueDate"
+              type="date"
+              variant="outlined"
+              // value={newProject.projectDueDate || ""}
+              // onChange={handleInputChange}
+              sx={{ marginBottom: "16px" }}
+            />
+            <Button
+              fullWidth
+              variant="contained"
+              color="primary"
+              // onClick={handleSubmit}
+              // disabled={postLoading}
+            >
+              Create
+            </Button>
+            {/* {postError && (
+              <Typography color="error" sx={{ marginTop: "16px" }}>
+                {postError}
+              </Typography>
+            )} */}
+          </Box>
+        </Modal>
+      </Box>
+    );
+
   }
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {

@@ -150,6 +150,7 @@ func (app *Application) CreateProject(c echo.Context) error {
 			"error": "Invalid JSON payload222",
 		})
 	}
+	
 	p.ProjectStartDate.NullTime.Time=time.Now()
 	p.ProjectStartDate.NullTime.Valid=true
 	// Validate project name length

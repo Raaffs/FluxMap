@@ -14,6 +14,7 @@ import { tokens } from "../theme";
 import LinearProgress from "@mui/material/LinearProgress";
 import { useNavigate } from "react-router-dom";
 import { Projects } from "../hooks/types";
+import CreateProjectModal from "./modals/createProject";
 // export interface Projects {
 //   projectID?: number; // Matches `omitempty`
 //   projectName: string; // Required field
@@ -40,12 +41,15 @@ export const ProjectComponent = ({ URI }: { URI: string }) => {
     projectDueDate: null,
     ownername: "",
   });
+  const isValidProjectName=newProject.projectName.length>4
+  const isValidProjectDescription=newProject.projectDescription!.length>10 
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   const navigate = useNavigate();
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
+    console.log("is valid name",isValidProjectName)
     setNewProject((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -205,64 +209,13 @@ export const ProjectComponent = ({ URI }: { URI: string }) => {
         >
           Create a New Project
         </Button>
-        {/* I should really make a separate component for this modal */}
-        <Modal open={modalOpen} onClose={handleCloseModal}>
-          <Box
-            sx={{
-              width: "400px",
-              padding: "16px",
-              backgroundColor: "white",
-              borderRadius: "8px",
-              boxShadow: "0 4px 8px rgba(0,0,0,0.5)",
-              margin: "auto",
-              marginTop: "10%",
-            }}
-          >
-            <Typography variant="h6" sx={{ marginBottom: "16px" }}>
-              Create New Project
-            </Typography>
-            <TextField
-              fullWidth
-              label="Project Name"
-              name="projectName"
-              value={newProject.projectName || ""}
-              onChange={handleInputChange}
-              sx={{ marginBottom: "16px" }}
-            />
-            <TextField
-              fullWidth
-              label="Description"
-              name="projectDescription"
-              value={newProject.projectDescription || ""}
-              onChange={handleInputChange}
-              sx={{ marginBottom: "16px" }}
-            />
-            <TextField
-              fullWidth
-              label="Due Date"
-              name="projectDueDate"
-              type="date"
-              variant="outlined"
-              value={newProject.projectDueDate || ""}
-              onChange={handleInputChange}
-              sx={{ marginBottom: "16px" }}
-            />
-            <Button
-              fullWidth
-              variant="contained"
-              color="primary"
-              onClick={handleSubmit}
-              disabled={postLoading}
-            >
-              Create
-            </Button>
-            {postError && (
-              <Typography color="error" sx={{ marginTop: "16px" }}>
-                {postError}
-              </Typography>
-            )}
-          </Box>
-        </Modal>
+        <CreateProjectModal
+          open={modalOpen}
+          onClose={handleCloseModal}
+          newProject={newProject}
+          handleInputChange={handleInputChange}
+          handleSubmit={handleSubmit}
+        />
       </Box>
     );
   }
@@ -349,63 +302,13 @@ export const ProjectComponent = ({ URI }: { URI: string }) => {
         Create New Project
       </Button>
 
-      <Modal open={modalOpen} onClose={handleCloseModal}>
-        <Box
-          sx={{
-            width: "400px",
-            padding: "16px",
-            backgroundColor: "white",
-            borderRadius: "8px",
-            boxShadow: "0 4px 8px rgba(0,0,0,0.5)",
-            margin: "auto",
-            marginTop: "10%",
-          }}
-        >
-          <Typography variant="h6" sx={{ marginBottom: "16px" }}>
-            Create New Project
-          </Typography>
-          <TextField
-            fullWidth
-            label="Project Name"
-            name="projectName"
-            value={newProject.projectName || ""}
-            onChange={handleInputChange}
-            sx={{ marginBottom: "16px" }}
-          />
-          <TextField
-            fullWidth
-            label="Description"
-            name="projectDescription"
-            value={newProject.projectDescription || ""}
-            onChange={handleInputChange}
-            sx={{ marginBottom: "16px" }}
-          />
-          <TextField
-            fullWidth
-            label="Due Date"
-            name="projectDueDate"
-            type="date"
-            variant="outlined"
-            value={newProject.projectDueDate || ""}
-            onChange={handleInputChange}
-            sx={{ marginBottom: "16px" }}
-          />
-          <Button
-            fullWidth
-            variant="contained"
-            color="primary"
-            onClick={handleSubmit}
-            disabled={postLoading}
-          >
-            Create
-          </Button>
-          {postError && (
-            <Typography color="error" sx={{ marginTop: "16px" }}>
-              {postError}
-            </Typography>
-          )}
-        </Box>
-      </Modal>
+      <CreateProjectModal
+          open={modalOpen}
+          onClose={handleCloseModal}
+          newProject={newProject}
+          handleInputChange={handleInputChange}
+          handleSubmit={handleSubmit}
+        />
     </Box>
   );
 };

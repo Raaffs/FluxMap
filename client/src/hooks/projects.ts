@@ -62,6 +62,7 @@ export const usePostProject = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.log("project post err",errorData)
         throw new Error(errorData.error || "Failed to post the project");
       }
 
