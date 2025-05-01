@@ -14,7 +14,6 @@ import { useConfirmInvitation, useFetchInvitations } from "../../hooks/invite";
 import { DisplayInvitations } from "../../hooks/types";
 import { useState } from "react";
 import { NoUpdates } from "../../components/cards/noUpdates";
-import NotificationsOffOutlinedIcon from '@mui/icons-material/NotificationsOffOutlined';
 export const Invitation = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
@@ -41,7 +40,7 @@ export const Invitation = () => {
   if (invitations === null || invitations === undefined) {
     return <NoUpdates
         title="You're All Caught Up"
-        description="There are currently no updates requiring your attention."
+        description="There are currently no invitations requiring your attention."
     />;
   }
 

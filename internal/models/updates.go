@@ -13,12 +13,26 @@ type UpdateModel struct{
 	Errorlog	*log.Logger
 }
 
-func(u *UpdateModel)GetProjectUpdates(ctx context.Context, projectID int, username string) ([]Update, error) {
+func(u *UpdateModel)GetProjectUpdates(ctx context.Context, projectID int, username string) ([]*Update, error) {
 	query := `
-		SELECT id, projectid, msg, createdat, createdby, targettype, targetusername
-		FROM updates
-		WHERE projectid = $1
+		SELECT 
+		updates.id, 
+		updates.projectid, 
+		updates.msg, 
+		updates.createdat, 
+		updates.createdby, 
+		updates.targettype, 
+		updates.targetusername
+		projects.projectName,
+		projects.projectDescription
+
+		FROM updates,projects
+
+		WHERE updates.projectid = $1
+
+		AND projects.projectID = updates.projectid
 		AND (targettype = 'all' OR (targettype = 'user' AND targetusername = $2))
+
 		ORDER BY createdat DESC
 	`
 	rows, err := u.DB.Query(ctx, query, projectID, username)
@@ -27,7 +41,7 @@ func(u *UpdateModel)GetProjectUpdates(ctx context.Context, projectID int, userna
 	}
 	defer rows.Close()
 
-	var updates []Update
+	var updates []*Update
 	for rows.Next() {
 		var upd Update
 		err := rows.Scan(
@@ -38,23 +52,42 @@ func(u *UpdateModel)GetProjectUpdates(ctx context.Context, projectID int, userna
 			&upd.CreatedBy,
 			&upd.TargetType,
 			&upd.TargetUsername,
+			&upd.ProjectName,
+			&upd.ProjectDescription,
 		)
 		if err != nil {
 			return nil, err
 		}
-		updates = append(updates, upd)
+		updates = append(updates, &upd)
 	}	
-	return updates, rows.Err()
+	if rows.Err()!=nil{
+		return []*Update{},rows.Err()
+	}
+	return updates, nil
 }
 
 func (u *UpdateModel)GetAllUpdates(ctx context.Context, username string)([]*Update,error){
 	var updates []*Update
 	query := `
-		SELECT * FROM Updates
-		WHERE targettype='all' or targetusername=$1
-		ORDER BY createdat DESC
-	`
-	
+	SELECT 
+	    updates.id, 
+	    updates.projectid, 
+	    updates.msg, 
+	    updates.createdat, 
+	    updates.createdby, 
+	    updates.targettype, 
+	    updates.targetusername,
+	    projects.projectName, 
+	    projects.projectDescription
+	FROM 
+	    updates
+	JOIN 
+	    projects ON updates.projectid = projects.projectid
+	WHERE 
+	    targettype='all' OR targetusername=$1
+	ORDER BY 
+	    createdat DESC;	`
+		
 	rows,err:=u.DB.Query(
 		ctx,
 		query,
@@ -76,6 +109,8 @@ func (u *UpdateModel)GetAllUpdates(ctx context.Context, username string)([]*Upda
 			&upd.CreatedBy,
 			&upd.TargetType,
 			&upd.TargetUsername,
+			&upd.ProjectName,
+			&upd.ProjectDescription,
 		)
 		if err!=nil{
 			return []*Update{},err
@@ -85,6 +120,7 @@ func (u *UpdateModel)GetAllUpdates(ctx context.Context, username string)([]*Upda
 	if rows.Err()!=nil{
 		return []*Update{},rows.Err()
 	}
+	log.Println("updates in model: ",updates)
 	return updates,nil
 }
 

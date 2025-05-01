@@ -30,7 +30,7 @@ export interface PertData {
 }
 
 interface PertTaskResult {  
-    mean: number;
+    mean:   number;
     stddev: number;
     taskId: number;
   }
@@ -89,6 +89,8 @@ export interface Update {
   createdBy: string; // references users.username
   targetType: 'all' | 'user';
   targetUsername: string | null; // nullable, only set if targetType = 'user'
+  projectName: string;
+  projectDescription: string;
 }
 
 // let u :Update[]=[]

@@ -11,8 +11,8 @@ interface ModalProps {
 }
 
 const CreateProjectModal: React.FC<ModalProps> = ({ open, onClose, newProject, handleInputChange, handleSubmit }) => {
-    const isValidProjectName=newProject.projectName.length>4
-    const isValidProjectDescription=newProject.projectDescription!.length>10 
+    const isValidProjectName=newProject.projectName.trim().length>4
+    const isValidProjectDescription=newProject.projectDescription!.trim().length>10 
   
   return (
     <Modal open={open} onClose={onClose}>
@@ -52,12 +52,13 @@ const CreateProjectModal: React.FC<ModalProps> = ({ open, onClose, newProject, h
             />
             <TextField
               fullWidth
-              label="Due Date"
+              label="ETA"
               name="projectDueDate"
               type="date"
               variant="outlined"
               value={newProject.projectDueDate || ""}
               onChange={handleInputChange}
+              InputLabelProps={{ shrink: true }}
               sx={{ marginBottom: "16px" }}
             />
             <Button

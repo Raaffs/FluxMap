@@ -153,7 +153,7 @@ const SidebarEx = () => {
             </SubMenu>
 
             <SubMenu icon={<NotificationsNoneOutlinedIcon />} label="Notifications">
-              <MenuItem icon={<PublishedWithChangesIcon />}>Updates</MenuItem>
+              <MenuItem icon={<PublishedWithChangesIcon />} onClick={()=>navigate('/updates')} >Updates</MenuItem>
               <MenuItem icon={<MarkunreadOutlinedIcon />} onClick={() => navigate('/invitations')}>
                 Invitations
               </MenuItem>

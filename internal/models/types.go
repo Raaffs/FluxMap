@@ -46,13 +46,15 @@ type DisplayInvitations struct {
 }
 
 type Update struct {
-    ID             int              `db:"id"`
-    ProjectID      int              `db:"projectID"`
-    Msg            string           `db:"msg"`
-    CreatedAt      time.Time        `db:"createdat"`
-    CreatedBy      string           `db:"createdby"`      // references users.username
-    TargetType     string           `db:"targettype"`     // either "all" or "user"
-    TargetUsername null.String      `db:"targetusername"` // nullable, only set if TargetType = "user"
+    ID                  int                 `json:"id"`
+    ProjectID           int                 `json:"projectID"`
+    Msg                 string              `json:"msg"`
+    CreatedAt           time.Time           `json:"createdAt"`
+    CreatedBy           string              `json:"createdBy"`      // references users.username
+    TargetType          string              `json:"targetType"`     // either "all" or "user"
+    TargetUsername      null.String         `json:"targetUsername"` // nullable, only set if TargetType = "user"
+    ProjectName         string              `json:"projectName"`
+    ProjectDescription  string              `json:"projectDescription"`
 }
 
 

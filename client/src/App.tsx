@@ -7,11 +7,11 @@ import Topbar from "./scenes/global/Topbar";
 import SidebarEx from "./scenes/global/Sidebar";
 import LoginUser from "./scenes/auth/login";
 import SignUpUser from "./scenes/auth/signup";
-import { ProjectTaskDetailPage } from "./components/task";
 import { ProjectOverview } from "./scenes/projects/overview";
 import Graphs from "./components/graphs/LineGraphs";
 import VoiceRecorder from "./components/voiceRecorder";
 import { Invitation } from "./scenes/invitation";
+import Updates from "./scenes/notification";
 import {
   AdminProjects,
   ManagerProjects,
@@ -47,6 +47,7 @@ function App() {
                   <Route path="/" element={<Graphs />} />
                   <Route path="/invitations" element={<Invitation />} />
                   <Route path="/voice" element={<VoiceRecorder />} />
+                  <Route path="/updates" element={<Updates/>}/>
                 </Route>
               </Routes>
             </main>
