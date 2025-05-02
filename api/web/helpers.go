@@ -398,5 +398,4 @@ func GetAnalytics[U models.Analytic,T models.ReadDatabase[U]](v T,ctx context.Co
 		}
 	}
 	return data,result,nil
-
 }

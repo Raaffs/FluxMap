@@ -117,7 +117,7 @@ func (app *Application) SessionCheck(c echo.Context) error {
 	}
 
 	username, ok := sess.Values[sessionvar.USERNAME].(string)
-	if !ok || username == "" {
+	if !ok || username == ""  {
 		return c.JSON(http.StatusOK, map[string]bool{"isAuthenticated": false})
 	}
 
@@ -128,13 +128,25 @@ func (app *Application) SessionCheck(c echo.Context) error {
 
 
 func(app *Application)Logout(c echo.Context)error{
+	session,err:=session.Get("session",c);if err!=nil{
+		c.Logger().Error("Error logging out : ",err)
+		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"internal server error"})
+	}
+
+	session.Values[sessionvar.USERNAME]=""
+	
+	session.Options.MaxAge=-1
+	if err=session.Save(c.Request(),c.Response());err!=nil{
+		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"internal server error"})
+	}
 	cookie := &http.Cookie{
-		Name:     "username",
+		Name:      "session	",
 		Value:    "",
 		Path:     "/",
 		Expires: time.Unix(0, 0),
 		HttpOnly: true,
 	}	
+	
 	c.SetCookie(cookie)
 	return c.JSON(http.StatusOK,"")
 }
@@ -316,7 +328,6 @@ func(app *Application)Invite(c echo.Context)error{
 		return c.JSON(http.StatusBadRequest,map[string]string{"error":"invalid json"})
 	}
 
-	fmt.Println("username, role: ",invitation.Username,invitation.Role)
 	exist,err:=app.models.Users.Exist(c.Request().Context(),invitation.Username)
 	if !exist{
 		c.Logger().Error("user doesn't exists")
@@ -330,7 +341,7 @@ func(app *Application)Invite(c echo.Context)error{
 
 	alreadyInvited,err:=app.models.Invitation.Exist(c.Request().Context(),invitation.Username,id); if err!=nil{
 		c.Logger().Error("Error checking invitation:",err)
-		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"internal server error"})
+		return c.JSON(http.StatusConflict,map[string]string{"error":"internal server error"})
 	}
 	if alreadyInvited{
 		return c.JSON(http.StatusConflict,map[string]string{"error":"user is already invited"})
@@ -357,7 +368,7 @@ func (app *Application)GetInvitations(c echo.Context)error{
 		return c.JSON(http.StatusUnauthorized,MapMessage("session","Error getting username from session"))
 	}
 
-	invitations,err:=app.models.Invitation.GetInvitations(c.Request().Context(),username);if err!=nil{
+	invitations,err:=app.models.Invitation.GetPendingInvitations(c.Request().Context(),username);if err!=nil{
 		
 		c.Logger().Error("Error getting invitations: ",err)
 		return c.JSON(http.StatusInternalServerError,MapMessage("Invitations","Failed to get invitations"))
@@ -405,14 +416,12 @@ func (app *Application) ConfirmInvitation(c echo.Context) error {
 	}
 	log.Println("invite returningid: ",inviteID)
 	invitationDetail, err := app.models.Invitation.GetInvitationByID(c.Request().Context(), inviteID)
-	log.Println("invitation details: ",invitationDetail)
 	if err != nil {
 		c.Logger().Error("Error retrieving invitation detail: ", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to get invitation detail"})
 	}
 
 	if invitationDetail.Role == "manager" {
-		log.Println("added to manager")
 		if err := app.models.Projects.AssignManager(c.Request().Context(), username, invitationDetail.ProjectID); err != nil {
 			c.Logger().Error("Error assigning manager: ", err)
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to assign manager role"})
@@ -425,6 +434,13 @@ func (app *Application) ConfirmInvitation(c echo.Context) error {
 
 func (app *Application)CreateTask(c echo.Context)error{
 	var t models.Task
+	sess, err := session.Get("session", c);if err != nil {
+		return err
+	}
+	username,ok:=sess.Values[sessionvar.USERNAME].(string);if !ok{
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error":"you're not authorized"})
+	}
+
 	v:= validator.New()
 	if err:=c.Bind(&t);err!=nil{
 		return c.JSON(http.StatusBadRequest,map[string]string{"error":"Invalid Json payload"})
@@ -432,6 +448,16 @@ func (app *Application)CreateTask(c echo.Context)error{
 	id,err:=strconv.Atoi(c.Param("id"));if err!=nil{
 		c.Logger().Error(MapMessage("error converting to string",err.Error()))
 		return c.JSON(http.StatusBadRequest,map[string]string{"error":"Invalid project ID"})
+	}
+	//check if they're part of project
+	accepted,err:=app.models.Invitation.HasAcceptedInvitation(c.Request().Context(),id,username); if err!=nil{
+		if errors.Is(err,sql.ErrNoRows){
+			return c.JSON(http.StatusForbidden,map[string]string{"error":"User isn't part of the project or hasn't accepted the invitation yet"})
+		}
+		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"internal server error"})
+	}
+	if !accepted{
+		return c.JSON(http.StatusForbidden,map[string]string{"error":"User isn't part of the project or hasn't accepted the invitation yet"})
 	}
 	t.ParentProjectID=id
 	v.Check(
@@ -442,12 +468,7 @@ func (app *Application)CreateTask(c echo.Context)error{
 	if !v.Valid(){
 		return c.JSON(http.StatusBadRequest,map[string]any{"error":v.Errors})
 	}
-	sess, err := session.Get("session", c);if err != nil {
-		return err
-	}
-	username,ok:=sess.Values[sessionvar.USERNAME].(string);if !ok{
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error":"you're not authorized"})
-	}
+	
 	t.Createdby=username
 	if err:=app.models.Task.Create(c.Request().Context(),t);err!=nil{
 		c.Logger().Error(MapMessage("Error creating task",err.Error()))
@@ -645,18 +666,15 @@ func(app *Application)CreatePert(c echo.Context)error{
 		return c.JSON(http.StatusBadRequest,map[string]string{"error":"invalid json body"})
 	}
 	id:=c.Param("id")
-	log.Println("HTE OF PROJE ",id)
 	projectID,err:=strconv.Atoi(id);if err!=nil{
 		return c.JSON(http.StatusNotFound,"Invalid project ID")
 	}
 	pert[0].ParentProjectID=projectID
-	log.Println("new pert inseret: ",pert)
 
 	if err:=app.models.Pert.Insert(c.Request().Context(),pert);err!=nil{
 		c.Logger().Error(MapMessage("Pert Error",err.Error()))
 		return c.JSON(http.StatusInternalServerError,MapMessage("error","failed to insert pert data"))
 	}
-	log.Println("new pert inseret: ",pert)
 	if err:=Calculate[models.Pert,*models.PertModel[models.Pert]](&app.models.Pert,c.Request().Context(),pert[0].ParentProjectID);err!=nil{
 		c.Logger().Error("Error calculating pert : ",err)
 		return c.JSON(http.StatusInternalServerError,MapMessage("Error","Failed to calculate values"))

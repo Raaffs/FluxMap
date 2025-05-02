@@ -16,8 +16,9 @@ type TaskModel struct{
 }
 
 func (t *TaskModel)Create(ctx context.Context, task Task)error{
-	insert:=`INSERT INTO tasks(taskName, taskDescription, taskStartDate, taskDueDate, parentProjectID, assignedUsername,taskCompletedDate,taskApprovedDate) 
-VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)`
+	insert:=`INSERT INTO 
+	tasks(taskName, taskDescription, taskStartDate, taskDueDate, parentProjectID, assignedUsername,taskCompletedDate,taskApprovedDate) 
+	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)`
 	_,err:=t.DB.Exec(ctx,insert,task.TaskName,task.TaskDescription,task.TaskStartDate,task.TaskDueDate,task.ParentProjectID,task.AssignedUsername, task.TaskCompletedDate,task.TaskApprovedDate, task.Createdby); if err!=nil{
 		t.Errorlog.Println("Error creating project:",err)
 		return err

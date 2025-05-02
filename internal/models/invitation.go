@@ -26,7 +26,7 @@ func (i *InvitationModel)Invite(ctx context.Context,username string, projectID i
 	return nil
 }
 
-func (i *InvitationModel)GetInvitations(ctx context.Context, username string)([]*DisplayInvitations,error){
+func (i *InvitationModel)GetPendingInvitations(ctx context.Context, username string)([]*DisplayInvitations,error){
 	var invitations []*DisplayInvitations
 	get:=`
 		select 
@@ -101,6 +101,31 @@ func (i *InvitationModel) Exist(ctx context.Context, username string, projectID 
 	}
 	return exists, nil
 }
+
+func (i *InvitationModel) HasAcceptedInvitation(ctx context.Context, projectID int, username string) (bool, error) {
+	query := `
+		SELECT 1
+		FROM invitation
+		WHERE projectid = $1
+		  AND username = $2
+		  AND status = 'accepted'
+		LIMIT 1
+	`
+
+	row := i.DB.QueryRow(ctx, query, projectID, username)
+	var dummy int
+	err := row.Scan(&dummy)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil // not accepted
+		}
+		return false, err // something went boom
+	}
+
+	return true, nil // yes, they accepted
+}
+
 
 func (i *InvitationModel)GetInvitationByID(ctx context.Context, invitationID int) (*Invitation, error) {
 	query := `

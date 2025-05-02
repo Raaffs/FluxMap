@@ -78,7 +78,7 @@ export const useInvite = (id: string) => {
         method: "POST",
         credentials: "include",
         headers: {
-          "Content-Type": "application/jsinviteon",
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ username, role }),
       });
