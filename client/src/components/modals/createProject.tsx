@@ -16,7 +16,7 @@ const CreateProjectModal: React.FC<ModalProps> = ({ open, onClose, newProject, h
   
   return (
     <Modal open={open} onClose={onClose}>
-                  <Box
+          <Box
             sx={{
               width: "400px",
               padding: "16px",

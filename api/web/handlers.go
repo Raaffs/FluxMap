@@ -131,23 +131,11 @@ func(app *Application)Logout(c echo.Context)error{
 	session,err:=session.Get("session",c);if err!=nil{
 		c.Logger().Error("Error logging out : ",err)
 		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"internal server error"})
-	}
-
-	session.Values[sessionvar.USERNAME]=""
-	
+	}	
 	session.Options.MaxAge=-1
 	if err=session.Save(c.Request(),c.Response());err!=nil{
 		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"internal server error"})
 	}
-	cookie := &http.Cookie{
-		Name:      "session	",
-		Value:    "",
-		Path:     "/",
-		Expires: time.Unix(0, 0),
-		HttpOnly: true,
-	}	
-	
-	c.SetCookie(cookie)
 	return c.JSON(http.StatusOK,"")
 }
 

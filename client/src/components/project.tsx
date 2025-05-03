@@ -9,23 +9,21 @@ import {
   Modal,
   TextField,
   useTheme,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  SelectChangeEvent,
 } from "@mui/material";
 import { tokens } from "../theme";
 import LinearProgress from "@mui/material/LinearProgress";
 import { useNavigate } from "react-router-dom";
 import { Projects } from "../hooks/types";
 import CreateProjectModal from "./modals/createProject";
-// export interface Projects {
-//   projectID?: number; // Matches `omitempty`
-//   projectName: string; // Required field
-//   projectDescription?: string | null; // Matches `null.String`
-//   projectStartDate?: string | null; // Matches `null.Time`
-//   projectDueDate?: string | null; // Matches `null.Time`
-//   ownername: string; // Required field
-// }
 export const ProjectComponent = ({ URI }: { URI: string }) => {
   const { projects, loading, error } = useRetrieveProjectsFrom(URI);
-
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortOption, setSortOption] = useState("dueDate");
   const {
     postProject,
     loading: postLoading,
@@ -41,15 +39,35 @@ export const ProjectComponent = ({ URI }: { URI: string }) => {
     projectDueDate: null,
     ownername: "",
   });
-  const isValidProjectName=newProject.projectName.length>4
-  const isValidProjectDescription=newProject.projectDescription!.length>10 
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   const navigate = useNavigate();
 
+  const filteredProjects = projects.filter((project) =>
+    project.projectName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  const handleSortChange = (event: any) => {
+    setSortOption(event.target.value as string); // Cast the value to a string
+  };
+  const sortedAndFilteredProjects = filteredProjects.sort((a, b) => {
+    if (sortOption === "dueDate") {
+      // Ensure projectDueDate is a valid date string or Date object
+      const dateA = a.projectDueDate ? new Date(a.projectDueDate) : new Date(0); // Default to an "epoch" date if not available
+      const dateB = b.projectDueDate ? new Date(b.projectDueDate) : new Date(0); // Same here
+      return dateA.getTime() - dateB.getTime(); // Compare the dates
+    } else if (sortOption === "startDate") {
+      // Ensure projectStartDate is a valid date string or Date object
+      const startDateA = a.projectStartDate ? new Date(a.projectStartDate) : new Date(0); // Default to an "epoch" date if not available
+      const startDateB = b.projectStartDate ? new Date(b.projectStartDate) : new Date(0); // Same here
+      return startDateA.getTime() - startDateB.getTime(); // Compare the start dates
+    } else if (sortOption === "projectName") {
+      // Sort by project name
+      return a.projectName.localeCompare(b.projectName);
+    } 
+    return 0; // Default return if no sort option is matched
+  });
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
-    console.log("is valid name",isValidProjectName)
     setNewProject((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -223,60 +241,163 @@ export const ProjectComponent = ({ URI }: { URI: string }) => {
   return (
     <Box
       sx={{
-        margin: "5px",
-        maxHeight: "100%",
+        m: 3,
+        p: 4,
+        borderRadius: 2,
+        bgcolor: theme.palette.mode === "dark" ? colors.primary[400] : "#fff",
+        border: "1px solid",
+        borderColor: theme.palette.mode === "dark" ? "#333" : "#e1e4e8",
         overflowY: "auto",
-        padding: "16px",
-        border: "5px #ddd",
-        borderRadius: "8px",
-        backgroundColor:
-          theme.palette.mode === "dark" ? colors.primary[400] : "white",
-        boxShadow: "0 4px 8px rgba(0,0,0,0.5)",
-        alignContent: "left",
+        boxShadow: 1,
       }}
     >
-      {projects.map((project, index) => (
-        <Card
-          key={index}
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 3,
+        }}
+      >
+        <TextField
+          variant="outlined"
+          placeholder="Search projects"
+          size="small"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
           sx={{
-            minHeight: "15%",
-            maxWidth: "100%",
-            marginBottom: "16px",
-            padding: "16px",
-            borderRadius: "8px",
-            backgroundColor:
-              theme.palette.mode === "dark" ? colors.primary[400] : "#f",
-            boxShadow: "0 2px 4px rgba(0,0,0,0.5)",
-            alignContent: "left",
-            alignItems: "left",
-            textAlign: "left",
-            cursor: "pointer",
-            "&:hover": {
-              boxShadow: "0 4px 8px rgba(0,0,0,0.8)",
+            width: "60%",
+            "& .MuiOutlinedInput-root": {
+              borderRadius: "12px",
+              "& fieldset": {
+                borderColor: theme.palette.mode === "dark" ? "#666" : "#e1e4e8",
+              },
             },
           }}
+        />
+
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <FormControl sx={{ minWidth: 120, width: "auto" }}>
+            <Select
+              value={sortOption}
+              onChange={handleSortChange}
+              displayEmpty
+              sx={{
+                fontSize: "0.75rem",
+                fontWeight: 500,
+                borderRadius: "11px", 
+                width: "130px", // Make the width smaller, in line with the "New" button
+                height:"46px",
+                backgroundColor:
+                  theme.palette.mode === "dark" ? "#388e3c" : "#4caf50", // Darker, richer green
+                color: "#fff", // Keep text white for contrast
+                "& .MuiSelect-icon": {
+                  fontSize: "1.25rem",
+                  color: "#fff", // White icon for contrast
+                },
+                "& .MuiOutlinedInput-notchedOutline": {
+                  borderColor:
+                    theme.palette.mode === "dark" ? "#444" : "#e1e4e8",
+                },
+                "&:hover": {
+                  backgroundColor:
+                    theme.palette.mode === "dark" ? "#2c6e2d" : "#388e3c", // Darker green on hover
+                  borderColor: theme.palette.primary.main,
+                },
+                "&.Mui-focused": {
+                  backgroundColor:
+                    theme.palette.mode === "dark" ? "#2c6e2d" : "#388e3c", // Keep it darker when focused
+                  borderColor: theme.palette.primary.main,
+                },
+                transition: "all 0.3s ease",
+                boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.1)",
+                "& .MuiSelect-root": {
+                  paddingRight: "2rem", // Room for the icon
+                },
+              }}
+            >
+              <MenuItem value="" disabled>
+                Select Sort Option
+              </MenuItem>{" "}
+              {/* Placeholder */}
+              <MenuItem value="dueDate">Due Date</MenuItem>
+              <MenuItem value="projectName">Project Name</MenuItem>
+              <MenuItem value="startDate">Created Date</MenuItem>
+            </Select>
+          </FormControl>
+
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleOpenModal}
+            sx={{
+              fontWeight: 600,
+              textTransform: "none",
+              whiteSpace: "nowrap",
+              width:"120px",
+              borderRadius: "12px",
+              backgroundColor:'royalblue',
+              px: 3,
+              py: 1.25,
+              boxShadow: 2,
+            }}
+          >
+            + New
+          </Button>
+        </Box>
+      </Box>
+
+      {sortedAndFilteredProjects.map((project, index) => (
+        <Box
+          key={index}
           onClick={() => navigate(`/project/${project.projectID}`)}
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            textAlign: "left",
+            alignItems: "flex-start",
+            justifyContent: "flex-start",
+            borderBottom:
+              index !== sortedAndFilteredProjects.length - 1
+                ? "1px solid #e1e4e8"
+                : "none",
+            py: 2,
+            px: 2,
+            cursor: "pointer",
+            transition: "background-color 0.2s ease",
+            borderRadius: "10px",
+            "&:hover": {
+              backgroundColor:
+                theme.palette.mode === "dark" ? "#2c2c2c" : "#f6f8fa",
+            },
+          }}
         >
-          <Typography variant="h5" sx={{ fontWeight: "bold" }}>
-            {project.projectName}
-          </Typography>
           <Typography
             variant="h6"
+            fontWeight={600}
+            sx={{ color: "text.primary" }}
+          >
+            {project.projectName}
+          </Typography>
+
+          <Typography
+            variant="body2"
             color="text.secondary"
-            sx={{ marginBottom: "8px" }}
+            sx={{ mt: 0.5, mb: 1 }}
           >
             {project.projectDescription || "No description available"}
           </Typography>
+
           <Typography
-            variant="h6"
-            color="text.secondary"
+            variant="caption"
             sx={{
               color:
                 project.projectDueDate &&
                 new Date(project.projectDueDate) < new Date()
                   ? colors.redAccent[500]
                   : colors.greenAccent[400],
-              fontWeight: "bold",
+              fontWeight: 500,
+              fontStyle: "italic",
             }}
           >
             <strong>Due:</strong>{" "}
@@ -288,27 +409,34 @@ export const ProjectComponent = ({ URI }: { URI: string }) => {
                 })
               : "No due date"}
           </Typography>
-        </Card>
+        </Box>
       ))}
+
       <Button
         variant="contained"
         color="primary"
         onClick={handleOpenModal}
         sx={{
-          marginTop: "16px",
-          display: "block",
+          mt: 4,
+          width: "100%",
+          py: 1.5,
+          fontWeight: 600,
+          boxShadow: 3,
+          textTransform: "none",
+          borderRadius: "12px",
+          backgroundColor:"royalblue"
         }}
       >
-        Create New Project
+        + Create New Project
       </Button>
 
       <CreateProjectModal
-          open={modalOpen}
-          onClose={handleCloseModal}
-          newProject={newProject}
-          handleInputChange={handleInputChange}
-          handleSubmit={handleSubmit}
-        />
+        open={modalOpen}
+        onClose={handleCloseModal}
+        newProject={newProject}
+        handleInputChange={handleInputChange}
+        handleSubmit={handleSubmit}
+      />
     </Box>
   );
 };

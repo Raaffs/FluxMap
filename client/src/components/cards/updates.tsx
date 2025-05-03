@@ -30,16 +30,6 @@ export const UpdateCard = ({ update }: { update: Update }) => {
         >
           {update.createdBy}
         </Typography>{" "}
-        {/* for Project{" "}
-        <Typography
-          component="span"
-          fontWeight="bold"
-          color={colors.blueAccent[500]}
-          variant="h5"
-        >
-          {update.projectName}
-        </Typography>{" "} */}
-
       </Typography>
       <Typography
         variant="body1"

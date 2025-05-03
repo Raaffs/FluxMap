@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ProjectTaskDetailPage } from "../../components/task";
 import { useParams } from "react-router-dom";
-import { Projects } from "../../hooks/types";
+import { Projects, tasks } from "../../hooks/types";
 import { Tab, Tabs, Box, Card, useTheme, Typography, Button, TextField, Modal } from "@mui/material";
 import { tokens } from "../../theme";
 import Graphs from "../../components/graphs/LineGraphs";
@@ -14,10 +14,24 @@ import useFetchTaskData from "../../hooks/task";
 import CpmNormalDistributionChart from "../../components/cpm";
 import { useFetchPertData } from "../../hooks/pert";
 import { useFetchCpmData } from "../../hooks/cpm";
+import CreateTaskModal from "../../components/modals/createTask";
 export const ProjectOverview = () => {
   const { id } = useParams();
-  console.log("projectid: ", id);
-
+  const [openNewTaskModal, setOpenNewTaskModal] = useState(false);
+    const [newTask, setNewTask] = useState<tasks>({
+      taskID: 0, // Set to 0 or another default value if necessary
+      taskName: "",
+      taskDescription: "",
+      taskStatus: "",
+      taskStartDate: null,
+      taskDueDate: null,
+      parentProjectID: Number(id), // Assuming the project ID is available
+      assignedUsername: "",
+      approved: false,
+      taskCompletedDate: null,
+      taskApprovedDate: null,
+    });
+  
   const [project, setProject] = useState<Projects | null>(null);
   const [apiResponse, pertLoading, pertError] = useFetchPertData(id);
   const [cpmApiResponse, cpmLoading, cpmError] = useFetchCpmData(id);
@@ -61,7 +75,58 @@ export const ProjectOverview = () => {
     setModalOpen(true);
     console.log(modalOpen);
   };
-  const handleCloseModal = () => setModalOpen(false);
+  const handleOpenNewTaskModal = () => setOpenNewTaskModal(true);  
+  const handleCloseNewTaskModal = () => {
+    setOpenNewTaskModal(false);
+    setError(null); // Reset errors when closing modal
+  };
+
+
+
+  const handleCreateNewTask = async () => {
+    try {
+      if (!newTask.taskName || !newTask.assignedUsername) {
+        setError("Task Name and Assigned User are required.");
+        return;
+      }
+      const formattedTask = {
+        ...newTask,
+        taskDueDate: newTask.taskDueDate
+          ? new Date(newTask.taskDueDate).toISOString()
+          : null,
+        taskStartDate: newTask.taskStartDate
+          ? new Date(newTask.taskStartDate).toISOString()
+          : null,
+      };
+      const response = await fetch(
+        `http://localhost:4000/api/project/${id}/task`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify(formattedTask),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error(errorData);
+        setError(
+          errorData.error || "Failed to save the task. Please try again."
+        );
+      } else {
+        setFetchTrigger(true);
+        console.log("created task new task");
+      }
+    } catch (err) {
+      console.error("Failed to create task", err);
+    }finally{
+      handleCloseNewTaskModal();
+    }
+  };
+
 
   if (tasks === null) {
         return (
@@ -106,7 +171,7 @@ export const ProjectOverview = () => {
           variant="contained"
           color="secondary"
           size="large"
-          onClick={handleOpenModal}
+          onClick={handleOpenNewTaskModal}
           sx={{
             backgroundColor: "royalblue",
             padding: "12px 32px",
@@ -121,64 +186,13 @@ export const ProjectOverview = () => {
         >
           Create a New Task
         </Button>
-        {/* I should really make a separate component for this modal */}
-        <Modal open={modalOpen} onClose={handleCloseModal}>
-          <Box
-            sx={{
-              width: "400px",
-              padding: "16px",
-              backgroundColor: "white",
-              borderRadius: "8px",
-              boxShadow: "0 4px 8px rgba(0,0,0,0.5)",
-              margin: "auto",
-              marginTop: "10%",
-            }}
-          >
-            <Typography variant="h6" sx={{ marginBottom: "16px" }}>
-              Create New Project
-            </Typography>
-            <TextField
-              fullWidth
-              label="Project Name"
-              name="projectName"
-              // value={newProject.projectName || ""}
-              // onChange={handleInputChange}
-              sx={{ marginBottom: "16px" }}
-            />
-            <TextField
-              fullWidth
-              label="Description"
-              name="projectDescription"
-              // value={newProject.projectDescription || ""}
-              // onChange={handleInputChange}
-              sx={{ marginBottom: "16px" }}
-            />
-            <TextField
-              fullWidth
-              label="Due Date"
-              name="projectDueDate"
-              type="date"
-              variant="outlined"
-              // value={newProject.projectDueDate || ""}
-              // onChange={handleInputChange}
-              sx={{ marginBottom: "16px" }}
-            />
-            <Button
-              fullWidth
-              variant="contained"
-              color="primary"
-              // onClick={handleSubmit}
-              // disabled={postLoading}
-            >
-              Create
-            </Button>
-            {/* {postError && (
-              <Typography color="error" sx={{ marginTop: "16px" }}>
-                {postError}
-              </Typography>
-            )} */}
-          </Box>
-        </Modal>
+        <CreateTaskModal
+          open={openNewTaskModal}
+          onClose={handleCloseNewTaskModal}
+          newTask={newTask}
+          handleCreateNewTask={handleCreateNewTask}
+          setNewTask={setNewTask}
+        />
       </Box>
     );
 

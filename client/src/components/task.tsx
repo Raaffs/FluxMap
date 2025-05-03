@@ -17,8 +17,7 @@ import { LinearProgress } from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { tokens } from "../theme";
 import { tasks } from "../hooks/types";
-import useFetchTaskData from "../hooks/task";
-
+import CreateTaskModal from "./modals/createTask";
 export const ProjectTaskDetailPage = ({
   tasks,
   //to re-renders the component on adding/modifying a task
@@ -375,6 +374,14 @@ export const ProjectTaskDetailPage = ({
         </Button>
       </Box>
       <DataGrid rows={rows} columns={columns} />
+      {/*Create new task modal*/}
+      <CreateTaskModal
+        open={openNewTaskModal}
+        newTask={newTask}
+        onClose={handleCloseNewTaskModal}
+        handleCreateNewTask={handleCreateNewTask}
+        setNewTask={setNewTask}
+      />
       {/* Task Name Modal */}
       <Modal open={openTaskNameModal} onClose={handleCloseModal}>
         <Box
@@ -446,95 +453,7 @@ export const ProjectTaskDetailPage = ({
           </Button>
         </Box>
       </Modal>
-      <Modal open={openNewTaskModal} onClose={handleCloseNewTaskModal}>
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            padding: 2,
-            backgroundColor:
-              theme.palette.mode === "dark" ? colors.primary[400] : "white",
-            borderRadius: 2,
-            maxWidth: 400,
-            margin: "auto",
-            marginTop: 10,
-          }}
-        >
-          <Typography variant="h6">Create New Task</Typography>
-
-          <TextField
-            label="Task Name"
-            value={newTask.taskName}
-            onChange={(e) =>
-              setNewTask({ ...newTask, taskName: e.target.value })
-            }
-            fullWidth
-            variant="outlined"
-            margin="normal"
-          />
-
-          <TextField
-            label="Assigned User"
-            value={newTask.assignedUsername}
-            onChange={(e) =>
-              setNewTask({ ...newTask, assignedUsername: e.target.value })
-            }
-            fullWidth
-            variant="outlined"
-            margin="normal"
-          />
-
-          <TextField
-            label="Start Date"
-            type="date"
-            value={newTask.taskStartDate || ""}
-            onChange={(e) =>
-              setNewTask({ ...newTask, taskStartDate: e.target.value })
-            }
-            fullWidth
-            variant="outlined"
-            margin="normal"
-            InputLabelProps={{
-              shrink: true, // Ensures the label doesn't overlap with the date value
-            }}
-          />
-          <TextField
-            label="Due Date"
-            type="date"
-            value={newTask.taskDueDate || ""}
-            onChange={(e) =>
-              setNewTask({ ...newTask, taskDueDate: e.target.value })
-            }
-            fullWidth
-            variant="outlined"
-            margin="normal"
-            InputLabelProps={{
-              shrink: true,
-            }}
-          />
-
-          <TextField
-            label="Description"
-            value={newTask.taskDescription || ""}
-            onChange={(e) =>
-              setNewTask({ ...newTask, taskDescription: e.target.value })
-            }
-            fullWidth
-            variant="outlined"
-            margin="normal"
-          />
-
-          <Button
-            onClick={handleCreateNewTask}
-            color="primary"
-            variant="contained"
-            sx={{ mt: 2 }}
-          >
-            Save Task
-          </Button>
-        </Box>
-      </Modal>
+     
     </Box>
   );
 };
