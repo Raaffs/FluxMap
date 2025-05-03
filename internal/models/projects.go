@@ -72,7 +72,11 @@ func(p *ProjectModel)RetrieveAdminProjects(ctx context.Context,username string)(
 
 func(p *ProjectModel)RetrieveManagerProjects(ctx context.Context,username string)([]*Project,error){
 	var projects []*Project
-	retrieve:=`SELECT projects.ProjectID,projects.projectName,projects.projectDescription,projects.projectDueDate 
+	retrieve:=`
+	SELECT projects.ProjectID,
+	projects.projectName,
+	projects.projectDescription,
+	projects.projectDueDate 
 	FROM Projects
 	JOIN Managers ON projects.projectID=managers.projectID
 	WHERE managers.managername=$1`
@@ -97,10 +101,17 @@ func(p *ProjectModel)RetrieveManagerProjects(ctx context.Context,username string
 
 func(p *ProjectModel)RetrieveAssginedProjects(ctx context.Context,username string)([]*Project,error){
 	var projects []*Project
-	retrieve:=`SELECT projects.projectID,projects.projectName,projects.projectDescription,projects.projectDueDate 
+	retrieve:=`
+	SELECT 
+	projects.projectID,
+	projects.projectName,
+	projects.projectDescription,
+	projects.projectDueDate 
 	FROM projects 
-	JOIN tasks ON projects.projectID=tasks.parentProjectID
-	WHERE tasks.assignedUsername=$1
+	JOIN invitation ON projects.projectID=invitation.projectid
+	WHERE invitation.username=$1
+	AND   invitation.status='accepted'
+	AND	  invitation.role='user'
 	`
 	rows,err:=p.DB.Query(ctx,retrieve,username); if err!=nil{
 		if errors.Is(err,sql.ErrNoRows){

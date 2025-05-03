@@ -161,18 +161,7 @@ func (app *Application) getUserRole(ctx context.Context, username, resourceID st
 
 func (app *Application) GetTaskBasedOnAccess(managerFunc echo.HandlerFunc, userFunc echo.HandlerFunc) echo.HandlerFunc {
     return func(c echo.Context) error {
-        sess, err := session.Get(sessionvar.SESSION_NAME, c)
-        if err != nil {
-            log.Println("sess in access task0", sess.Values)
-            return c.JSON(http.StatusUnauthorized, map[string]string{"message": "Missing role cookie"})
-        }
-        log.Println("sess in access task1", sess.Values)
-
-        username, ok := sess.Values[sessionvar.USERNAME].(string)
-        if !ok {
-            return c.JSON(http.StatusUnauthorized, map[string]string{"error": "you're not authorized"})
-        }
-
+		username:=c.Get(sessionvar.USERNAME).(string);
         // Get the user's role
 		id:=c.Param("id")
 		if _,err:=strconv.Atoi(id);err!=nil{
@@ -192,12 +181,22 @@ func (app *Application) GetTaskBasedOnAccess(managerFunc echo.HandlerFunc, userF
     }
 }
 
+func GetUsernameFromSession(c echo.Context) (string, error) {
+    sess, err := session.Get(sessionvar.SESSION_NAME, c)
+    if err != nil {
+        return "", err
+    }
+    username, ok := sess.Values[sessionvar.USERNAME].(string)
+    if !ok {
+        return "", errors.New("username not found in session")
+    }
+    return username, nil
+}
 
 func (app *Application) FetchProjects(ctx context.Context, username string, resultChan chan<- ProjectResult) {
 	var wg sync.WaitGroup
 	wg.Add(3)
 	
-
 	adminChan := make(chan []*models.Project, 1)
 	managerChan := make(chan []*models.Project, 1)
 	assignedChan := make(chan []*models.Project, 1)

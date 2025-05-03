@@ -68,7 +68,7 @@ func (app *Application) Routes(e *echo.Echo) {
 
 	// Admin & Manager routes
 	e.PUT("/api/project/admin/:id", app.UpdateProject, app.AdminLevelAccess)
-	e.POST("/api/project/:id/manager", app.AddManager, app.AdminLevelAccess)
+	// e.POST("/api/project/:id/manager", app.AddManager, app.AdminLevelAccess)
 
 	e.GET("/api/projects/admin", app.GetAdminProjects, IsAuthorizedUser)
 	e.GET("/api/projects/manager", app.GetManagerProjects, IsAuthorizedUser)

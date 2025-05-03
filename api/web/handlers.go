@@ -167,16 +167,8 @@ func (app *Application) CreateProject(c echo.Context) error {
 		fmt.Sprintf(validator.ErrDescriptionTooShort.Message, 10),
 	)
 
-	// Check if the username cookie exists
-	sess, err := session.Get(sessionvar.SESSION_NAME,c);if err != nil {
-		return c.JSON(http.StatusUnauthorized, map[string]string{
-			"error": "Unauthorized",
-		})
-	}
-	username,ok:=sess.Values[sessionvar.USERNAME].(string);if !ok{
-		return c.JSON(http.StatusUnauthorized, "unauthorized")
-	}
-
+	// Check if the username session exists
+	username:=c.Get(sessionvar.USERNAME).(string)
 	p.Ownername = username
 
 	// If validation fails, return detailed validation errors
@@ -202,16 +194,7 @@ func (app *Application) CreateProject(c echo.Context) error {
 }
 
 func (app *Application) GetProjects(c echo.Context) error {
-	sess, err := session.Get("session", c)
-	if err != nil {
-		return err
-	}
-	username, ok := sess.Values[sessionvar.USERNAME].(string)
-	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "you're not authorized"})
-	}
-
-
+	username:=c.Get(sessionvar.USERNAME).(string)
 	resultChan := make(chan ProjectResult, 1)
 	ctx,cancel:=context.WithTimeout(c.Request().Context(),10*time.Second)
 	defer cancel()
@@ -229,15 +212,7 @@ func (app *Application) GetProjects(c echo.Context) error {
 }
 
 func(app *Application)GetAdminProjects(c echo.Context)error{
-	sess, err := session.Get(sessionvar.SESSION_NAME, c);if err != nil {
-		return err
-	}
-	fmt.Println("sess: ",sess.Values)
-
-	username,ok:=sess.Values[sessionvar.USERNAME].(string);if !ok{
-		return c.JSON(http.StatusUnauthorized, "Unauthorized")
-	}
-
+	username:=c.Get(sessionvar.USER).(string)
 	adminProjects,err:=app.models.Projects.RetrieveAdminProjects(c.Request().Context(),username); if err!=nil{
 		c.Logger().Error("Error retrieving projects : ",err)
 		c.JSON(http.StatusInternalServerError,MapMessage("Project","An error occurred while retrieving project"))
@@ -247,14 +222,7 @@ func(app *Application)GetAdminProjects(c echo.Context)error{
 }
 
 func(app *Application) GetManagerProjects(c echo.Context) error {
-	sess, err := session.Get(sessionvar.SESSION_NAME,c);if err != nil {
-		return c.JSON(http.StatusUnauthorized, map[string]string{
-			"error": "Unauthorized",
-		})
-	}
-	username,ok:=sess.Values[sessionvar.USERNAME].(string);if !ok{
-		return c.JSON(http.StatusUnauthorized, "unauthorized")
-	}
+	username:=c.Get(sessionvar.USER).(string)
 
 	managerProjects, err := app.models.Projects.RetrieveManagerProjects(c.Request().Context(), username)
 	if err != nil {
@@ -266,15 +234,7 @@ func(app *Application) GetManagerProjects(c echo.Context) error {
 }
 
 func(app *Application) GetAssignedProjects(c echo.Context) error {
-	sess, err := session.Get("session", c)
-	if err != nil {
-		return err
-	}
-	username, ok := sess.Values[sessionvar.USERNAME].(string)
-	if !ok {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "you're not authorized"})
-	}
-
+	username:=c.Get(sessionvar.USER).(string)
 
 	assignedProjects, err := app.models.Projects.RetrieveAssginedProjects(c.Request().Context(), username)
 	if err != nil {
@@ -345,16 +305,7 @@ func(app *Application)Invite(c echo.Context)error{
 
 
 func (app *Application)GetInvitations(c echo.Context)error{
-	sess,err:=session.Get("session",c);if err!=nil{
-		c.Logger().Error("error getting session: ",err)
-		return c.JSON(http.StatusUnauthorized,MapMessage("session","Error getting session"))
-	}
-
-	username,ok:=sess.Values[sessionvar.USERNAME].(string)
-	if !ok{
-		c.Logger().Error("Error getting username from session")
-		return c.JSON(http.StatusUnauthorized,MapMessage("session","Error getting username from session"))
-	}
+	username:=c.Get(sessionvar.USER).(string)
 
 	invitations,err:=app.models.Invitation.GetPendingInvitations(c.Request().Context(),username);if err!=nil{
 		
@@ -365,36 +316,25 @@ func (app *Application)GetInvitations(c echo.Context)error{
 }
 
 func (app *Application) ConfirmInvitation(c echo.Context) error {
-
+	username:=c.Get(sessionvar.USER).(string)
 	invitation:=struct{
 		Status string `json:"status"`
 	}{}
 
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		c.Logger().Error("Error converting id to int: ", err)
+		c.Logger().Warn("Error converting id to int: ", err)
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid project ID"})
 	}
 	
 	if err:=c.Bind(&invitation);err!=nil{
-		c.Logger().Error("Error binding request body: ",err)
+		c.Logger().Warn("Error binding request body: ",err)
 		return c.JSON(http.StatusBadRequest,map[string]string{"error":"Invalid request body"})
 	}
 
 	if invitation.Status!="rejected" && invitation.Status!="accepted"{
+		c.Logger().Warn("invalid status recieved : ",invitation.Status)
 		return c.JSON(http.StatusBadRequest,map[string]string{"error":"Invalid invitation status"})
-	}
-
-	sess, err := session.Get("session", c)
-	if err != nil {
-		c.Logger().Error("Error getting session: ", err)
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Error getting session"})
-	}
-
-	username, ok := sess.Values[sessionvar.USERNAME].(string)
-	if !ok {
-		c.Logger().Error("Error retrieving username from session")
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Error getting username from session"})
 	}
 
 	inviteID, err := app.models.Invitation.ConfirmInvitation(c.Request().Context(), invitation.Status, id, username)
@@ -402,7 +342,6 @@ func (app *Application) ConfirmInvitation(c echo.Context) error {
 		c.Logger().Error("Error confirming invitation: ", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to confirm invitation"})
 	}
-	log.Println("invite returningid: ",inviteID)
 	invitationDetail, err := app.models.Invitation.GetInvitationByID(c.Request().Context(), inviteID)
 	if err != nil {
 		c.Logger().Error("Error retrieving invitation detail: ", err)
@@ -422,19 +361,14 @@ func (app *Application) ConfirmInvitation(c echo.Context) error {
 
 func (app *Application)CreateTask(c echo.Context)error{
 	var t models.Task
-	sess, err := session.Get("session", c);if err != nil {
-		return err
-	}
-	username,ok:=sess.Values[sessionvar.USERNAME].(string);if !ok{
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error":"you're not authorized"})
-	}
+	username:=c.Get(sessionvar.USER).(string)
 
 	v:= validator.New()
 	if err:=c.Bind(&t);err!=nil{
 		return c.JSON(http.StatusBadRequest,map[string]string{"error":"Invalid Json payload"})
 	}
 	id,err:=strconv.Atoi(c.Param("id"));if err!=nil{
-		c.Logger().Error(MapMessage("error converting to string",err.Error()))
+		c.Logger().Warn(MapMessage("error converting to string",err.Error()))
 		return c.JSON(http.StatusBadRequest,map[string]string{"error":"Invalid project ID"})
 	}
 	//check if they're part of project
@@ -520,52 +454,44 @@ func(app *Application)UpdateUserTask(c echo.Context)error{
 	return nil
 }
 
-func (app *Application)UpdateManagerTask(c echo.Context)error{
+func (app *Application) UpdateManagerTask(c echo.Context) error {
 	var t models.Task
-	v:=validator.New()
-	if err:=c.Bind(&t);err!=nil{
-		return c.JSON(http.StatusBadRequest,MapMessage("error","invalid request"))
+	v := validator.New()
+
+	if err := c.Bind(&t); err != nil {
+		c.Logger().Warn("Failed to bind request body: ", err)
+		return c.JSON(http.StatusBadRequest, MapMessage("error", "Invalid request"))
 	}
+
 	v.Check(
-		validator.MinNameLength(t.TaskName,3),
+		validator.MinNameLength(t.TaskName, 3),
 		validator.ErrNameTooShort.Key,
 		validator.ErrNameTooShort.Message,
 	)
-	if !v.Valid(){
-		return c.JSON(http.StatusBadRequest,v)
+
+	if !v.Valid() {
+		c.Logger().Warnf("Validation failed for task: %v", v.Errors)
+		return c.JSON(http.StatusBadRequest, v)
 	}
-	if !t.AssignedUsername.Valid{
-		return c.JSON(http.StatusBadRequest,"task must be assigned to a user")
+
+	if !t.AssignedUsername.Valid {
+		c.Logger().Warn("Task submission missing assigned user")
+		return c.JSON(http.StatusBadRequest, MapMessage("error", "Task must be assigned to a user"))
 	}
-	
-	if t.Approved.Bool{
-		t.TaskApprovedDate.Time =time.Now()
+
+	if t.Approved.Bool {
+		t.TaskApprovedDate.Time = time.Now()
 	}
-	if err:=app.models.Task.UpdateManagerTask(c.Request().Context(),t);err!=nil{
-		c.Logger().Error(MapMessage("Error updating task",err.Error()))
-		return c.JSON(http.StatusInternalServerError,MapMessage("error","internal server error"))
+
+	if err := app.models.Task.UpdateManagerTask(c.Request().Context(), t); err != nil {
+		c.Logger().Error("Error updating task in DB: ", err)
+		return c.JSON(http.StatusInternalServerError, MapMessage("error", "Internal server error"))
 	}
-	return c.JSON(http.StatusOK,"updated successfully")
+
+	return c.JSON(http.StatusOK, "Updated successfully")
 }
 
-func(app *Application)AddManager(c echo.Context)error{
-	m:=struct{
-		Manager string `json:"manager"`
-	}{}
-	projectID,err:=strconv.Atoi(c.Param("id"));if err!=nil{
-		c.Logger().Error(MapMessage("error converting to string",err.Error()))
-		return c.JSON(http.StatusBadRequest,map[string]string{"error":"Invalid project ID"})
-	}
-	fmt.Println(m.Manager,projectID)
-	fmt.Println(projectID,m.Manager)
-	if err:=c.Bind(&m);err!=nil{
-		return c.JSON(http.StatusBadRequest,"Invalid request body")
-	}
-	if err:=app.models.Projects.AssignManager(c.Request().Context(),m.Manager,projectID);err!=nil{
-		return c.JSON(http.StatusInternalServerError,"Failed to assign manager")
-	}
-	return c.JSON(http.StatusOK,"manager added")
-}
+
 
 func (app *Application)ManagerRestrictedTask(c echo.Context)error{
 	var t models.Task
@@ -650,18 +576,22 @@ func(app *Application)GetPert(c echo.Context)error{
 func(app *Application)CreatePert(c echo.Context)error{
 	var pert []models.Pert	
 	if err:=c.Bind(&pert);err!=nil{
-		c.Logger().Error("error binding pert : ",err)
+		c.Logger().Warn("error binding pert : ",err)
 		return c.JSON(http.StatusBadRequest,map[string]string{"error":"invalid json body"})
 	}
 	id:=c.Param("id")
 	projectID,err:=strconv.Atoi(id);if err!=nil{
 		return c.JSON(http.StatusNotFound,"Invalid project ID")
 	}
+	if len(pert) == 0 {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error":"no pert data provided"})
+	}
+
 	pert[0].ParentProjectID=projectID
 
 	if err:=app.models.Pert.Insert(c.Request().Context(),pert);err!=nil{
-		c.Logger().Error(MapMessage("Pert Error",err.Error()))
-		return c.JSON(http.StatusInternalServerError,MapMessage("error","failed to insert pert data"))
+		c.Logger().Error("error inserting pert data : ",err)
+		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"failed to insert pert data"})
 	}
 	if err:=Calculate[models.Pert,*models.PertModel[models.Pert]](&app.models.Pert,c.Request().Context(),pert[0].ParentProjectID);err!=nil{
 		c.Logger().Error("Error calculating pert : ",err)
@@ -699,37 +629,32 @@ func(app *Application)GetCpm(c echo.Context)error{
 	return c.JSON(http.StatusOK,r)
 }
 
-func(app *Application)CreateCpm(c echo.Context)error{
+func (app *Application) CreateCpm(c echo.Context) error {
 	var cpm []models.Cpm	
-	if err:=c.Bind(&cpm);err!=nil{
-		return c.JSON(http.StatusBadRequest,"Invalid request body")
+	if err := c.Bind(&cpm); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
 	}
-	if err:=DetectCycleCpm(cpm);err!=nil{
+	if len(cpm) == 0 {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "no cpm data provided"})
+	}
+	if err := DetectCycleCpm(cpm); err != nil {
 		c.Logger().Warn(err)
-		return c.JSON(http.StatusBadRequest,"Cyclic dependencies are not allowed")
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Cyclic dependencies are not allowed"})
 	}
-	if err:=app.models.Cpm.Insert(c.Request().Context(),cpm);err!=nil{
-		c.Logger().Error(MapMessage("cpm Error",err.Error()))
-		return c.JSON(http.StatusInternalServerError,MapMessage("error","failed to insert cpm data"))
+	if err := app.models.Cpm.Insert(c.Request().Context(), cpm); err != nil {
+		c.Logger().Error(map[string]string{"error": "failed to insert cpm data"})
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to insert cpm data"})
 	}
-	fmt.Println("after insert")
-
-	if err:=Calculate(&app.models.Cpm,c.Request().Context(),cpm[0].ParentProjectID); err!=nil{
-		c.Logger().Error("Error calculating cpm data : ",err)
-		return c.JSON(http.StatusInternalServerError,MapMessage("error","Failed to calculate CPM values"))
+	if err := Calculate(&app.models.Cpm, c.Request().Context(), cpm[0].ParentProjectID); err != nil {
+		c.Logger().Error(map[string]string{"error": "Failed to calculate CPM values"})
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to calculate CPM values"})
 	}
-	return c.JSON(http.StatusOK,MapMessage("message","cpm data inserted successfully"))
+	return c.JSON(http.StatusOK, map[string]string{"message": "cpm data inserted successfully"})
 }
 
+
 func(app *Application)GetAllUpdates(c echo.Context)error{
-	sess,err:=session.Get(sessionvar.SESSION_NAME,c);if err!=nil{
-		c.Logger().Warn("error getting session :",err)
-		return c.JSON(http.StatusUnauthorized,"Unauthorized")
-	}
-	username,ok:=sess.Values[sessionvar.USERNAME].(string); if !ok{
-		c.Logger().Warn("username not found in session")
-		return c.JSON(http.StatusUnauthorized,"Unauthorized")
-	}
+	username:=c.Get(sessionvar.USERNAME).(string)
 	updates,err:=app.models.Update.GetAllUpdates(c.Request().Context(),username);if err!=nil{
 		if errors.Is(err,sql.ErrNoRows){
 			c.Logger().Warn("not updates : ",err)
@@ -742,14 +667,7 @@ func(app *Application)GetAllUpdates(c echo.Context)error{
 }
 
 func (app *Application)GetProjectUpdates(c echo.Context)error{
-	sess,err:=session.Get(sessionvar.SESSION_NAME,c);if err!=nil{
-		c.Logger().Warn("error getting session :",err)
-		return c.JSON(http.StatusUnauthorized,"Unauthorized")
-	}
-	username,ok:=sess.Values[sessionvar.USERNAME].(string); if !ok{
-		c.Logger().Warn("username not found in session")
-		return c.JSON(http.StatusUnauthorized,"Unauthorized")
-	}
+	username:=c.Get(sessionvar.USERNAME).(string)
 	projectID,err:=strconv.Atoi(c.Param("id")); if err!=nil{
 		c.Logger().Warn("invalid project id")
 		return c.JSON(http.StatusBadRequest,"Invalid project id")
