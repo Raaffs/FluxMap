@@ -30,6 +30,7 @@ export const ProjectOverview = () => {
       approved: false,
       taskCompletedDate: null,
       taskApprovedDate: null,
+      createdBy:""
     });
   
   const [project, setProject] = useState<Projects | null>(null);

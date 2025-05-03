@@ -19,6 +19,7 @@ export interface tasks {
     approved?: boolean|false;         // Optional
     taskCompletedDate?:  string|null
     taskApprovedDate?:  string|null
+    createdBy:string;
 }
 
 export interface PertData {

@@ -45,6 +45,7 @@ export const ProjectTaskDetailPage = ({
     approved: false,
     taskCompletedDate: null,
     taskApprovedDate: null,
+    createdBy: "",
   });
   const [error, setError] = useState<string | null>(null); // Define error state
   const theme = useTheme();
@@ -70,6 +71,7 @@ export const ProjectTaskDetailPage = ({
         taskStartDate: newTask.taskStartDate
           ? new Date(newTask.taskStartDate).toISOString()
           : null,
+        
       };
       const response = await fetch(
         `http://localhost:4000/api/project/${id}/task`,
@@ -130,6 +132,7 @@ export const ProjectTaskDetailPage = ({
             assignedUsername: task?.assignedUsername,
             taskCompletedDate: task?.taskCompletedDate,
             taskApprovedDate: task?.taskApprovedDate,
+            createdBy:task?.createdBy,
             targetUsername:task?.assignedUsername,
             targetType:'user',
             msg:`task ${task?.taskName} ${!approved?'approved':'disapproved'} by`,
@@ -312,6 +315,7 @@ export const ProjectTaskDetailPage = ({
         params ? new Date(params).toLocaleDateString() : "N/A",
     },
     { field: "assignedUsername", headerName: "Contributor", flex: 2 },
+    {field:"createdBy",headerName:"Assigned By", flex:2},
     {
       field: "taskStatus",
       headerName: "Status",
@@ -342,7 +346,7 @@ export const ProjectTaskDetailPage = ({
           checked={params.value}
           onChange={() => toggleApproval(params.row.taskID, params.value)}
         />
-      ),
+      )
     },
   ];
 

@@ -25,6 +25,9 @@ const (
 	ManagerRole UserRole = "manager"
 	UserRoleVal UserRole = "user"
 )
+var NOTIFY_MSG="msg"
+var NOTIFY_TARGET_USERNAME="targetUsername"
+var NOTIFY_TARGET_TYPE="targetType"
 
 type ProjectResult struct {
 	AdminProjects    []*models.Project
@@ -66,7 +69,11 @@ func MapMessage(key string,msg string)struct{Key string; Message string}{
     }
 }
 
-
+func SetNotifyContext(c echo.Context, msg,targetType,targetUsername string){
+	c.Set(NOTIFY_MSG,msg)
+	c.Set(NOTIFY_TARGET_TYPE,targetType)
+	c.Set(NOTIFY_TARGET_USERNAME,targetUsername)
+}
 func AppendToSessionArray(session *sessions.Session, key string, value int) error {
 	// Check if value exists and is of correct type
 	arr, ok := session.Values[key].([]int)

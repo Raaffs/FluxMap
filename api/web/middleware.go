@@ -1,10 +1,6 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -67,74 +63,29 @@ func (app *Application)AdminLevelAccess(next echo.HandlerFunc)echo.HandlerFunc{
 
 func (app *Application) SendNotification(next echo.HandlerFunc) echo.HandlerFunc {
     return func(c echo.Context) error {
-
-        username:=c.Get(sessionvar.USERNAME).(string)
-		// We're manually reading the request body instead of using c.Bind() because:
-		// 1. c.Bind() consumes the body, meaning the next handler (Create/Update Task) wouldn't be able to read it.
-		// 2. To avoid that, we read the body into a variable, then reset c.Request().Body so it can be read again.
-		// 3. This makes sure everything works smoothly without breaking the request flow.
-        bodyBytes, err := io.ReadAll(c.Request().Body)
-        if err != nil {
-            return c.JSON(http.StatusBadRequest, map[string]string{"error": "Failed to read request body"})
+        id:=c.Param("id")
+        projectID,err:=strconv.Atoi(id);if err!=nil{
+            c.Logger().Error("Error sending notification, invalid projectid : ",err)
         }
-        c.Request().Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
-
-        Notify := struct {
-            TargetUsername string `json:"targetUsername"`
-            TargetType     string `json:"targetType"`
-            Msg            string `json:"msg"`
-        }{}
-
-        if len(bodyBytes) > 0 {
-            if err := json.Unmarshal(bodyBytes, &Notify); err != nil {
-                c.Logger().Error("Error sending notification\nerror binding json: ", err)
-                return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid JSON"})
-            }
-        }
-        log.Println("NOTIFYING THE USER: ",Notify)
-        id := c.Param("id")
-        projectID, err := strconv.Atoi(id)
-        if err != nil {
-            c.Logger().Error("Error sending notification\ninvalid projectid: ", err)
-            return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid project ID"})
-        }
-
-        if Notify.TargetType != "user" && Notify.TargetType != "all" {
-            c.Logger().Error("Error sending notification\ninvalid target type: ", Notify.TargetType)
-        }
-
-
-
-        role, err := app.getUserRole(c.Request().Context(), username, id)
-        if err != nil {
-            c.Logger().Error("Error sending notification\nerror getting user role: ", err)
-        }
-
-        var msg string
-        if Notify.Msg == "" {
-            switch role {
-            case AdminRole:
-                msg = fmt.Sprintf("Task %s has been approved by %s", id, username)
-            case ManagerRole:
-                msg = fmt.Sprintf("Task %s has been approved by %s", id, username)
-            case UserRoleVal:
-                msg = fmt.Sprintf("Task %s has been completed by %s", id, username)
-            default:
-                c.Logger().Error("Unexpected role, message is empty")
-                return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Unexpected role"})
-            }
-        } else {
-            msg = fmt.Sprintf("%s %s",Notify.Msg,username)
-        }
-
         // Defer notification, so it's only sent if the handler executes successfully
         defer func() {
+            var targetUsername *string
+
+            username:=c.Get(sessionvar.USERNAME).(string)
+            msg,ok:=c.Get(NOTIFY_MSG).(string);if !ok {c.Logger().Error("error converting notify msg to string")}
+            targetType,ok:=c.Get(NOTIFY_TARGET_TYPE).(string);if !ok {c.Logger().Error("error converting notify target type to string")}
+            
+            if targetType=="user"{
+                tu,ok:=c.Get(NOTIFY_TARGET_USERNAME).(string);if ok {
+                    targetUsername=&tu
+                }
+            }
             if err!=nil{
-                c.Logger().Error("Error sending notification: ", err, Notify)
+                c.Logger().Error("Error sending notification: ", err)
                 return
             }
             if c.Response().Status >= 200 && c.Response().Status < 300 { // Only proceed if the handler succeeds
-                if err := app.models.Notify.CreateUpdate(c.Request().Context(), projectID, msg, username, Notify.TargetType, Notify.TargetUsername); err != nil {
+                if err := app.models.Notify.CreateUpdate(c.Request().Context(), projectID, msg, username, targetType, targetUsername); err != nil {
                     c.Logger().Error("Error sending notification\nerror creating notification: ", err)
                 }
             }

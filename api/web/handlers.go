@@ -375,13 +375,7 @@ func (app *Application) ConfirmInvitation(c echo.Context) error {
 
 func (app *Application)CreateTask(c echo.Context)error{
 	var t models.Task
-	sess, err := session.Get("session", c);if err != nil {
-		return err
-	}
-	username,ok:=sess.Values[sessionvar.USERNAME].(string);if !ok{
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error":"you're not authorized"})
-	}
-
+	username:=c.Get(sessionvar.USERNAME).(string)
 	v:= validator.New()
 	if err:=c.Bind(&t);err!=nil{
 		return c.JSON(http.StatusBadRequest,map[string]string{"error":"Invalid Json payload"})
@@ -452,8 +446,8 @@ func(app *Application)UpdateUserTask(c echo.Context)error{
 	status:=struct{
 		TaskStatus string `json:"taskStatus"`
 	}{}
+	username:=c.Get(sessionvar.USERNAME).(string)
 	v:=validator.New()
-
 	id,err:=strconv.Atoi(c.Param("taskID")); if err!=nil{
 		return c.JSON(http.StatusNotFound,MapMessage("error","task not found"))
 	}
@@ -465,11 +459,22 @@ func(app *Application)UpdateUserTask(c echo.Context)error{
 		"status",
 		"invalid status",
 	)
-	if err:=app.models.Task.UpdateTask(c.Request().Context(),id,status.TaskStatus);err!=nil{
+	taskName, err:=app.models.Task.UpdateTask(c.Request().Context(),id,status.TaskStatus);if err!=nil{
 		c.Logger().Error("error updating task: ",err)
 		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"internal server error"})
 	}
-
+	u :=models.Update{
+		Msg: fmt.Sprintf(
+			"Task %s has been set to %s by %s",
+			taskName,
+			status.TaskStatus,
+			username,
+			
+		),
+		TargetType: "all",
+		
+	}
+	SetNotifyContext(c,u.Msg,u.TargetType,u.TargetUsername.String)
 	return nil
 }
 
@@ -514,14 +519,12 @@ func (app *Application) UpdateManagerTask(c echo.Context) error {
 
 func (app *Application)ManagerRestrictedTask(c echo.Context)error{
 	var t models.Task
-	log.Println("t.assigned user: ",t.AssignedUsername,t.AssignedUsername.Valid)
-
+	username:=c.Get(sessionvar.USERNAME).(string)
 	v:=validator.New()
 	if err:=c.Bind(&t);err!=nil{
 		c.Logger().Error("error reading json,",err)
 		return c.JSON(http.StatusBadRequest,"Invalid request body")
 	}
-	log.Println("t.assigned user: ",t.AssignedUsername,t.AssignedUsername.Valid)
 	id:=c.Param("taskID")
 	taskID,err:=strconv.Atoi(id);if err!=nil{
 		return c.JSON(http.StatusNotFound,"Invalid task ID")
@@ -533,7 +536,7 @@ func (app *Application)ManagerRestrictedTask(c echo.Context)error{
 		"user",
 		"no valid user",
 	)
-
+	
 	v.Check(
 		t.Approved.Valid,
 		"approved",
@@ -550,7 +553,6 @@ func (app *Application)ManagerRestrictedTask(c echo.Context)error{
 		c.Logger().Error(v)
 		return c.JSON(http.StatusBadRequest,v)
 	}
-	log.Println("tasks: ",t)
 	if err:=app.models.Task.UpdateManagerTask(c.Request().Context(),t);err!=nil{
 		if errors.Is(err,models.ErrRecordNotFound){
 			c.Logger().Warn("Task not found :",err)
@@ -559,7 +561,21 @@ func (app *Application)ManagerRestrictedTask(c echo.Context)error{
 		c.Logger().Error("error updating manager task : ",err)
 		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"failed to update task"})
 	}
-	log.Println("before deferred")
+	
+	u :=models.Update{
+		Msg: fmt.Sprintf(
+			"Task %s assigned to %s %s by %s",
+			t.TaskName,
+			t.AssignedUsername.String,
+			map[bool]string{true: "approved", false: "disapproved"}[t.Approved.ValueOrZero()],
+			username,
+		),
+		TargetType: "user",
+		TargetUsername: t.AssignedUsername,
+	}
+
+	SetNotifyContext(c,u.Msg,u.TargetType,u.TargetUsername.String)
+
 	return c.JSON(http.StatusOK,"task approved")
 }
 

@@ -124,7 +124,7 @@ func (u *UpdateModel)GetAllUpdates(ctx context.Context, username string)([]*Upda
 	return updates,nil
 }
 
-func (r *UpdateModel) CreateUpdate(ctx context.Context, projectID int, msg string, createdBy string, targetType string, targetUsername string) ( error) {
+func (r *UpdateModel) CreateUpdate(ctx context.Context, projectID int, msg string, createdBy string, targetType string, targetUsername *string) ( error) {
 	query := `
 		INSERT INTO updates (projectid, msg, createdat, createdby, targettype, targetusername)
 		VALUES ($1, $2, NOW(), $3, $4, $5)

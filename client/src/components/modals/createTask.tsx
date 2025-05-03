@@ -51,8 +51,9 @@ const CreateTaskModal: React.FC<CreateTaskProps> = ({
               <TextField
                 label="Assigned User"
                 value={newTask.assignedUsername}
-                onChange={(e) =>
-                  setNewTask({ ...newTask, assignedUsername: e.target.value })
+                onChange={(e) =>{
+                    setNewTask({ ...newTask, assignedUsername: e.target.value })
+                  }
                 }
                 fullWidth
                 variant="outlined"

@@ -26,20 +26,26 @@ func (t *TaskModel)Create(ctx context.Context, task Task)error{
 	return nil
 }
 
-func (t *TaskModel)UpdateTask(ctx context.Context,taskID int, status string)error{
-	query:=`
-	UPDATE tasks 
-	SET 
-	taskStatus=$1,
-	taskCompletedDate=NOW()
-	WHERE taskID=$2
+func (t *TaskModel) UpdateTask(ctx context.Context, taskID int, status string) (string, error) {
+	query := `
+		UPDATE tasks 
+		SET 
+			taskStatus = $1,
+			taskCompletedDate = NOW()
+		WHERE taskID = $2
+		RETURNING taskName
 	`
-	_,err:=t.DB.Exec(ctx,query,status,taskID);if err!=nil{
+
+	var updatedTaskName string
+	err := t.DB.QueryRow(ctx, query, status, taskID).Scan(
+		&updatedTaskName,
+	)
+	if err != nil {
 		t.Errorlog.Println(err)
-		return err
+		return "", err
 	}
-	
-	return nil
+
+	return updatedTaskName, nil
 }
 
 
