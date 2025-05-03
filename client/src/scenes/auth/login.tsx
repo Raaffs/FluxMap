@@ -35,8 +35,11 @@ const LoginUser: React.FC = () => {
     })
     .then(async (response) => {
       if (!response.ok) {
+        console.log(response)
         const errorData = await response.json();
-        throw new Error(errorData);
+        setError(errorData.error)
+        console.log("error logging in : ",errorData)
+        throw new Error(errorData.error);
       }
       const data = await response.json(); // Parse the response data
       console.log("Login successful:", data);
@@ -45,7 +48,7 @@ const LoginUser: React.FC = () => {
     })  
     .catch(err=>{
       console.error("Error fetching projects:", err);
-      setError(err.message)
+      setError(err.error)
     })
   };
 

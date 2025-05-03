@@ -75,9 +75,9 @@ func (app *Application) Routes(e *echo.Echo) {
 	e.GET("/api/projects/assigned", app.GetAssignedProjects, IsAuthorizedUser)
 
 	// Invitation routes
-	e.POST("/api/project/:id/invite", app.Invite)
-	e.GET("/api/invitation", app.GetInvitations)
-	e.PUT("/api/invitation/:id", app.ConfirmInvitation)
+	e.POST("/api/project/:id/invite", app.Invite,IsAuthorizedUser)
+	e.GET("/api/invitation", app.GetInvitations,IsAuthorizedUser)
+	e.PUT("/api/invitation/:id", app.ConfirmInvitation,IsAuthorizedUser)
 
 	// Task routes
 	e.GET("/api/project/:id/tasks", app.GetTasks, IsAuthorizedUser)

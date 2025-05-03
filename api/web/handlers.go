@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Raaffs/FluxMap/internal/models"
@@ -25,20 +26,22 @@ func(app *Application)Login(c echo.Context)error{
 	defer app.CacheUserProjectsToSession(c)
 	var u models.User
 	err := c.Bind(&u); if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		c.Logger().Error("error binding json : ",err)
+		return echo.NewHTTPError(http.StatusBadRequest, map[string]string{"error":"Invalid credentials"})
     }
 	log.Println("user : ",u)
+	u.Username=strings.TrimSpace(u.Username)
 	if err:=app.models.Users.Login(c.Request().Context(),u.Username,u.Password);err!=nil{
 		if errors.Is(err,models.ErrInvalidCredential){
-			return c.JSON(http.StatusUnauthorized,"invalid credential")
+			c.Logger().Warn("invalid auth")
+			return c.JSON(http.StatusUnauthorized,map[string]string{"error":"Invalid credentials"})
 		}
 		if errors.Is(err,sql.ErrNoRows){
-			return c.JSON(http.StatusNotFound,"user not found")
+			return c.JSON(http.StatusNotFound,map[string]string{"error":"User not found"})
 		}
 		c.Logger().Error("Error authenticating user: ",err)
-		return c.JSON(http.StatusInternalServerError,err.Error())
+		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"Unable to log in"})
 	}
-
 
 	sess,err:=session.Get(sessionvar.SESSION_NAME,c)
 	if err!=nil{
@@ -194,7 +197,16 @@ func (app *Application) CreateProject(c echo.Context) error {
 }
 
 func (app *Application) GetProjects(c echo.Context) error {
-	username:=c.Get(sessionvar.USERNAME).(string)
+	sess, err := session.Get("session", c)
+	if err != nil {
+		return err
+	}
+	username, ok := sess.Values[sessionvar.USERNAME].(string)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "you're not authorized"})
+	}
+
+
 	resultChan := make(chan ProjectResult, 1)
 	ctx,cancel:=context.WithTimeout(c.Request().Context(),10*time.Second)
 	defer cancel()
@@ -212,7 +224,8 @@ func (app *Application) GetProjects(c echo.Context) error {
 }
 
 func(app *Application)GetAdminProjects(c echo.Context)error{
-	username:=c.Get(sessionvar.USER).(string)
+	username:=c.Get(sessionvar.USERNAME).(string)
+
 	adminProjects,err:=app.models.Projects.RetrieveAdminProjects(c.Request().Context(),username); if err!=nil{
 		c.Logger().Error("Error retrieving projects : ",err)
 		c.JSON(http.StatusInternalServerError,MapMessage("Project","An error occurred while retrieving project"))
@@ -222,7 +235,7 @@ func(app *Application)GetAdminProjects(c echo.Context)error{
 }
 
 func(app *Application) GetManagerProjects(c echo.Context) error {
-	username:=c.Get(sessionvar.USER).(string)
+	username:=c.Get(sessionvar.USERNAME).(string)
 
 	managerProjects, err := app.models.Projects.RetrieveManagerProjects(c.Request().Context(), username)
 	if err != nil {
@@ -234,7 +247,7 @@ func(app *Application) GetManagerProjects(c echo.Context) error {
 }
 
 func(app *Application) GetAssignedProjects(c echo.Context) error {
-	username:=c.Get(sessionvar.USER).(string)
+	username:=c.Get(sessionvar.USERNAME).(string)
 
 	assignedProjects, err := app.models.Projects.RetrieveAssginedProjects(c.Request().Context(), username)
 	if err != nil {
@@ -305,7 +318,7 @@ func(app *Application)Invite(c echo.Context)error{
 
 
 func (app *Application)GetInvitations(c echo.Context)error{
-	username:=c.Get(sessionvar.USER).(string)
+	username:=c.Get(sessionvar.USERNAME).(string)
 
 	invitations,err:=app.models.Invitation.GetPendingInvitations(c.Request().Context(),username);if err!=nil{
 		
@@ -316,7 +329,8 @@ func (app *Application)GetInvitations(c echo.Context)error{
 }
 
 func (app *Application) ConfirmInvitation(c echo.Context) error {
-	username:=c.Get(sessionvar.USER).(string)
+	username:=c.Get(sessionvar.USERNAME).(string)
+
 	invitation:=struct{
 		Status string `json:"status"`
 	}{}
@@ -361,7 +375,12 @@ func (app *Application) ConfirmInvitation(c echo.Context) error {
 
 func (app *Application)CreateTask(c echo.Context)error{
 	var t models.Task
-	username:=c.Get(sessionvar.USER).(string)
+	sess, err := session.Get("session", c);if err != nil {
+		return err
+	}
+	username,ok:=sess.Values[sessionvar.USERNAME].(string);if !ok{
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error":"you're not authorized"})
+	}
 
 	v:= validator.New()
 	if err:=c.Bind(&t);err!=nil{
