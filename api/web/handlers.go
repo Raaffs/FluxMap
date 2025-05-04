@@ -19,7 +19,6 @@ import (
 
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
-	// "github.com/labstack/echo-contrib/session"
 )
 
 func(app *Application)Login(c echo.Context)error{
@@ -29,7 +28,6 @@ func(app *Application)Login(c echo.Context)error{
 		c.Logger().Error("error binding json : ",err)
 		return echo.NewHTTPError(http.StatusBadRequest, map[string]string{"error":"Invalid credentials"})
     }
-	log.Println("user : ",u)
 	u.Username=strings.TrimSpace(u.Username)
 	if err:=app.models.Users.Login(c.Request().Context(),u.Username,u.Password);err!=nil{
 		if errors.Is(err,models.ErrInvalidCredential){
@@ -55,7 +53,6 @@ func(app *Application)Login(c echo.Context)error{
 	}
 
 	sess.Values[sessionvar.USERNAME]=u.Username
-	log.Println("sess vals login",sess.Values)
 	if err := sess.Save(c.Request(), c.Response()); err != nil {
 		c.Logger().Error("error saving session: ",err)
 		return c.JSON(http.StatusInternalServerError,"error saving session")
@@ -380,20 +377,30 @@ func (app *Application)CreateTask(c echo.Context)error{
 	if err:=c.Bind(&t);err!=nil{
 		return c.JSON(http.StatusBadRequest,map[string]string{"error":"Invalid Json payload"})
 	}
+
 	id,err:=strconv.Atoi(c.Param("id"));if err!=nil{
 		c.Logger().Warn(MapMessage("error converting to string",err.Error()))
 		return c.JSON(http.StatusBadRequest,map[string]string{"error":"Invalid project ID"})
 	}
+	//gonna use this hack for now, will think of a better way later
+	isAdmin,ok:=c.Get("isAdmin").(bool);if !ok{
+		isAdmin=false
+	}
 	//check if they're part of project
-	accepted,err:=app.models.Invitation.HasAcceptedInvitation(c.Request().Context(),id,username); if err!=nil{
+	accepted,err:=app.models.Invitation.HasAcceptedInvitation(c.Request().Context(),id,t.AssignedUsername.String); if err!=nil{
 		if errors.Is(err,sql.ErrNoRows){
+			c.Logger().Warn("user is has not accepted invitation")
+
 			return c.JSON(http.StatusForbidden,map[string]string{"error":"User isn't part of the project or hasn't accepted the invitation yet"})
 		}
+		c.Logger().Error("error getting invitation status: ",err)
 		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"internal server error"})
 	}
-	if !accepted{
+	if !accepted && !isAdmin{
+		c.Logger().Warn("user is has not accepted invitation")
 		return c.JSON(http.StatusForbidden,map[string]string{"error":"User isn't part of the project or hasn't accepted the invitation yet"})
 	}
+
 	t.ParentProjectID=id
 	v.Check(
 		validator.MinNameLength(t.TaskName,3),
@@ -405,10 +412,17 @@ func (app *Application)CreateTask(c echo.Context)error{
 	}
 	
 	t.Createdby=username
+
 	if err:=app.models.Task.Create(c.Request().Context(),t);err!=nil{
 		c.Logger().Error(MapMessage("Error creating task",err.Error()))
 		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"An error occured"})
 	}
+	u:=models.Update{
+		Msg: fmt.Sprintf("Task %s created by %s assigned to %s",t.TaskName,username,t.AssignedUsername.String),
+		TargetType: "user",
+		TargetUsername: t.AssignedUsername,
+	}
+	SetNotifyContext(c,u.Msg,u.TargetType,u.TargetUsername.String)
 	return c.JSON(http.StatusOK,"task created")
 }
 
@@ -430,8 +444,21 @@ func (app *Application)GetTaskByID(c echo.Context)error{
 	return c.JSON(http.StatusOK,task)
 }
 
-func (app *Application)GetAssignedUserByProject(c echo.Context)error{
-	return c.JSON(http.StatusOK,"assgined users retrived")
+func (app *Application)GetConfirmedUsers(c echo.Context)error{
+	username:=c.Get(sessionvar.USERNAME).(string)
+	projectID,err:=strconv.Atoi(c.Param("id"));if err!=nil{
+		c.Logger().Warn("Project with id %d not found ",projectID," err: ",err)
+		return c.JSON(http.StatusBadRequest,map[string]string{"error":"Invalid projectID"})
+	}
+	users,err:=app.models.Invitation.FetchConfirmedMembers(c.Request().Context(),projectID);if err!=nil{
+		if errors.Is(err,sql.ErrNoRows){
+			c.Logger().Warn("No users found for project with id %d ",projectID)
+			return c.JSON(http.StatusPartialContent,map[string]string{"users":username})
+		}
+		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"An error occurred while retrieving projects"})
+	}
+	users=append(users, &username)
+	return c.JSON(http.StatusOK,map[string][]*string{"users":users})
 }
 
 func (app *Application)GetAssignedUserByTask(c echo.Context)error{
@@ -602,7 +629,6 @@ func(app *Application)GetPert(c echo.Context)error{
 		return c.JSON(http.StatusInternalServerError,MapMessage("error","Error getting CPM data"))
 	}
 	r.Data=data
-	fmt.Println("r data",r.Data)
 	r.Result=result.Result
 
 	return c.JSON(http.StatusOK,r)
@@ -634,8 +660,6 @@ func(app *Application)CreatePert(c echo.Context)error{
 	}
 	return c.JSON(http.StatusOK,MapMessage("PERT","data and result inserted successfully"))
 }
-
-
 
 func(app *Application)GetCpm(c echo.Context)error{
 	r:=struct{

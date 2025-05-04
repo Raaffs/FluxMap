@@ -104,12 +104,11 @@ func (i *InvitationModel) Exist(ctx context.Context, username string, projectID 
 
 func (i *InvitationModel) HasAcceptedInvitation(ctx context.Context, projectID int, username string) (bool, error) {
 	query := `
-		SELECT 1
+		SELECT id
 		FROM invitation
 		WHERE projectid = $1
 		  AND username = $2
 		  AND status = 'accepted'
-		LIMIT 1
 	`
 
 	row := i.DB.QueryRow(ctx, query, projectID, username)
@@ -117,15 +116,42 @@ func (i *InvitationModel) HasAcceptedInvitation(ctx context.Context, projectID i
 	err := row.Scan(&dummy)
 
 	if err != nil {
+
 		if errors.Is(err, sql.ErrNoRows) {
+			log.Println("error ",err)
 			return false, nil // not accepted
 		}
+		log.Println("false, error",err)
 		return false, err // something went boom
 	}
 
 	return true, nil // yes, they accepted
 }
 
+
+func (i *InvitationModel)FetchConfirmedMembers(ctx context.Context, projectID int)([]*string,error){
+	query:=`
+		SELECT username FROM invitation
+		WHERE projectID=$1
+		AND status='accepted'
+	`
+	var users []*string
+	rows,err:=i.DB.Query(ctx,query,projectID); if err!=nil{
+		return []*string{},err
+	}
+	defer rows.Close()
+	for rows.Next(){
+		var user string
+		err=rows.Scan(&user); if err!=nil{
+			return []*string{},err
+		}
+		users=append(users, &user)
+	}
+	if rows.Err()!=nil{
+		return []*string{},rows.Err()
+	}
+	return users,nil
+}
 
 func (i *InvitationModel)GetInvitationByID(ctx context.Context, invitationID int) (*Invitation, error) {
 	query := `
@@ -147,9 +173,3 @@ func (i *InvitationModel)GetInvitationByID(ctx context.Context, invitationID int
 	}
 	return &invitation, nil
 }
-
-
-//saving this query for later
-// select projects.projectid, projects.projectname, projects.projectdescription, projects.ownername, invitation.id, invitation.role, invitation.username
-// from projects, invitation 
-// where projects.projectid=invitation.projectid

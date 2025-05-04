@@ -62,104 +62,99 @@ const Updates = () => {
   return (
     <Box
       sx={{
-        margin: "10px",
+        margin: "20px",
         maxHeight: "100%",
         height: "100%",
         overflowY: "auto",
-        padding: "20px",
-        borderRadius: "12px",
+        padding: "25px",
+        borderRadius: "16px",
         backgroundColor:
-          theme.palette.mode === "dark" ? colors.primary[400] : "white",
-        boxShadow: "0 8px 20px rgba(0,0,0,0.1)",
+          theme.palette.mode === "dark" ? colors.primary[400] : "white", // Soft light background for light mode
         textAlign: "left",
+        border: "1px solid",
+        borderColor: theme.palette.mode === "dark" ? "grey.800" : "#e0e7ff", // Subtle border in light mode
+        boxShadow: theme.palette.mode === "dark" ? "0 4px 6px rgba(0, 0, 0, 0.1)" : "0 4px 8px rgba(0, 0, 0, 0.05)", // Soft shadow for depth
       }}
     >
-      {Array.from(updatesPerProject.entries()).map(([projectId, updates]) => {
+      {Array.from(updatesPerProject.entries()).map(([projectId, updates], index) => {
         const { projectName, projectDescription } = updates[0];
         return (
-          <Card
+          <Box
             key={projectId}
             sx={{
-              marginBottom: 4,
-              boxShadow: 5,
-              borderRadius: 4,
-              transition: "all 0.3s ease-in-out",
-              "&:hover": { boxShadow: 8 },
+              paddingY: 3,
+              borderBottom:
+                index !== updatesPerProject.size - 1 ? "1px solid" : "none",
+              borderColor: theme.palette.mode === "dark" ? "grey.800" : "#e0e7ff", // Soft divider line
             }}
           >
-            <CardContent sx={{ padding: 4 }}>
-              <Typography
-                variant="h5"
-                sx={{
-                  fontWeight: "600",
-                  color: "primary.main",
-                  marginBottom: 1,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                }}
-              >
-                {projectName}
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{
-                  marginBottom: 3,
-                  color: "text.secondary",
-                  lineHeight: 1.6,
-                  fontSize: "1rem",
-                }}
-              >
-                {projectDescription}
-              </Typography>
-              <Button
-                onClick={() => handleCardClick(projectId)}
-                variant="outlined"
-                color="primary"
-                fullWidth
-                sx={{
-                  marginBottom: 3,
-                  borderRadius: 4,
-                  padding: "12px 24px",
-                  textTransform: "none",
-                  fontWeight: 600,
-                  border: "2px solid #4169E1", // Royal Blue border color for default
-                  backgroundColor: "#4169E1", // Solid Royal Blue background
-                  color: "white", // White text color for default
-                  transition: "all 0.3s ease",
-                  "&:hover": {
-                    backgroundColor: "#20B2AA", // Soft teal for hover
-                    borderColor: "#20B2AA", // Matching border color
-                    color: "white", // Text color stays white on hover
-                    boxShadow: "0 4px 20px rgba(32, 178, 170, 0.5)", // Soft glowing effect
-                    transform: "scale(1.005)", // Slightly enlarge the button on hover
-                  },
-                  "&:focus": {
-                    outline: "none",
-                  },
-                }}
-              >
-                {selectedProjectId === projectId
-                  ? "Hide Updates"
-                  : "Show Updates"}
-              </Button>
-
-              <Collapse
-                in={selectedProjectId === projectId}
-                timeout="auto"
-                unmountOnExit
-              >
-                <Box sx={{ marginTop: 3 }}>
-                  {updates.map((update) => (
-                    <UpdateCard key={update.id} update={update} />
-                  ))}
-                </Box>
-              </Collapse>
-            </CardContent>
-          </Card>
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: "600",
+                color: theme.palette.mode === "dark" ? "primary.main" : "#2c3e50", // Bold, vibrant heading for dark mode
+                marginBottom: 1.5,
+                textTransform: "capitalize",
+                letterSpacing: "0.5px",
+              }}
+            >
+              {projectName}
+            </Typography>
+            <Typography
+              variant="body1"
+              sx={{
+                marginBottom: 2,
+                color: "text.secondary",
+                lineHeight: 1.8,
+                fontSize: "1rem",
+                fontStyle: "italic", // Adds a subtle flair
+              }}
+            >
+              {projectDescription}
+            </Typography>
+            <Button
+              onClick={() => handleCardClick(projectId)}
+              variant="outlined"
+              fullWidth
+              sx={{
+                borderRadius: 30, // More rounded button
+                padding: "12px 24px",
+                textTransform: "none",
+                fontWeight: 600,
+                backgroundColor: "white",
+                color: "#1d72b8", // Subtle modern blue
+                border: "1px solid #1d72b8",
+                transition: "all 0.3s ease-in-out",
+                "&:hover": {
+                  backgroundColor: "#e6f7ff", // Lighter blue on hover
+                  borderColor: "#1d72b8",
+                },
+                "&:focus": {
+                  outline: "none",
+                },
+              }}
+            >
+              {selectedProjectId === projectId ? "Hide Updates" : "Show Updates"}
+            </Button>
+  
+            <Collapse
+              in={selectedProjectId === projectId}
+              timeout="auto"
+              unmountOnExit
+            >
+              <Box sx={{ marginTop: 2 }}>
+                {updates.map((update) => (
+                  <UpdateCard key={update.id} update={update} />
+                ))}
+              </Box>
+            </Collapse>
+          </Box>
         );
       })}
     </Box>
   );
+  
+  
 };
 
 export default Updates;

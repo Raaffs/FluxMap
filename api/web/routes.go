@@ -68,7 +68,6 @@ func (app *Application) Routes(e *echo.Echo) {
 
 	// Admin & Manager routes
 	e.PUT("/api/project/admin/:id", app.UpdateProject, app.AdminLevelAccess)
-	// e.POST("/api/project/:id/manager", app.AddManager, app.AdminLevelAccess)
 
 	e.GET("/api/projects/admin", app.GetAdminProjects, IsAuthorizedUser)
 	e.GET("/api/projects/manager", app.GetManagerProjects, IsAuthorizedUser)
@@ -78,7 +77,8 @@ func (app *Application) Routes(e *echo.Echo) {
 	e.POST("/api/project/:id/invite", app.Invite,IsAuthorizedUser)
 	e.GET("/api/invitation", app.GetInvitations,IsAuthorizedUser)
 	e.PUT("/api/invitation/:id", app.ConfirmInvitation,IsAuthorizedUser)
-
+	e.GET("/api/invitation/:id/confirmed",app.GetConfirmedUsers,IsAuthorizedUser)
+	
 	// Task routes
 	e.GET("/api/project/:id/tasks", app.GetTasks, IsAuthorizedUser)
 	e.POST("/api/project/:id/task", app.CreateTask, app.ManagerLevelAccess, app.SendNotification)

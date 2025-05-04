@@ -319,24 +319,33 @@ export const ProjectTaskDetailPage = ({
     {
       field: "taskStatus",
       headerName: "Status",
-      flex: 2,
-      renderCell: (params) => (
-        <FormControl variant="standard" sx={{ width: "100%" }}>
-          <InputLabel>Status</InputLabel>
-          <Select
-            value={params.value || ""}
-            onChange={(e) =>
-              handleStatusChange(params.row.taskID, params.row.taskName, e.target.value, params.row.assignedUsername)
-            }
-            label="Status"
-          >
-            <MenuItem value="completed">Completed</MenuItem>
-            <MenuItem value="pending">Pending</MenuItem>
-          </Select>
-        </FormControl>
-      ),
+      flex: 2, 
+      renderCell: (params) => {
+        const statusColor = params.value === "pending" ? "#f44336" : "#4caf50"; // red for pending, green for completed
+        
+        return (
+          <FormControl variant="outlined" sx={{ width: "100%", maxHeight: "100%", display: 'flex', justifyContent: 'center' }}>
+            <Select
+              value={params.value || ""}
+              onChange={(e) =>
+                handleStatusChange(params.row.taskID, params.row.taskName, e.target.value, params.row.assignedUsername)
+              }
+              label="Status"
+              sx={{
+                backgroundColor: `${statusColor}22`, // subtle background color
+                borderRadius: "16px", // rounded corners
+                height: "40px", // Ensure it doesn't exceed its container's height
+                marginTop:'4px'
+              }}
+            >
+              <MenuItem value="completed">Completed</MenuItem>
+              <MenuItem value="pending">Pending</MenuItem>
+            </Select>
+          </FormControl>
+        );
+      },
     },
-    {
+      {
       field: "approved",
       headerName: "Approved",
       flex: 2,

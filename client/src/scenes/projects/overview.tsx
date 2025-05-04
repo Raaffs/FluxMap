@@ -179,10 +179,7 @@ export const ProjectOverview = () => {
             fontSize: "1.1rem",
             borderRadius: "50px",
             boxShadow: "0 6px 12px rgba(0,0,0,0.2)",
-            "&:hover": {
-              backgroundColor: "darkorange",
-              boxShadow: "0 8px 16px rgba(0,0,0,0.3)",
-            },
+            
           }}
         >
           Create a New Task
@@ -234,9 +231,7 @@ export const ProjectOverview = () => {
           alignItems: "left",
           textAlign: "left",
           cursor: "pointer", // This makes the cursor a pointer on hover, indicating it's clickable
-          "&:hover": {
-            boxShadow: "0 4px 8px rgba(0,0,0,0.8)", // Optional: add a hover effect to emphasize the card
-          },
+         
         }}
       >
         <Typography variant="h4" sx={{ fontWeight: "bold" }}>
@@ -296,9 +291,7 @@ export const ProjectOverview = () => {
             alignItems: "left",
             textAlign: "left",
             cursor: "pointer", // This makes the cursor a pointer on hover, indicating it's clickable
-            "&:hover": {
-              boxShadow: "0 4px 8px rgba(0,0,0,0.8)", // Optional: add a hover effect to emphasize the card
-            },
+            
           }}
         >
           {selectedTab === 0 && (

@@ -31,6 +31,7 @@ func(app *Application)ManagerLevelAccess(next echo.HandlerFunc) echo.HandlerFunc
 		}
 
 		if isAdmin{
+            c.Set("isAdmin",true)
 			return next(c)
 		}
 
@@ -80,6 +81,7 @@ func (app *Application) SendNotification(next echo.HandlerFunc) echo.HandlerFunc
                     targetUsername=&tu
                 }
             }
+            log.Println(username,msg,targetType,targetUsername)
             if err!=nil{
                 c.Logger().Error("Error sending notification: ", err)
                 return
@@ -90,7 +92,6 @@ func (app *Application) SendNotification(next echo.HandlerFunc) echo.HandlerFunc
                 }
             }
         }()
-
         return next(c)
     }
 }   

@@ -130,3 +130,36 @@ export const useConfirmInvitation = () => {
 
   return { confirmInvitation, inviteloading, inviteerror, invitesuccess };
 };
+
+export const useGetConfirmedUsers=(projectID: number)=>{
+  const [users, setUsers] = useState<string[]>([]);
+  const [usersLoading, setUsersLoading] = useState<boolean>(false);
+  const [usersError, setUsersError] = useState<string | null>(null);
+  useEffect(()=>{
+    const getConfirmedUsers=async()=>{
+      setUsersLoading(true)
+      setUsersError(null)
+      try{
+        const res=await fetch(`http://localhost:4000/api/invitation/${projectID}/confirmed`,{
+          method:"GET",
+          credentials:"include",
+        })
+        const data=await res.json()
+        console.log("fdjfejfe",data)
+        if (!res.ok) {
+          const data = await res.json();
+          console.log("error: ",data)
+          throw new Error(data.error || "Failed to fetch users");
+        }
+        setUsers(data.users)
+      }catch(err:any){
+        console.log(err)
+        setUsersError(err)
+      }finally{
+        setUsersLoading(false)
+      }
+    }  
+    getConfirmedUsers()
+  },[])
+  return {users,usersLoading,usersError}
+}

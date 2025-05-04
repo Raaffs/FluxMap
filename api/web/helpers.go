@@ -3,9 +3,11 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -74,6 +76,7 @@ func SetNotifyContext(c echo.Context, msg,targetType,targetUsername string){
 	c.Set(NOTIFY_TARGET_TYPE,targetType)
 	c.Set(NOTIFY_TARGET_USERNAME,targetUsername)
 }
+
 func AppendToSessionArray(session *sessions.Session, key string, value int) error {
 	// Check if value exists and is of correct type
 	arr, ok := session.Values[key].([]int)
@@ -198,6 +201,45 @@ func GetUsernameFromSession(c echo.Context) (string, error) {
         return "", errors.New("username not found in session")
     }
     return username, nil
+}
+func (app *Application) GenerateUpdateMessage(ctx context.Context, updatedTask models.Task) (string, error) {
+	// Get the old task from DB
+	oldTask, err := app.models.Task.GetTaskByID(ctx, updatedTask.TaskID)
+	if err != nil {
+		return "", err
+	}
+
+	var messages []string
+
+	if updatedTask.TaskName != oldTask.TaskName {
+		messages = append(messages, fmt.Sprintf("Task name changed from \"%s\" to \"%s\"", oldTask.TaskName, updatedTask.TaskName))
+	}
+
+	if updatedTask.TaskDescription != oldTask.TaskDescription {
+		messages = append(messages, "Task description for task %s was updated",updatedTask.TaskName)
+	}
+
+	if updatedTask.AssignedUsername.Valid && updatedTask.AssignedUsername.String != oldTask.AssignedUsername.String {
+		messages = append(messages, fmt.Sprintf("Assigned user for task %s changed from %s to %s",updatedTask.TaskName, oldTask.AssignedUsername.String, updatedTask.AssignedUsername.String))
+	}
+
+	if updatedTask.TaskDueDate.Valid && !updatedTask.TaskDueDate.Time.Equal(oldTask.TaskDueDate.Time) {
+		messages = append(messages, fmt.Sprintf("Due date for task %s changed from %s to %s",
+			updatedTask.TaskName,
+			oldTask.TaskDueDate.Time.Format("2006-01-02"), 
+			updatedTask.TaskDueDate.Time.Format("2006-01-02")))
+	}
+
+	if updatedTask.Approved.Valid && updatedTask.Approved.Bool != oldTask.Approved.Bool {
+		status := map[bool]string{true: "approved", false: "disapproved"}
+		messages = append(messages, fmt.Sprintf("Task %s was %s", updatedTask.TaskName,status[updatedTask.Approved.Bool]))
+	}
+
+	if len(messages) == 0 {
+		return "No changes detected.", nil
+	}
+
+	return strings.Join(messages, "\n"), nil
 }
 
 func (app *Application) FetchProjects(ctx context.Context, username string, resultChan chan<- ProjectResult) {

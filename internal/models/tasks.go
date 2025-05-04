@@ -17,7 +17,7 @@ type TaskModel struct{
 
 func (t *TaskModel)Create(ctx context.Context, task Task)error{
 	insert:=`INSERT INTO 
-	tasks(taskName, taskDescription, taskStartDate, taskDueDate, parentProjectID, assignedUsername,taskCompletedDate,taskApprovedDate) 
+	tasks(taskName, taskDescription, taskStartDate, taskDueDate, parentProjectID, assignedUsername,taskCompletedDate,taskApprovedDate, createdBy) 
 	VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)`
 	_,err:=t.DB.Exec(ctx,insert,task.TaskName,task.TaskDescription,task.TaskStartDate,task.TaskDueDate,task.ParentProjectID,task.AssignedUsername, task.TaskCompletedDate,task.TaskApprovedDate, task.Createdby); if err!=nil{
 		t.Errorlog.Println("Error creating project:",err)
@@ -127,9 +127,6 @@ func(t *TaskModel)GetTaskByID(ctx context.Context,taskID int)(Task,error){
 		WHERE taskID=$1
 	`
 	if err:=t.DB.QueryRow(ctx,query,taskID).Scan(&task.TaskID,&task.TaskName,&task.TaskDescription,&task.TaskStatus,&task.TaskStartDate,&task.TaskDueDate,&task.ParentProjectID,&task.AssignedUsername,&task.Approved);err!=nil{
-		if errors.Is(err,sql.ErrNoRows){
-			return Task{},ErrRecordNotFound
-		}
 		return Task{},err
 	}
 	return task,nil

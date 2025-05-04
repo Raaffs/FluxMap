@@ -8,56 +8,57 @@ export const UpdateCard = ({ update }: { update: Update }) => {
   const colors = tokens(theme.palette.mode);
 
   return (
-    <Card
+    <Box
       sx={{
-        marginBottom: "20px",
-        padding: "20px",
-        borderRadius: "8px",
-        backgroundColor:
-          theme.palette.mode === "dark" ? colors.primary[400] : "#fafafa",
-        boxShadow: "0 2px 4px rgba(0,0,0,0.5)",
-        "&:hover": { boxShadow: "0 4px 8px rgba(0,0,0,0.8)" },
+        padding: "16px 0",
+        borderBottom: "1px solid",
+        borderColor: theme.palette.mode === "dark" ? "grey.800" : "#d0d7de",
         textAlign: "left",
       }}
     >
-      <Typography variant="h5" gutterBottom>
+      <Typography variant="body1" fontSize='1rem' gutterBottom>
         Update created by{" "}
         <Typography
           component="span"
           fontWeight="bold"
           color={colors.blueAccent[500]}
-          variant="h5"
+          variant="body1"
+          fontSize='1rem'
         >
           {update.createdBy}
-        </Typography>{" "}
+        </Typography>
       </Typography>
+
       <Typography
-        variant="body1"
+        variant="body2"
         color="text.primary"
-        sx={{ marginTop: "10px", lineHeight: 1.6 }}
+        sx={{ marginTop: "4px", lineHeight: 1.6, fontSize: "1rem" }}
       >
         {update.msg}
       </Typography>
 
       <Typography
-        variant="h6"
+        variant="caption"
         sx={{
-          marginTop: "16px",
+          marginTop: "12px",
+          display: "block",
+          color: "text.secondary",
+          fontSize:'0.9rem'
         }}
       >
         Created at:{" "}
         <Typography
           component="span"
           fontWeight="bold"
-          color={
-            theme.palette.mode === "dark"
-              ? colors.blueAccent[400]
-              : colors.blueAccent[400]
-          }
+          color={colors.blueAccent[400]}
         >
-          {update.createdAt}
+          {new Date(update.createdAt).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })}
         </Typography>
       </Typography>
-    </Card>
+    </Box>
   );
 };
