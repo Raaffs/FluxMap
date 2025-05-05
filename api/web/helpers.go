@@ -14,6 +14,7 @@ import (
 	"github.com/Raaffs/FluxMap/api/external"
 	"github.com/Raaffs/FluxMap/internal/models"
 	sessionvar "github.com/Raaffs/FluxMap/internal/sessionVar"
+	validator "github.com/Raaffs/FluxMap/internal/validators"
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
@@ -202,6 +203,55 @@ func GetUsernameFromSession(c echo.Context) (string, error) {
     }
     return username, nil
 }
+
+func ValidateManagerUpdate(t models.Task)(*validator.Validator){
+	v:=validator.New()
+	
+	v.Check(
+		t.AssignedUsername.Valid,
+		"user",
+		"no valid user",
+	)
+
+	v.Check(
+		t.Approved.Valid,
+		"approved",
+		"invalid status",
+	)
+
+	v.Check(
+		validator.MinNameLength(t.TaskName),
+		validator.ErrNameTooShort.Key,
+		validator.ErrNameTooShort.Message,
+	)
+
+	v.Check(
+		t.TaskDescription.Valid && validator.MinDescriptionLength(t.TaskDescription.String),
+		validator.ErrDescriptionTooShort.Key,
+		validator.ErrDescriptionTooShort.Message,
+	)
+
+	v.Check(
+		// TaskStartDate is optional, so it can be null. If a date is provided, it must follow the correct "yyyy-mm-dd" format.
+		!t.TaskStartDate.Valid || validator.IsValidDate(t.TaskStartDate.Time.Format("2006-01-02")),
+		validator.ErrInvalidDate.Key,
+		validator.ErrInvalidDate.Message,
+	)
+
+	v.Check(
+		!t.TaskDueDate.Valid || validator.IsValidDate(t.TaskDueDate.Time.Format("2006-01-02")),
+		validator.ErrInvalidDate.Key,
+		validator.ErrInvalidDate.Message,
+	)
+
+	v.Check(
+		t.TaskStatus.Valid && (t.TaskStatus.String=="pending" || t.TaskStatus.String=="accepted"),	
+		"status",
+		"invalid status",
+	)
+	return v
+}
+
 func (app *Application) GenerateUpdateMessage(ctx context.Context, updatedTask models.Task) (string, error) {
 	// Get the old task from DB
 	oldTask, err := app.models.Task.GetTaskByID(ctx, updatedTask.TaskID)

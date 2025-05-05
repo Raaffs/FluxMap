@@ -1,6 +1,7 @@
 package validator
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 	"unicode"
@@ -9,10 +10,15 @@ type ValidationError struct {
 	Key     string
 	Message string
 }
-
+var(
+	MIN_TASK_NAME_LENGTH=3
+	MAX_TASK_NAME_LENGTH=40
+	MIN_TASK_DESCRIPTION_LENGTH=10
+	MAX_TASK_DESCRIPTION_LENGTH=200
+)
 var (
-	ErrNameTooShort        = ValidationError{"name", "name should be greater than %d characters"}
-	ErrDescriptionTooShort = ValidationError{"description", "description is too short, must be at least %d characters"}
+	ErrNameTooShort        = ValidationError{"name", fmt.Sprintf("name should be between %d - %d characters", MIN_TASK_NAME_LENGTH, MAX_TASK_NAME_LENGTH)}
+    ErrDescriptionTooShort = ValidationError{"description", fmt.Sprintf("description must be between %d - %d characters", MIN_TASK_DESCRIPTION_LENGTH, MAX_TASK_DESCRIPTION_LENGTH)}
 	ErrFieldRequired       = ValidationError{"field", "this field cannot be empty"}
 	ErrInvalidEmail        = ValidationError{"email", "invalid email address"}
 	ErrPasswordTooWeak     = ValidationError{"password", "password is too weak, must include letters, numbers, and special characters"}
@@ -20,12 +26,12 @@ var (
 	ErrValueOutOfRange     = ValidationError{"value", "value is out of the acceptable range"}
 	ErrInvalidDate         = ValidationError{"date", "invalid date format"}
 )
-func MinNameLength(name string, minLength int) bool {
-	return len(strings.TrimSpace(name)) >= minLength
+func MinNameLength(name string) bool {
+    return len(strings.TrimSpace(name)) >= MIN_TASK_NAME_LENGTH && len(name) < MAX_TASK_NAME_LENGTH
 }
 
-func MinDescriptionLength(description string, minLength int) bool {
-	return len(strings.TrimSpace(description)) >= minLength
+func MinDescriptionLength(description string) bool {
+    return len(strings.TrimSpace(description)) >= MIN_TASK_DESCRIPTION_LENGTH && len(description) < MAX_TASK_DESCRIPTION_LENGTH
 }
 
 func NotEmpty(field string) bool {

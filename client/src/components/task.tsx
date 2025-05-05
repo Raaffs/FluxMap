@@ -13,6 +13,7 @@ import {
   Button,
   useTheme,
 } from "@mui/material";
+import EditIcon from '@mui/icons-material/Edit';
 import { LinearProgress } from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { tokens } from "../theme";
@@ -71,7 +72,6 @@ export const ProjectTaskDetailPage = ({
         taskStartDate: newTask.taskStartDate
           ? new Date(newTask.taskStartDate).toISOString()
           : null,
-        
       };
       const response = await fetch(
         `http://localhost:4000/api/project/${id}/task`,
@@ -97,19 +97,54 @@ export const ProjectTaskDetailPage = ({
       }
     } catch (err) {
       console.error("Failed to create task", err);
-    }finally{
+    } finally {
       handleCloseNewTaskModal();
     }
   };
 
-  const toggleApproval = async (taskID: number, approved: boolean) => {
-    let task=tasks.find((task)=>task.taskID===Number(taskID))
-    if(task){
-    console.log("updated task: ",task)
-      task.approved=!approved
+  const updateTask = async (newTask: tasks) => {
+    try {
+      const response = await fetch(
+        `http://localhost:4000/api/project/${id}/task/${newTask.taskID}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            taskID: newTask.taskID,
+            taskName: newTask.taskName,
+            taskDescription: newTask.taskDescription,
+            taskStatus: newTask.taskStatus,
+            taskStartDate: newTask.taskStartDate,
+            taskDueDate: newTask.taskDueDate,
+            parentProjectId: newTask.parentProjectID,
+            assignedUsername: newTask.assignedUsername,
+            taskCompletedDate: newTask.taskCompletedDate,
+          }),
+        }
+      );
+  
+      if (!response.ok) {
+        setError("Failed to update task");
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Something went wrong while updating the task");
+    } finally {
+      setFetchTrigger(true); // re-fetch like a boss
     }
-   
-    console.log("updated task: ",task)
+  };
+
+  const toggleApproval = async (taskID: number, approved: boolean) => {
+    let task = tasks.find((task) => task.taskID === Number(taskID));
+    if (task) {
+      console.log("updated task: ", task);
+      task.approved = !approved;
+    }
+
+    console.log("updated task: ", task);
 
     try {
       const response = await fetch(
@@ -132,28 +167,33 @@ export const ProjectTaskDetailPage = ({
             assignedUsername: task?.assignedUsername,
             taskCompletedDate: task?.taskCompletedDate,
             taskApprovedDate: task?.taskApprovedDate,
-            createdBy:task?.createdBy,
-            targetUsername:task?.assignedUsername,
-            targetType:'user',
-            msg:`task ${task?.taskName} ${!approved?'approved':'disapproved'} by`,
-          })
-          
+            createdBy: task?.createdBy,
+            targetUsername: task?.assignedUsername,
+            targetType: "user",
+            msg: `task ${task?.taskName} ${
+              !approved ? "approved" : "disapproved"
+            } by`,
+          }),
         }
       );
-      console.log("updated task: ",task)
       if (response.ok) {
-        // Update tasks state after approval
+
       } else {
         setError("Failed to update approval status");
       }
     } catch (err) {
       setError("Failed to update approval status");
-    }finally{
-      setFetchTrigger(true)
+    } finally {
+      setFetchTrigger(true);
     }
   };
 
-  const handleStatusChange = async (taskID: number, taskName:string, status: string, username:string) => {
+  const handleStatusChange = async (
+    taskID: number,
+    taskName: string,
+    status: string,
+    username: string
+  ) => {
     console.log("status: ", status);
     try {
       const response = await fetch(
@@ -164,11 +204,11 @@ export const ProjectTaskDetailPage = ({
             "Content-Type": "application/json",
           },
           credentials: "include",
-          body: JSON.stringify({ 
-            taskStatus: status ,
-            targetUsername:username,
-            targetType:'user',
-            msg:`task ${taskName} status set to ${status} by`,
+          body: JSON.stringify({
+            taskStatus: status,
+            targetUsername: username,
+            targetType: "user",
+            msg: `task ${taskName} status set to ${status} by`,
           }), // Update task status
         }
       );
@@ -179,8 +219,8 @@ export const ProjectTaskDetailPage = ({
       }
     } catch (err) {
       setError("Failed to update task status");
-    } finally{
-      setFetchTrigger(true)
+    } finally {
+      setFetchTrigger(true);
     }
   };
 
@@ -315,27 +355,40 @@ export const ProjectTaskDetailPage = ({
         params ? new Date(params).toLocaleDateString() : "N/A",
     },
     { field: "assignedUsername", headerName: "Contributor", flex: 2 },
-    {field:"createdBy",headerName:"Assigned By", flex:2},
+    { field: "createdBy", headerName: "Assigned By", flex: 2 },
     {
       field: "taskStatus",
       headerName: "Status",
-      flex: 2, 
+      flex: 2,
       renderCell: (params) => {
         const statusColor = params.value === "pending" ? "#f44336" : "#4caf50"; // red for pending, green for completed
-        
+
         return (
-          <FormControl variant="outlined" sx={{ width: "100%", maxHeight: "100%", display: 'flex', justifyContent: 'center' }}>
+          <FormControl
+            variant="outlined"
+            sx={{
+              width: "100%",
+              maxHeight: "100%",
+              display: "flex",
+              justifyContent: "center",
+            }}
+          >
             <Select
               value={params.value || ""}
               onChange={(e) =>
-                handleStatusChange(params.row.taskID, params.row.taskName, e.target.value, params.row.assignedUsername)
+                handleStatusChange(
+                  params.row.taskID,
+                  params.row.taskName,
+                  e.target.value,
+                  params.row.assignedUsername
+                )
               }
               label="Status"
               sx={{
                 backgroundColor: `${statusColor}22`, // subtle background color
                 borderRadius: "16px", // rounded corners
                 height: "40px", // Ensure it doesn't exceed its container's height
-                marginTop:'4px'
+                marginTop: "4px",
               }}
             >
               <MenuItem value="completed">Completed</MenuItem>
@@ -345,7 +398,7 @@ export const ProjectTaskDetailPage = ({
         );
       },
     },
-      {
+    {
       field: "approved",
       headerName: "Approved",
       flex: 2,
@@ -355,8 +408,21 @@ export const ProjectTaskDetailPage = ({
           checked={params.value}
           onChange={() => toggleApproval(params.row.taskID, params.value)}
         />
-      )
+      ),
     },
+    {
+      field:"edit",
+      headerName:"edit",
+      renderCell: (params)=>(
+        <EditIcon
+          onClick={()=>{
+            setOpenNewTaskModal(true);
+            setNewTask(params.row); // Assuming each row is the task object
+            console.log("new taskss" ,newTask)
+          }}
+        />
+      )
+    }
   ];
 
   const rows = tasks.map((task) => ({
@@ -466,7 +532,6 @@ export const ProjectTaskDetailPage = ({
           </Button>
         </Box>
       </Modal>
-     
     </Box>
   );
 };
