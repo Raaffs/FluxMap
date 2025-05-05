@@ -107,7 +107,6 @@ func (app *Application) Register(c echo.Context) error {
 		return echo.NewHTTPError(echo.ErrInternalServerError.Code, "internal server error")
 	}
 
-	SetCookie("username", u.Username, c)
 	return c.JSON(http.StatusOK, "user registered successfully")
 }
 
@@ -263,6 +262,7 @@ func (app *Application) GetProjectByID(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, MapMessage("message", "Invalid project id"))
 	}
+
 
 	projects, err := app.models.Projects.RetrieveProjectByID(c.Request().Context(), projID)
 	if err != nil {
@@ -622,37 +622,19 @@ func (app *Application) ApproveTask(c echo.Context) error {
 
 func (app *Application) ManagerRestrictedTask(c echo.Context) error {
 	var t models.Task
-	username := c.Get(sessionvar.USERNAME).(string)
-	v := validator.New()
+	username := c.Get(sessionvar.USERNAME).(string);
 	if err := c.Bind(&t); err != nil {
 		c.Logger().Error("error reading json,", err)
 		return c.JSON(http.StatusBadRequest, "Invalid request body")
 	}
-	id := c.Param("taskID")
-	taskID, err := strconv.Atoi(id)
+	
+	log.Println(username)
+	id := c.Param("taskID");taskID, err := strconv.Atoi(id)
 	if err != nil {
 		return c.JSON(http.StatusNotFound, "Invalid task ID")
 	}
 	t.TaskID = taskID
-
-	v.Check(
-		t.AssignedUsername.Valid,
-		"user",
-		"no valid user",
-	)
-
-	v.Check(
-		t.Approved.Valid,
-		"approved",
-		"invalid status",
-	)
-
-	if t.Approved.ValueOrZero() {
-		t.TaskApprovedDate = null.NewTime(time.Now(), true)
-	} else {
-		t.TaskApprovedDate = null.NewTime(time.Time{}, false)
-	}
-
+	v:=ValidateManagerUpdate(t)
 	if !v.Valid() {
 		c.Logger().Error(v)
 		return c.JSON(http.StatusBadRequest, v)
@@ -665,15 +647,12 @@ func (app *Application) ManagerRestrictedTask(c echo.Context) error {
 		c.Logger().Error("error updating manager task : ", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to update task"})
 	}
+	msg,err:=app.GenerateUpdateMessage(c.Request().Context(),t);if err!=nil{
+		c.Logger().Error("error generating update message : ", err)
+	}
 
 	u := models.Update{
-		Msg: fmt.Sprintf(
-			"Task %s assigned to %s %s by %s",
-			t.TaskName,
-			t.AssignedUsername.String,
-			map[bool]string{true: "approved", false: "disapproved"}[t.Approved.ValueOrZero()],
-			username,
-		),
+		Msg: msg,
 		TargetType:     "user",
 		TargetUsername: t.AssignedUsername,
 	}

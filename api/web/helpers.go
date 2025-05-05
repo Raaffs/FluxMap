@@ -19,6 +19,7 @@ import (
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/sync/errgroup"
 )
 
 type UserRole string
@@ -45,22 +46,11 @@ var(
     ErrFetchingResult=errors.New("Error getting analytics")
 )
 
-func SetCookie(key string, value string, c echo.Context){
-	cookie := &http.Cookie{
-        Name:  key,
-        Value: value,
-        HttpOnly: true,
-        Secure: false,
-        SameSite: http.SameSiteDefaultMode  ,
-        Expires: time.Now().Add(72*time.Hour) ,
-    }
-	c.SetCookie(cookie)
-}
+
 
 func FormatDate(t time.Time)string{
 	return t.Format("dd-mm-yyyy")
 }
-
 
 func MapMessage(key string,msg string)struct{Key string; Message string}{
     return struct{
@@ -128,19 +118,6 @@ func (app *Application) CacheUserProjectsToSession(c echo.Context) error {
 	}
 	log.Println(sess.Values)
 	return nil
-}
-
-func addToSession(c echo.Context, key string, value int)error{
-    sess,err:=session.Get("session",c); if err!=nil{
-        return err
-    }
-    sess.Values[key] = value
-    
-    if err:=sess.Save(c.Request(),c.Response().Writer);err!=nil{
-        return err
-    }
-
-    return nil
 }
 
 func HashPassword(password string)(string,error){
@@ -368,6 +345,38 @@ func (app *Application) FetchProjects(ctx context.Context, username string, resu
 			return
 		}
 	}
+}
+
+//todo: test this function and replace it with the original fetchprojects function
+func (app *Application) FetchProjects2(ctx context.Context, username string, resultChan chan<- ProjectResult) {
+	var res ProjectResult
+	g, ctx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		projects, err := app.models.Projects.RetrieveAdminProjects(ctx, username)
+		if err == nil {
+			res.AdminProjects = projects
+		}
+		return err
+	})
+	g.Go(func() error {
+		projects, err := app.models.Projects.RetrieveManagerProjects(ctx, username)
+		if err == nil {
+			res.ManagerProjects = projects
+		}
+		return err
+	})
+	g.Go(func() error {
+		projects, err := app.models.Projects.RetrieveAssginedProjects(ctx, username)
+		if err == nil {
+			res.AssignedProjects = projects
+		}
+		return err
+	})
+
+	err := g.Wait()
+	res.Err = err
+	resultChan <- res
 }
 
 
