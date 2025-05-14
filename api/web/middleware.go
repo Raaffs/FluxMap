@@ -72,9 +72,10 @@ func (app *Application) SendNotification(next echo.HandlerFunc) echo.HandlerFunc
         defer func() {
             var targetUsername *string
 
-            username:=c.Get(sessionvar.USERNAME).(string)
-            msg,ok:=c.Get(NOTIFY_MSG).(string);if !ok {c.Logger().Error("error converting notify msg to string")}
-            targetType,ok:=c.Get(NOTIFY_TARGET_TYPE).(string);if !ok {c.Logger().Error("error converting notify target type to string")}
+            username:=c.Get(sessionvar.USERNAME).(string);
+            log.Println("username : ",username)
+            msg,ok:=c.Get(NOTIFY_MSG).(string);if !ok {c.Logger().Error("error converting notify msg to string. message: ",msg)}
+            targetType,ok:=c.Get(NOTIFY_TARGET_TYPE).(string);if !ok {c.Logger().Error("error converting notify target type to string, target type: ",targetType)}
             
             if targetType=="user"{
                 tu,ok:=c.Get(NOTIFY_TARGET_USERNAME).(string);if ok {

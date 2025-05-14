@@ -205,7 +205,7 @@ export const ProjectComponent = ({ URI }: { URI: string }) => {
             fontStyle: "italic",
           }}
         >
-          Looks like you don't have any projects yet. Create one to get started
+          Looks like you don't have any projects here yet. Create one to get started
           and bring your ideas to life!
         </Typography>
         <Button

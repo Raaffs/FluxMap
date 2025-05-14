@@ -31,7 +31,8 @@ const CreateTaskModal: React.FC<CreateTaskProps> = ({
   const colors = tokens(theme.palette.mode);
   const { id } = useParams();
   const { users, usersLoading, usersError } = useGetConfirmedUsers(Number(id));
-  console.log("userssss : ", users);
+  const isValidTaskname=newTask.taskName.trim().length>=3 && newTask.taskName.length <=40
+  const isValidTaskDescription=newTask.taskDescription!.trim().length>=10 && newTask.taskDescription!.length <=200
   return (
     <Modal open={open} onClose={onClose}>
       <Box
@@ -44,6 +45,7 @@ const CreateTaskModal: React.FC<CreateTaskProps> = ({
             theme.palette.mode === "dark" ? colors.primary[400] : "white",
           borderRadius: 2,
           maxWidth: 400,
+          minHeight:'50%',
           margin: "auto",
           marginTop: 10,
         }}
@@ -52,9 +54,11 @@ const CreateTaskModal: React.FC<CreateTaskProps> = ({
 
         <TextField
           label="Task Name"
-          value={newTask.taskName}
+          value={newTask.taskName || ""}
           onChange={(e) => setNewTask({ ...newTask, taskName: e.target.value })}
           fullWidth
+          error={newTask.taskName!=='' && !isValidTaskname}
+          helperText={!isValidTaskname?'must be more than 3 character':''}
           variant="outlined"
           margin="normal"
         />
@@ -104,8 +108,12 @@ const CreateTaskModal: React.FC<CreateTaskProps> = ({
             setNewTask({ ...newTask, taskDescription: e.target.value })
           }
           fullWidth
+          multiline
+          error={newTask.taskDescription!=='' && !isValidTaskDescription}
+          helperText={!isValidTaskname?'must be more than 10 character':''}
           variant="outlined"
           margin="normal"
+          rows={4}
         />
 
         <Button

@@ -10,12 +10,13 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import { TextField, Button, Box, SelectChangeEvent } from "@mui/material";
+import { TextField, Button, Box } from "@mui/material";
 import { erf } from "mathjs";
 import { ApiResponse, PertData, tasks } from "../hooks/types";
 import AddPertTaskModal from "./modals/pert";
 import { useParams } from "react-router-dom";
 import { useAddPert } from "../hooks/pert";
+import PopUp from "../scenes/global/Popup";
 ChartJS.register(
   LineElement,
   CategoryScale,
@@ -38,26 +39,66 @@ interface PertRows {
 export const PertTable: React.FC<{
   pertTasks: PertData[] | undefined;
   tasks: tasks[];
-}> = ({ pertTasks, tasks }) => {
-  const {id}=useParams()
-  console.log("USER PARAMS ID ", Number(id))
+  setPertFetchTrigger: React.Dispatch<React.SetStateAction<boolean>>
+}> = ({ 
+  pertTasks, 
+  tasks,
+  setPertFetchTrigger 
+}) => {
+  const { id } = useParams();
+  console.log("USER PARAMS ID ", Number(id));
   const [open, setOpen] = useState(false);
-  const [predecessorPertTasks, setpredecessorPertTasks] = useState<PertRows[]>([]);
+ 
   const [pertData, setPertData] = useState<PertData[]>(pertTasks || []);
 
-  const {addPert,pertloading,perterror,pertsuccess}=useAddPert(String(id))
+  const { addPert, pertloading, perterror, pertsuccess } = useAddPert(
+    String(id)
+  );
 
   const handleAddTask = (newTask: PertData) => {
     setPertData([...pertData, newTask]);
-    console.log("nex perx tsx ",newTask)
-    addPert(newTask)
+    console.log("nex perx tsx ", newTask);
+    addPert(newTask);
+    setPertFetchTrigger(true)
   };
 
 
-  console.log("pertTasks", pertTasks);
-
   if (pertTasks === undefined || pertTasks === null) {
-    return <div>no pert data</div>;
+    let PertAddableTask: PertRows[] = [];
+    for (const task of tasks) {
+        PertAddableTask.push({
+          id: 0,
+          parentTaskID: task.taskID,
+          predecessorTaskId: 0,
+          optimistic: 0,
+          pessimistic: 0,
+          mostLikely: 0,
+          taskName: task.taskName,
+        });
+    }
+    return (
+      <Box>
+        <Box sx={{ padding: 1, display: "flex", justifyContent: "flex-end" }}>
+          <Button
+            onClick={() => setOpen(true)} // Opens the modal
+            variant="contained"
+            color="primary"
+            sx={{ marginBottom: 2, backgroundColor: "royalblue" }}
+          >
+            Add New Task
+          </Button>
+        </Box>
+        {perterror && <PopUp Error={perterror} Message="" onClose={()=>{}} />}
+        <AddPertTaskModal
+          open={open}
+          onClose={() => setOpen(false)}
+          onAddTask={handleAddTask}
+          pertAddableTasks={PertAddableTask}
+          pertTasks={[]}
+        />
+        {/* Modal */}
+      </Box>
+    );
   }
 
   const tasksMap = new Map<number, boolean>();
@@ -69,7 +110,7 @@ export const PertTable: React.FC<{
   for (const task of tasks) {
     if (!pertTaskMap.has(task.taskID)) {
       PertAddableTask.push({
-        id:0,
+        id: 0,
         parentTaskID: task.taskID,
         predecessorTaskId: 0,
         optimistic: 0,
@@ -118,7 +159,6 @@ export const PertTable: React.FC<{
     });
   }
 
-  console.log("rows: ", rows);
   const columns: GridColDef[] = [
     { field: "taskName", headerName: "Name", width: 150 },
     { field: "predecessorTaskId", headerName: "Predecessor", width: 150 },
@@ -129,9 +169,9 @@ export const PertTable: React.FC<{
   ];
   return (
     <Box>
-       <Box sx={{ padding: 1, display: "flex", justifyContent: "flex-end" }}>
+      <Box sx={{ padding: 1, display: "flex", justifyContent: "flex-end" }}>
         <Button
-          onClick={()=>setOpen(true)} // Opens the modal
+          onClick={() => setOpen(true)} // Opens the modal
           variant="contained"
           color="primary"
           sx={{ marginBottom: 2, backgroundColor: "royalblue" }}

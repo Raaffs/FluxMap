@@ -48,12 +48,12 @@ func (app *Application) Init() *echo.Echo {
 	e.Use(middleware.RateLimiterWithConfig(config))
 
 	// Initialize routes separately
-	app.Routes(e)
+	app.RegisterRoutes(e)
 
 	return e
 }
 
-func (app *Application) Routes(e *echo.Echo) {
+func (app *Application) RegisterRoutes(e *echo.Echo) {
 	// Auth routes
 	e.POST("/api/login", app.Login)
 	e.POST("/api/register", app.Register)

@@ -6,7 +6,6 @@ import {
   MenuItem,
   Select,
   FormControl,
-  InputLabel,
   Checkbox,
   Modal,
   TextField,
@@ -14,11 +13,11 @@ import {
   useTheme,
 } from "@mui/material";
 import EditIcon from '@mui/icons-material/Edit';
-import { LinearProgress } from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { tokens } from "../theme";
 import { tasks } from "../hooks/types";
 import CreateTaskModal from "./modals/createTask";
+import PopUp from "../scenes/global/Popup";
 export const ProjectTaskDetailPage = ({
   tasks,
   //to re-renders the component on adding/modifying a task
@@ -34,6 +33,7 @@ export const ProjectTaskDetailPage = ({
   const [currentDescription, setCurrentDescription] = useState("");
   const [selectedTaskID, setSelectedTaskID] = useState<number | null>(null);
   const [openNewTaskModal, setOpenNewTaskModal] = useState(false);
+  const [isEditTask,setIsEditTask]=useState(false)
   const [newTask, setNewTask] = useState<tasks>({
     taskID: 0, // Set to 0 or another default value if necessary
     taskName: "",
@@ -102,10 +102,11 @@ export const ProjectTaskDetailPage = ({
     }
   };
 
-  const updateTask = async (newTask: tasks) => {
+  const updateTask = async () => {
     try {
+      console.log("new updaated task : ",newTask)
       const response = await fetch(
-        `http://localhost:4000/api/project/${id}/task/${newTask.taskID}`,
+        `http://localhost:4000/api/project/${id}/task/${newTask.taskID}/manager`,
         {
           method: "PUT",
           headers: {
@@ -122,15 +123,23 @@ export const ProjectTaskDetailPage = ({
             parentProjectId: newTask.parentProjectID,
             assignedUsername: newTask.assignedUsername,
             taskCompletedDate: newTask.taskCompletedDate,
+            approved: newTask.approved
           }),
         }
       );
-  
+      const data=await response.json()
       if (!response.ok) {
-        setError("Failed to update task");
+        const errors = [
+          data.Errors.description,
+          data.Errors.name,
+          data.Errors.email,
+          data.Errors.phone
+        ].filter(Boolean).join('\n'); // Or use '\n' if you want line breaks
+        
+        setError(errors);
       }
     } catch (err) {
-      console.error(err);
+      console.error("failed to udate task" ,err);
       setError("Something went wrong while updating the task");
     } finally {
       setFetchTrigger(true); // re-fetch like a boss
@@ -416,9 +425,9 @@ export const ProjectTaskDetailPage = ({
       renderCell: (params)=>(
         <EditIcon
           onClick={()=>{
+            setIsEditTask(true)
             setOpenNewTaskModal(true);
-            setNewTask(params.row); // Assuming each row is the task object
-            console.log("new taskss" ,newTask)
+            setNewTask(params.row); 
           }}
         />
       )
@@ -442,6 +451,7 @@ export const ProjectTaskDetailPage = ({
     <Box
       sx={{ height: "100%", width: "99%", border: "5px", borderRadius: "10px" }}
     >
+      {error && <PopUp Error={error} Message="" onClose={()=> setError(null)}/>}
       <Box sx={{ padding: 1, display: "flex", justifyContent: "flex-end" }}>
         <Button
           onClick={handleOpenNewTaskModal} // Opens the modal
@@ -458,7 +468,7 @@ export const ProjectTaskDetailPage = ({
         open={openNewTaskModal}
         newTask={newTask}
         onClose={handleCloseNewTaskModal}
-        handleCreateNewTask={handleCreateNewTask}
+        handleCreateNewTask={ isEditTask? updateTask : handleCreateNewTask}
         setNewTask={setNewTask}
       />
       {/* Task Name Modal */}

@@ -33,19 +33,19 @@ export const ProjectOverview = () => {
       createdBy:""
     });
   
-  const [project, setProject] = useState<Projects | null>(null);
-  const [apiResponse, pertLoading, pertError] = useFetchPertData(id);
-  const [cpmApiResponse, cpmLoading, cpmError] = useFetchCpmData(id);
+  const [fetchPertTrigger,setPertFetchTrigger]=useState(false)
   const [fetchTrigger, setFetchTrigger] = useState(false);
-  console.log("PERT API: ", apiResponse);
+  const [project, setProject] = useState<Projects | null>(null);
+  const [apiResponse, pertLoading, pertError] = useFetchPertData(id,fetchPertTrigger,setPertFetchTrigger);
+  const [cpmApiResponse, cpmLoading, cpmError] = useFetchCpmData(id);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<any | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
 
   const [selectedTab, setSelectedTab] = useState<number>(0);
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   const [tasks, fetchLoading, fetchError] = useFetchTaskData(id, fetchTrigger,setFetchTrigger);
+  console.log("tasksksks: ",tasks)
   useEffect(() => {
     const fetchProjectOverviewByID = async () => {
       try {
@@ -71,18 +71,11 @@ export const ProjectOverview = () => {
     };
     fetchProjectOverviewByID();
   }, [id]);
-  const handleOpenModal = () => {
-    console.log("opened");
-    setModalOpen(true);
-    console.log(modalOpen);
-  };
   const handleOpenNewTaskModal = () => setOpenNewTaskModal(true);  
   const handleCloseNewTaskModal = () => {
     setOpenNewTaskModal(false);
     setError(null); // Reset errors when closing modal
   };
-
-
 
   const handleCreateNewTask = async () => {
     try {
@@ -311,7 +304,7 @@ export const ProjectOverview = () => {
           )}
           {selectedTab === 2 && (
             <Box>
-              <PertTable pertTasks={apiResponse?.data} tasks={tasks} />
+              <PertTable pertTasks={apiResponse?.data} tasks={tasks} setPertFetchTrigger={setPertFetchTrigger} />
               <PertNormalDistributionChart
                 apiResponse={apiResponse}
                 pertTasks={apiResponse?.data}

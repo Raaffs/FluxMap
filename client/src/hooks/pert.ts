@@ -2,7 +2,11 @@ import { useState, useEffect } from "react";
 import { ApiResponse, PertData } from "./types";
 import { useParams } from "react-router-dom";
 
-export const useFetchPertData = (id: any): [ApiResponse | null, boolean, any] => {
+export const useFetchPertData = (
+  id: any,
+  fetchPertTrigger: boolean,
+  setFetchPertTrigger: React.Dispatch<React.SetStateAction<boolean>>
+): [ApiResponse | null, boolean, any] => {
   const [apiResponse, setApiResponse] = useState<ApiResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -30,11 +34,12 @@ export const useFetchPertData = (id: any): [ApiResponse | null, boolean, any] =>
         setError(err.message);
       } finally {
         setLoading(false);
+        setFetchPertTrigger(false)
       }
     };
 
     fetchData();
-  }, [id]); // Re-run the effect when `id` changes
+  }, [id,fetchPertTrigger]); // Re-run the effect when `id` changes
 
   return [apiResponse, loading, error];
 };

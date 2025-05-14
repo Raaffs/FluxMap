@@ -1,7 +1,10 @@
 import { useState,useEffect } from "react";
 import { DisplayInvitations } from "./types";
 
-export const useFetchInvitations = (): [DisplayInvitations[]|null,boolean,any]=>{
+export const useFetchInvitations = (
+  fetchTrigger: boolean,
+  setFetchTrigger: React.Dispatch<React.SetStateAction<boolean>>,
+): [DisplayInvitations[]|null,boolean,any]=>{
     const [data, setData] = useState<DisplayInvitations[]|null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -23,12 +26,13 @@ export const useFetchInvitations = (): [DisplayInvitations[]|null,boolean,any]=>
                 console.error(err)
                 setError(err)
             }finally{
+                setFetchTrigger(false)
                 setLoading(false)
             }
         }
 
         fetchInvitations()
-    },[])
+    },[fetchTrigger])
     return [data,loading,error]
 }
 
@@ -101,7 +105,9 @@ export const useInvite = (id: string) => {
 };
 
 
-export const useConfirmInvitation = () => {
+export const useConfirmInvitation = (
+  setFetchTrigger: React.Dispatch<React.SetStateAction<boolean>>
+) => {
   const [inviteloading, setLoading] = useState<boolean>(false);
   const [inviteerror, setError] = useState<string | null>(null);
   const [invitesuccess, setSuccess] = useState<boolean>(false);
@@ -124,6 +130,7 @@ export const useConfirmInvitation = () => {
       console.log('error invite',err)
       setError(err.error);
     } finally {
+      setFetchTrigger(false)
       setLoading(false);
     }
   };
@@ -145,7 +152,6 @@ export const useGetConfirmedUsers=(projectID: number)=>{
           credentials:"include",
         })
         const data=await res.json()
-        console.log("fdjfejfe",data)
         if (!res.ok) {
           const data = await res.json();
           console.log("error: ",data)

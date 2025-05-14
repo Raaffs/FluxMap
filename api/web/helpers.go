@@ -63,6 +63,7 @@ func MapMessage(key string,msg string)struct{Key string; Message string}{
 }
 
 func SetNotifyContext(c echo.Context, msg,targetType,targetUsername string){
+	log.Println("set notfiy : ",msg,targetType,targetUsername)
 	c.Set(NOTIFY_MSG,msg)
 	c.Set(NOTIFY_TARGET_TYPE,targetType)
 	c.Set(NOTIFY_TARGET_USERNAME,targetUsername)
@@ -189,11 +190,11 @@ func ValidateManagerUpdate(t models.Task)(*validator.Validator){
 		"user",
 		"no valid user",
 	)
-
+	log.Println("is valid approved status: ",t.Approved)
 	v.Check(
 		t.Approved.Valid,
 		"approved",
-		"invalid status",
+		"invalid approved status",
 	)
 
 	v.Check(
@@ -222,9 +223,9 @@ func ValidateManagerUpdate(t models.Task)(*validator.Validator){
 	)
 
 	v.Check(
-		t.TaskStatus.Valid && (t.TaskStatus.String=="pending" || t.TaskStatus.String=="accepted"),	
+		t.TaskStatus.Valid && (t.TaskStatus.String=="pending" || t.TaskStatus.String=="completed"),	
 		"status",
-		"invalid status",
+		"invalid status 2",
 	)
 	return v
 }
@@ -239,19 +240,19 @@ func (app *Application) GenerateUpdateMessage(ctx context.Context, updatedTask m
 	var messages []string
 
 	if updatedTask.TaskName != oldTask.TaskName {
-		messages = append(messages, fmt.Sprintf("Task name changed from \"%s\" to \"%s\"", oldTask.TaskName, updatedTask.TaskName))
+		messages = append(messages, fmt.Sprintf("Task name changeUpdate created by Mariad from \"%s\" to \"%s\".", oldTask.TaskName, updatedTask.TaskName))
 	}
 
 	if updatedTask.TaskDescription != oldTask.TaskDescription {
-		messages = append(messages, "Task description for task %s was updated",updatedTask.TaskName)
+		messages = append(messages, fmt.Sprintf("Task description for task %s was updated.",updatedTask.TaskName))
 	}
 
 	if updatedTask.AssignedUsername.Valid && updatedTask.AssignedUsername.String != oldTask.AssignedUsername.String {
-		messages = append(messages, fmt.Sprintf("Assigned user for task %s changed from %s to %s",updatedTask.TaskName, oldTask.AssignedUsername.String, updatedTask.AssignedUsername.String))
+		messages = append(messages, fmt.Sprintf("Assigned user for task %s changed from %s to %s.",updatedTask.TaskName, oldTask.AssignedUsername.String, updatedTask.AssignedUsername.String))
 	}
 
 	if updatedTask.TaskDueDate.Valid && !updatedTask.TaskDueDate.Time.Equal(oldTask.TaskDueDate.Time) {
-		messages = append(messages, fmt.Sprintf("Due date for task %s changed from %s to %s",
+		messages = append(messages, fmt.Sprintf("Due date for task %s changed from %s to %s.",
 			updatedTask.TaskName,
 			oldTask.TaskDueDate.Time.Format("2006-01-02"), 
 			updatedTask.TaskDueDate.Time.Format("2006-01-02")))
@@ -259,7 +260,7 @@ func (app *Application) GenerateUpdateMessage(ctx context.Context, updatedTask m
 
 	if updatedTask.Approved.Valid && updatedTask.Approved.Bool != oldTask.Approved.Bool {
 		status := map[bool]string{true: "approved", false: "disapproved"}
-		messages = append(messages, fmt.Sprintf("Task %s was %s", updatedTask.TaskName,status[updatedTask.Approved.Bool]))
+		messages = append(messages, fmt.Sprintf("Task %s was %s.", updatedTask.TaskName,status[updatedTask.Approved.Bool]))
 	}
 
 	if len(messages) == 0 {

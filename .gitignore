@@ -240,4 +240,7 @@ pip-selfcheck.json
 .history
 .ionide
 
+#custom
+.roadmap
+
 # End of https://www.toptal.com/developers/gitignore/api/react,go,visualstudiocode,python,venv

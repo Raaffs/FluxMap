@@ -2,10 +2,7 @@ import {
   Box,
   Button,
   Card,
-  Divider,
   LinearProgress,
-  Paper,
-  Stack,
   Typography,
   useTheme,
 } from "@mui/material";
@@ -18,8 +15,8 @@ export const Invitation = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   const [trigger,setTrigger]=useState<boolean>(false)
-  const [invitations, loading, error] = useFetchInvitations();
-  const {confirmInvitation,inviteloading,inviteerror,invitesuccess}=useConfirmInvitation()
+  const [invitations, loading, error] = useFetchInvitations(trigger,setTrigger);
+  const {confirmInvitation,inviteloading,inviteerror,invitesuccess}=useConfirmInvitation(setTrigger)
 
   if (loading) {
     return (
@@ -46,30 +43,31 @@ export const Invitation = () => {
 
   return (
     <Box
-      sx={{
-        margin: "5px",
-        maxHeight: "100%",
-        height: "100%",
-        overflowY: "auto",
-        padding: "16px",
-        borderRadius: "8px",
-        backgroundColor:
-          theme.palette.mode === "dark" ? colors.primary[400] : "white",
-        boxShadow: "0 4px 8px rgba(0,0,0,0.5)",
-        textAlign: "left",
-      }}
+    sx={{
+      margin: "20px",
+      maxHeight: "100%",
+      height: "100%",
+      overflowY: "auto",
+      padding: "25px",
+      borderRadius: "16px",
+      backgroundColor:
+        theme.palette.mode === "dark" ? colors.primary[400] : "white", // Soft light background for light mode
+      textAlign: "left",
+      border: "1px solid",
+      borderColor: theme.palette.mode === "dark" ? "grey.800" : "#e0e7ff", // Subtle border in light mode
+      boxShadow: theme.palette.mode === "dark" ? "0 4px 6px rgba(0, 0, 0, 0.1)" : "0 4px 8px rgba(0, 0, 0, 0.05)", // Soft shadow for depth
+    }}
     >
       {invitations.map((invite: DisplayInvitations) => (
         <Card
           key={invite.invitationID}
           sx={{
-            marginBottom: "20px",
-            padding: "20px",
-            borderRadius: "8px",
-            backgroundColor:
-              theme.palette.mode === "dark" ? colors.primary[400] : "#fafafa",
-            boxShadow: "0 2px 4px rgba(0,0,0,0.5)",
-            "&:hover": { boxShadow: "0 4px 8px rgba(0,0,0,0.8)" },
+            paddingY: "16px",
+            borderBottom: "1px solid",
+            borderColor: theme.palette.mode === "dark" ? "grey.800" : "divider",
+            backgroundColor: "transparent",
+            boxShadow: "none",
+            borderRadius: 0,
             textAlign: "left",
           }}
         >
@@ -135,6 +133,7 @@ export const Invitation = () => {
               sx={{ backgroundColor: colors.greenAccent[500] }}
               onClick={() =>{
                 console.log('invt id',invite)
+                 setTrigger(true)
                  confirmInvitation((invite.invitationID),"accepted")
                 if(error){
                   console.log(error)
@@ -149,7 +148,8 @@ export const Invitation = () => {
               variant="contained"
               sx={{ backgroundColor: colors.redAccent[500] }}
               onClick={() =>{
-                  confirmInvitation((invite.invitationID),"accepted")
+                  setTrigger(true)
+                  confirmInvitation((invite.invitationID),"rejected")
                   if(error){
                     console.log(error)
                   }

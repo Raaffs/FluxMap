@@ -126,7 +126,20 @@ func(t *TaskModel)GetTaskByID(ctx context.Context,taskID int)(Task,error){
 		SELECT * FROM tasks
 		WHERE taskID=$1
 	`
-	if err:=t.DB.QueryRow(ctx,query,taskID).Scan(&task.TaskID,&task.TaskName,&task.TaskDescription,&task.TaskStatus,&task.TaskStartDate,&task.TaskDueDate,&task.ParentProjectID,&task.AssignedUsername,&task.Approved);err!=nil{
+	if err:=t.DB.QueryRow(ctx,query,taskID).Scan(
+		&task.TaskID,
+		&task.TaskName,
+		&task.TaskDescription,
+		&task.TaskStatus,
+		&task.TaskStartDate,
+		&task.TaskDueDate,
+		&task.ParentProjectID,
+		&task.AssignedUsername,
+		&task.Approved,
+		&task.TaskCompletedDate,
+		&task.TaskApprovedDate,
+		&task.Createdby,
+	);err!=nil{
 		return Task{},err
 	}
 	return task,nil
