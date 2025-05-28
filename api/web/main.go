@@ -7,6 +7,7 @@ import (
 
 	"github.com/Raaffs/FluxMap/internal/env"
 	"github.com/Raaffs/FluxMap/internal/models"
+	"github.com/labstack/echo/v4"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
@@ -34,11 +35,14 @@ func main(){
 		env:	envMap,
 		models: models.NewModels(conn),
 	}
-	e:=app.Init()
+	router:=echo.New()
+
+	app.LoadMiddleware(router)
+	app.RegisterRoutes(router)
+
 	PORT:=fmt.Sprintf(":%s",app.env[env.API_PORT])
-	if err:=e.Start(PORT);err!=nil{
+	if err:=router.Start(PORT);err!=nil{
 		log.Fatal("Error starting server %w\n",err)
 	}
-
 }	
 

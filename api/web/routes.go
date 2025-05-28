@@ -1,18 +1,18 @@
 package main
 
 import (
+	"encoding/gob"
 	"net/http"
 	"time"
-    "encoding/gob"
 
+	"github.com/Raaffs/FluxMap/internal/env"
+	"github.com/gorilla/sessions"
+	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"golang.org/x/time/rate"
-    "github.com/gorilla/sessions"
-    "github.com/labstack/echo-contrib/session"
 )
-func (app *Application) Init() *echo.Echo {
-	e := echo.New()
+func (app *Application) LoadMiddleware(e *echo.Echo)  {
 
 	// Middleware setup
 	e.Use(middleware.Logger())
@@ -23,8 +23,7 @@ func (app *Application) Init() *echo.Echo {
 		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 	}))
-	e.Use(session.Middleware(sessions.NewCookieStore([]byte("secret"))))
-
+	e.Use(session.Middleware(sessions.NewCookieStore([]byte(app.env[env.SESSION_SECRET]))))
 	// Registering types for session storage
 	gob.Register(map[string][]int{})
 	gob.Register(map[string]string{})
@@ -46,11 +45,7 @@ func (app *Application) Init() *echo.Echo {
 		},
 	}
 	e.Use(middleware.RateLimiterWithConfig(config))
-
 	// Initialize routes separately
-	app.RegisterRoutes(e)
-
-	return e
 }
 
 func (app *Application) RegisterRoutes(e *echo.Echo) {

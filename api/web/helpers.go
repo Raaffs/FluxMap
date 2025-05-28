@@ -29,6 +29,15 @@ const (
 	ManagerRole UserRole = "manager"
 	UserRoleVal UserRole = "user"
 )
+
+type ExistenceStatus int
+
+const (
+    Exists ExistenceStatus = iota
+    NotExists
+    ErrorCheckingExistStatus
+)
+
 var NOTIFY_MSG="msg"
 var NOTIFY_TARGET_USERNAME="targetUsername"
 var NOTIFY_TARGET_TYPE="targetType"
@@ -45,8 +54,6 @@ var(
     ErrInvalidJson=errors.New("Invalid JSON")
     ErrFetchingResult=errors.New("Error getting analytics")
 )
-
-
 
 func FormatDate(t time.Time)string{
 	return t.Format("dd-mm-yyyy")
@@ -121,6 +128,22 @@ func (app *Application) CacheUserProjectsToSession(c echo.Context) error {
 	return nil
 }
 
+
+func (app *Application) EnsureExists(c echo.Context, checkFunc func(context.Context) (bool, error)) ExistenceStatus {
+    ctx := c.Request().Context()
+    exist, err := checkFunc(ctx)
+    if err != nil {
+        c.Logger().Errorf("Failed checking existence: %v", err)
+        c.JSON(http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+        return ErrorCheckingExistStatus
+    }
+    if !exist {
+        return NotExists
+    }
+    return Exists
+}
+
+
 func HashPassword(password string)(string,error){
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
     if err != nil {
@@ -152,16 +175,15 @@ func (app *Application) GetTaskBasedOnAccess(managerFunc echo.HandlerFunc, userF
     return func(c echo.Context) error {
 		username:=c.Get(sessionvar.USERNAME).(string);
         // Get the user's role
-		id:=c.Param("id")
-		if _,err:=strconv.Atoi(id);err!=nil{
-			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid ID"})
+		projectID:=c.Param("id")
+		if _,err:=strconv.Atoi(projectID);err!=nil{
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid projectID"})
 		}
-        role, err := app.getUserRole(c.Request().Context(), username, id)
+        role, err := app.getUserRole(c.Request().Context(), username, projectID)
         if err != nil {
             c.Logger().Error("error getting user role: ", err)
             return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
         }
-
         // Execute based on role
         if role == AdminRole || role == ManagerRole {
             return managerFunc(c)
@@ -169,6 +191,7 @@ func (app *Application) GetTaskBasedOnAccess(managerFunc echo.HandlerFunc, userF
         return userFunc(c)
     }
 }
+
 
 func GetUsernameFromSession(c echo.Context) (string, error) {
     sess, err := session.Get(sessionvar.SESSION_NAME, c)
@@ -190,7 +213,6 @@ func ValidateManagerUpdate(t models.Task)(*validator.Validator){
 		"user",
 		"no valid user",
 	)
-	log.Println("is valid approved status: ",t.Approved)
 	v.Check(
 		t.Approved.Valid,
 		"approved",
@@ -227,6 +249,29 @@ func ValidateManagerUpdate(t models.Task)(*validator.Validator){
 		"status",
 		"invalid status 2",
 	)
+	return v
+}
+
+func ValidateTask(t models.Task)(*validator.Validator){
+	v:=validator.New()
+	v.Check(
+		validator.MinNameLength(t.TaskName),
+		validator.ErrNameTooShort.Key,
+		validator.ErrNameTooShort.Message,
+	)
+
+	v.Check(
+		validator.MinNameLength(t.TaskName),
+		validator.ErrDescriptionTooShort.Key,
+		validator.ErrDescriptionTooShort.Message,
+	)
+
+	v.Check(
+		t.TaskStatus.String == "completed" || t.TaskStatus.String == "pending" && t.TaskStatus.Valid,
+		"status",
+		"invalid status",
+	)
+
 	return v
 }
 
@@ -497,13 +542,26 @@ func GetAnalytics[U models.Analytic,T models.ReadDatabase[U]](v T,ctx context.Co
 	data,err:=v.GetData(ctx,id);if err!=nil{
 		return nil,models.Result{},err 
 	}
+
 	if data==nil{
 		return nil,models.Result{},models.ErrRecordNotFound
 	}
+
 	result,err:=v.GetResult(ctx,id); if err!=nil{
 		if !errors.Is(err, models.ErrRecordNotFound){
 			return data,models.Result{},ErrFetchingResult
 		}
 	}
+	
 	return data,result,nil
+}
+
+func Filter[T any](condition func(t T)bool , t []T)[]T{
+	var result []T
+	for _,val:=range t{
+		if condition(val) {
+			result = append(result, val)
+		}
+	}
+	return result 
 }

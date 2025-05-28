@@ -54,7 +54,6 @@ func (app *Application) Login(c echo.Context) error {
 	}
 
 	sess.Values[sessionvar.USERNAME] = u.Username
-	log.Println("sess vals login", sess.Values)
 	if err := sess.Save(c.Request(), c.Response()); err != nil {
 		c.Logger().Error("error saving session: ", err)
 		return c.JSON(http.StatusInternalServerError, "error saving session")
@@ -109,6 +108,8 @@ func (app *Application) Register(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, "user registered successfully")
 }
+
+
 
 func (app *Application) SessionCheck(c echo.Context) error {
 	sess, err := session.Get(sessionvar.SESSION_NAME, c)
@@ -208,8 +209,8 @@ func (app *Application) GetProjects(c echo.Context) error {
 	ctx, cancel := context.WithTimeout(c.Request().Context(), 10*time.Second)
 	defer cancel()
 	go app.FetchProjects(ctx, username, resultChan)
-
 	result := <-resultChan
+	
 	if result.Err != nil {
 		if errors.Is(result.Err, context.DeadlineExceeded) {
 			return c.JSON(http.StatusPartialContent, result)
@@ -263,7 +264,6 @@ func (app *Application) GetProjectByID(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, MapMessage("message", "Invalid project id"))
 	}
 
-
 	projects, err := app.models.Projects.RetrieveProjectByID(c.Request().Context(), projID)
 	if err != nil {
 		if errors.Is(err, models.ErrRecordNotFound) {
@@ -290,31 +290,35 @@ func (app *Application) Invite(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid json"})
 	}
 
-	exist, err := app.models.Users.Exist(c.Request().Context(), invitation.Username)
-	if !exist {
-		c.Logger().Error("user doesn't exists")
+	switch status := app.EnsureExists(c, func(ctx context.Context) (bool, error) {
+		return app.models.Users.Exist(ctx, invitation.Username)
+	}); status {
+	case ErrorCheckingExistStatus:
+	// error response already sent by EnsureExists, just exit
+		return nil	
+	case NotExists:
 		return c.JSON(http.StatusNotFound, map[string]string{"error": "user doesn't exist"})
+	case Exists:
+		//excute rest of the code if user exists 
 	}
 
-	if err != nil {
-		c.Logger().Error("Error inviting user:", err)
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "internal server error"})
-	}
-
-	alreadyInvited, err := app.models.Invitation.Exist(c.Request().Context(), invitation.Username, id)
-	if err != nil {
-		c.Logger().Error("Error checking invitation:", err)
-		return c.JSON(http.StatusConflict, map[string]string{"error": "internal server error"})
-	}
-	if alreadyInvited {
-		return c.JSON(http.StatusConflict, map[string]string{"error": "user is already invited"})
+	switch status:=app.EnsureExists(c,func(ctx context.Context) (bool, error) {
+		return app.models.Invitation.Exist(ctx,invitation.Username,id)
+	});status{
+	case ErrorCheckingExistStatus:
+	// error response already sent by EnsureExists, just exit
+		return nil
+	case Exists: 
+		return c.JSON(http.StatusConflict,map[string]string{"error":"user already invited"})
+	case NotExists:
+		//continue with inviting user
 	}
 
 	if err := app.models.Invitation.Invite(c.Request().Context(), invitation.Username, id, invitation.Role); err != nil {
 		c.Logger().Error("Error inviting user: ", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "internal server error"})
 	}
-	return nil
+	return c.JSON(http.StatusOK, map[string]string{"message": "invite sent"})
 }
 
 func (app *Application) GetInvitations(c echo.Context) error {
@@ -357,6 +361,7 @@ func (app *Application) ConfirmInvitation(c echo.Context) error {
 		c.Logger().Error("Error confirming invitation: ", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to confirm invitation"})
 	}
+
 	invitationDetail, err := app.models.Invitation.GetInvitationByID(c.Request().Context(), inviteID)
 	if err != nil {
 		c.Logger().Error("Error retrieving invitation detail: ", err)
@@ -373,10 +378,9 @@ func (app *Application) ConfirmInvitation(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{"message": "Invitation confirmed successfully"})
 }
 
-func (app *Application) CreateTask(c echo.Context) error {
+func (app *Application)CreateTask(c echo.Context) error {
 	var t models.Task
 	username := c.Get(sessionvar.USERNAME).(string)
-	v := validator.New()
 	if err := c.Bind(&t); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid Json payload"})
 	}
@@ -405,17 +409,12 @@ func (app *Application) CreateTask(c echo.Context) error {
 		c.Logger().Warn("user is has not accepted invitation")
 		return c.JSON(http.StatusForbidden, map[string]string{"error": "User isn't part of the project or hasn't accepted the invitation yet"})
 	}
-
-	t.ParentProjectID = id
-	v.Check(
-		validator.MinNameLength(t.TaskName),
-		validator.ErrNameTooShort.Key,
-		validator.ErrNameTooShort.Message,
-	)
-
-	if !v.Valid() {
-		return c.JSON(http.StatusBadRequest, map[string]any{"error": v.Errors})
+	v:=ValidateTask(t)
+	if !v.Valid(){
+		c.Logger().Warn("invalid task : ",v.Errors)
+		return c.JSON(http.StatusBadRequest,map[string]string{"error":"invalid task format"})	
 	}
+	t.ParentProjectID = id
 
 	t.Createdby = username
 
@@ -467,6 +466,7 @@ func (app *Application) GetConfirmedUsers(c echo.Context) error {
 		}
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "An error occurred while retrieving projects"})
 	}
+	//appened yourself to project if you're the creator of project
 	users = append(users, &username)
 	return c.JSON(http.StatusOK, map[string][]*string{"users": users})
 }
@@ -497,6 +497,10 @@ func (app *Application) UpdateUserTask(c echo.Context) error {
 		"status",
 		"invalid status",
 	)
+	if !v.Valid(){
+		c.Logger().Warn("invalid status : ",status)
+		return c.JSON(http.StatusBadRequest,map[string]string{"error":"invalid status"})
+	}
 	taskName, err := app.models.Task.UpdateTask(c.Request().Context(), id, status.TaskStatus)
 	if err != nil {
 		c.Logger().Error("error updating task: ", err)
@@ -625,7 +629,7 @@ func (app *Application)ApproveTask(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{"message": "task approved successfully"})
 }
 
-func (app *Application) ManagerRestrictedTask(c echo.Context) error {
+func (app *Application)ManagerRestrictedTask(c echo.Context) error {
 	var t models.Task
 	
 	if err := c.Bind(&t); err != nil {

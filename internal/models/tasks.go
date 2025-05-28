@@ -32,8 +32,8 @@ func (t *TaskModel) UpdateTask(ctx context.Context, taskID int, status string) (
 		SET 
 			taskStatus = $1,
 			taskCompletedDate = NOW()
-		WHERE taskID = $2
-		RETURNING taskName
+			WHERE taskID = $2
+			RETURNING taskName
 	`
 
 	var updatedTaskName string
