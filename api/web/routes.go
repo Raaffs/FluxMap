@@ -12,7 +12,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"golang.org/x/time/rate"
 )
-func (app *Application) LoadMiddleware(e *echo.Echo)  {
+func (app *Application) LoadMiddleware(e *echo.Echo){
 
 	// Middleware setup
 	e.Use(middleware.Logger())
@@ -48,7 +48,7 @@ func (app *Application) LoadMiddleware(e *echo.Echo)  {
 	// Initialize routes separately
 }
 
-func (app *Application) RegisterRoutes(e *echo.Echo) {
+func (app *Application)RegisterRoutes(e *echo.Echo){
 	// Auth routes
 	e.POST("/api/login", app.Login)
 	e.POST("/api/register", app.Register)
@@ -94,5 +94,7 @@ func (app *Application) RegisterRoutes(e *echo.Echo) {
 
 	e.GET("/api/project/:id/update",app.GetProjectUpdates,IsAuthorizedUser)
 	e.GET("/api/updates",app.GetAllUpdates,IsAuthorizedUser)
+
+	e.GET("/api/ws",app.HandlWS)
 }
 

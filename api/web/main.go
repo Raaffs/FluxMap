@@ -14,8 +14,9 @@ import (
 )
 
 type Application struct{
-	env 	map[string]string
-	models	models.Models 
+	env 			map[string]string
+	models			models.Models 
+	websocket		*Websocket
 }
 
 func main(){
@@ -34,6 +35,7 @@ func main(){
 	app:=&Application{
 		env:	envMap,
 		models: models.NewModels(conn),
+		websocket: NewWS(),
 	}
 	router:=echo.New()
 

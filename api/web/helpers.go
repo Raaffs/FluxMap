@@ -556,6 +556,8 @@ func GetAnalytics[U models.Analytic,T models.ReadDatabase[U]](v T,ctx context.Co
 	return data,result,nil
 }
 
+type FilterFunc[T any] func(t T) bool
+
 func Filter[T any](condition func(t T)bool , t []T)[]T{
 	var result []T
 	for _,val:=range t{
