@@ -18,11 +18,36 @@ import {
   AllocatedProjects,
 } from "./scenes/projects/projects";
 import { AuthProvider } from "./context/authContext";
-import ProtectedRoute from "./context/protected"; // 🔐 import this
+import ProtectedRoute from "./context/protected"; 
+import { useEffect } from "react";
 
 function App() {
   const [theme, colorMode] = useMode();
   const [isSidebar, setIsSidebar] = useState(true);
+  useEffect(() => {
+    const socket = new WebSocket('http://localhost:4000/api/ws');
+
+    socket.onopen = () => {
+      console.log('🟢 WebSocket connected');
+    };
+
+    socket.onmessage = (event) => {
+      console.log('📨 Message from server:', event.data);
+    };
+
+    socket.onclose = () => {
+      console.log('🔴 WebSocket disconnected');
+    };
+
+    socket.onerror = (error) => {
+      console.error('❌ WebSocket error:', error);
+    };
+
+    return () => {
+      socket.close();
+    };
+  }, []);
+
 
   return (
     <AuthProvider>

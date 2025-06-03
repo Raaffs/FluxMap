@@ -12,46 +12,61 @@ import (
 type WSUser struct{
 	Username 	string
 	Connected 	bool
+	Send	 	chan MessageJob
+	Manager		*ConnectionManager
+	Websocket	*websocket.Conn
 }
 
-type Websocket struct{
+type MessageJob struct {
+	Message []byte
+	Filter  func(WSUser) bool // If nil, broadcast to all
+	Errchan chan error
+}
+
+type ConnectionManager struct{
 	Upgrader websocket.Upgrader
 	//conn=>username 
-	Clients  map[*websocket.Conn]WSUser
-	mutex 	 sync.Mutex
-	Msg 	 chan []byte
+	Clients  	map[*websocket.Conn]*WSUser
+	mutex 	 	sync.Mutex
 }
 
+func NewWSUser(username string, conn *websocket.Conn, manager *ConnectionManager) *WSUser {
+	return &WSUser{
+		Username:  username,
+		Connected: true,
+		Send:      make(chan MessageJob, 10), // buffered = better for slow clients
+		Websocket: conn,
+		Manager:   manager,
+	}
+}
 
-func NewWS()*Websocket{
-	ws:=&Websocket{
+func NewConnectionManager()*ConnectionManager{
+	cm:=&ConnectionManager{
 		Upgrader: websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool{
 				return true
 			},
 		},
-		Clients: make(map[*websocket.Conn]WSUser),
+		Clients: make(map[*websocket.Conn]*WSUser),
 		mutex: sync.Mutex{},
 	}
-	return ws
+	return cm
 }
 
-func (ws *Websocket)AddClient(conn *websocket.Conn, username string){
+func (ws *ConnectionManager)AddClient(user *WSUser){
 	ws.mutex.Lock()
-	ws.Clients[conn]=WSUser{
-		Username: username,
-		Connected: true,
-	}
+	ws.Clients[user.Websocket]=user
 	ws.mutex.Unlock()
+	log.Println("CLIENTS: ",ws.Clients)
 }
 
-func (ws *Websocket)RemoveClient(conn *websocket.Conn){
+func (ws *ConnectionManager)RemoveClient(conn *websocket.Conn){
 	ws.mutex.Lock()
 	delete(ws.Clients,conn)
 	ws.mutex.Unlock()
 }
 
-func (ws *Websocket) CloseAllClients() {
+func (ws *ConnectionManager) CloseAllClients() {
     ws.mutex.Lock()
     defer ws.mutex.Unlock()
 
@@ -62,31 +77,53 @@ func (ws *Websocket) CloseAllClients() {
     }
 }
 
-func (ws *Websocket)KeepAlive(w http.ResponseWriter, r *http.Request, username string){
-	conn,err:=ws.Upgrader.Upgrade(w,r,nil);if err!=nil{
-		log.Println("Error connecting upgrading http connection: ",err)
-		return
-	}
 
-	ws.AddClient(conn, username)
 
+func (client *WSUser)KeepAlive(userWhoSendReq string){
 	defer func(){
-		ws.RemoveClient(conn)
-		conn.Close()
+		client.Manager.RemoveClient(client.Websocket)
+		client.Websocket.Close()
 	}()
 
-	conn.SetReadDeadline(time.Now().Add(60 * time.Second))
-	conn.SetPongHandler(func(appData string)error{
-		return conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+	client.Websocket.SetReadDeadline(time.Now().Add(60 * time.Second))
+	client.Websocket.SetPongHandler(func(appData string)error{
+		return client.Websocket.SetReadDeadline(time.Now().Add(60 * time.Second))
 	})
-	
 	ticker:=time.NewTicker(30*time.Second)
-	defer ticker.Stop()
+	defer func(){
+		ticker.Stop()
+		client.Websocket.Close()
+	}()
+	for{
+		select{
+		case job,ok:=<-client.Send:
+			log.Println("JOB MF : ",string(job.Message),"sent to : ",client.Username)
+			client.WriteMessage(job,ok)
+		case <-ticker.C:
+			if err := client.Websocket.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
+				log.Println("writemsg: ", err)
+				return // return to break this goroutine triggeing cleanup
+			}
+			log.Println("Pinged")
 
-	for range ticker.C{
-		if err:=conn.WriteMessage(websocket.PingMessage,[]byte{}); err!=nil{
-				log.Println("Error writing message to client: ",err)
-				break
+		}
+	}
+}
+
+func(client *WSUser)WriteMessage(job MessageJob,ok bool){
+	if !ok{
+		if err := client.Websocket.WriteMessage(websocket.CloseMessage, nil); err != nil {
+			// Log that the connection is closed and the reason
+			log.Println("connection closed: ", err)
+			job.Errchan<-err
+		}
+		// Return to close the goroutine
+		return
+	}
+	if job.Filter(*client){
+		if err:=client.Websocket.WriteMessage(websocket.TextMessage,job.Message);err!=nil{
+			job.Errchan<-err
+			return
 		}
 	}
 }
@@ -94,46 +131,69 @@ func (ws *Websocket)KeepAlive(w http.ResponseWriter, r *http.Request, username s
 // PushToClients broadcasts a message to matching clients.
 // It returns a channel of errors from failed client sends.
 // IMPORTANT: The caller **must** read from the returned channel to avoid goroutine leaks!
-func (ws *Websocket)PushToClients(filter func(WSUser) bool, msg []byte) <-chan error {
-	ws.mutex.Lock()
-	var wg sync.WaitGroup
-	var clients []*websocket.Conn
-	for clientConn,user:= range ws.Clients{
-		if filter(user){
-			clients=append(clients, clientConn)
-		}
-	}
-	errchan:=make(chan error, len(clients))
-	ws.mutex.Unlock()
-	
-	for _,client:=range clients{
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			if err:=client.WriteMessage(websocket.TextMessage,msg); err!=nil{
-				log.Println("Error writing message to client: ",err)
-				errchan<-err
-				ws.mutex.Lock()
-				delete(ws.Clients,client)
-				ws.mutex.Unlock()
+func (cm *ConnectionManager) PushToClients(msg []byte, filter func(WSUser) bool)<-chan error{
+	errchan:=make(chan error)
+	go func() {
+		cm.mutex.Lock()
+		defer cm.mutex.Unlock()
+		for _, client := range cm.Clients {
+			client.Send <- MessageJob{
+				Message: msg,
+				Filter:  filter,
+				Errchan: errchan,
 			}
-		} ()
-	}
-	go func ()  {
-		wg.Wait()
-		close(errchan)	
+		}
 	}()
 	return errchan
 }
 
-func (ws *Websocket) detectClientDisconnect(conn *websocket.Conn) {
-	for {
-		_, _, err := conn.ReadMessage()
-		if err != nil {
-			log.Println("Read error or client disconnected:", err)
-			ws.RemoveClient(conn)
-			conn.Close()
-			break
-		}
-	}
-}
+
+// func (ws *WSUser) StartDispatcher() {
+//     for job := range ws.Send {
+//         ws.Dispatch(job)
+//     }
+// }
+
+// func (ws *ConnectionManager) Dispatch(job MessageJob) {
+// 	ws.mutex.Lock()
+// 	var targets []*websocket.Conn
+// 	for c, u := range ws.Clients {
+// 		if job.Filter == nil || job.Filter(u) {
+// 			targets = append(targets, c)
+// 		}
+// 	}
+// 	ws.mutex.Unlock()
+
+// 	for _, c := range targets {
+// 		if err := c.WriteMessage(websocket.TextMessage, job.Message); err != nil {
+// 			log.Println("Write error:", err)
+
+// 			// Send error if channel is provided
+// 			if job.Errchan != nil {
+// 				job.Errchan <- err
+// 			}
+// 			ws.mutex.Lock()
+// 			delete(ws.Clients, c)
+// 			ws.mutex.Unlock()
+// 			c.Close()
+// 		}
+// 	}
+// 	if job.Errchan != nil {
+// 		close(job.Errchan)
+// 	}
+// }
+
+
+
+
+// func (ws *Websocket) detectClientDisconnect(conn *websocket.Conn) {
+// 	for {
+// 		_, _, err := conn.ReadMessage()
+// 		if err != nil {
+// 			log.Println("Read error or client disconnected:", err)
+// 			ws.RemoveClient(conn)
+// 			conn.Close()
+// 			break
+// 		}
+// 	}
+// }

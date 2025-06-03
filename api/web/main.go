@@ -16,7 +16,7 @@ import (
 type Application struct{
 	env 			map[string]string
 	models			models.Models 
-	websocket		*Websocket
+	websocket		*ConnectionManager
 }
 
 func main(){
@@ -35,13 +35,17 @@ func main(){
 	app:=&Application{
 		env:	envMap,
 		models: models.NewModels(conn),
-		websocket: NewWS(),
+		websocket: NewConnectionManager(),
 	}
 	router:=echo.New()
 
 	app.LoadMiddleware(router)
 	app.RegisterRoutes(router)
 
+	// Start the global dispatcher goroutine that listens on ws.Send channel
+	// and broadcasts messages to connected clients.
+	// This ensures only one goroutine reads from the Send channel,
+	// preventing race conditions and message loss.
 	PORT:=fmt.Sprintf(":%s",app.env[env.API_PORT])
 	if err:=router.Start(PORT);err!=nil{
 		log.Fatal("Error starting server %w\n",err)

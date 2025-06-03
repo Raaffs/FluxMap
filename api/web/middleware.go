@@ -92,13 +92,11 @@ func (app *Application) SendNotification(next echo.HandlerFunc) echo.HandlerFunc
                     c.Logger().Error("Error sending notification\nerror creating notification: ", err)
                 }
             }
-            app.websocket.PushToClients(func(w WSUser) bool {
-                //TO-DO:
-                //if w.Username exists in invited and confirmed, push notification
-                //if notification fails to push, set 'hasRead' column in database to false
-                //implement method to keep track of total number of new notification
-                return true
-            },[]byte(""))
+            //TO-DO:
+            //if w.Username exists in invited and confirmed, push notification
+            //if notification fails to push, set 'hasRead' column in database to false
+            //implement method to keep track of total number of new notification
+            c.Logger().Print(err)
         }()
         return next(c)
     }

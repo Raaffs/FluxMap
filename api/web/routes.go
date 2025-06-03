@@ -95,6 +95,6 @@ func (app *Application)RegisterRoutes(e *echo.Echo){
 	e.GET("/api/project/:id/update",app.GetProjectUpdates,IsAuthorizedUser)
 	e.GET("/api/updates",app.GetAllUpdates,IsAuthorizedUser)
 
-	e.GET("/api/ws",app.HandlWS)
+	e.GET("/api/ws",app.HandlWS,IsAuthorizedUser)
 }
 
