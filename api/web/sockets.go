@@ -89,11 +89,13 @@ func (client *WSUser)KeepAlive(userWhoSendReq string){
 	client.Websocket.SetPongHandler(func(appData string)error{
 		return client.Websocket.SetReadDeadline(time.Now().Add(60 * time.Second))
 	})
+
 	ticker:=time.NewTicker(30*time.Second)
 	defer func(){
 		ticker.Stop()
 		client.Websocket.Close()
 	}()
+
 	for{
 		select{
 		case job,ok:=<-client.Send:
@@ -113,13 +115,13 @@ func (client *WSUser)KeepAlive(userWhoSendReq string){
 func(client *WSUser)WriteMessage(job MessageJob,ok bool){
 	if !ok{
 		if err := client.Websocket.WriteMessage(websocket.CloseMessage, nil); err != nil {
-			// Log that the connection is closed and the reason
 			log.Println("connection closed: ", err)
 			job.Errchan<-err
 		}
 		// Return to close the goroutine
 		return
 	}
+	log.Println("writing to: ",client.Username)
 	if job.Filter(*client){
 		if err:=client.Websocket.WriteMessage(websocket.TextMessage,job.Message);err!=nil{
 			job.Errchan<-err
@@ -144,6 +146,7 @@ func (cm *ConnectionManager) PushToClients(msg []byte, filter func(WSUser) bool)
 			}
 		}
 	}()
+	
 	return errchan
 }
 

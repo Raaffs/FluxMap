@@ -120,7 +120,6 @@ func (u *UpdateModel)GetAllUpdates(ctx context.Context, username string)([]*Upda
 	if rows.Err()!=nil{
 		return []*Update{},rows.Err()
 	}
-	log.Println("updates in model: ",updates)
 	return updates,nil
 }
 
@@ -137,4 +136,34 @@ func (r *UpdateModel) CreateUpdate(ctx context.Context, projectID int, msg strin
 		targetUsername,
 	)
 	return err
+}
+
+func (r *UpdateModel)GetTotalUnreadUpdates(ctx context.Context,username string)(int,error){
+	
+	query:=`	
+		SELECT COUNT(*)
+		FROM UPDATES
+		WHERE 
+		targetusername=$1
+		AND hasread=false	
+	`
+	var count int 
+
+	if err:=r.DB.QueryRow(ctx,query,username).Scan(&count);err!=nil{
+		return 0,err
+	}
+	return count,nil
+}
+
+func (r *UpdateModel)SetRead(ctx context.Context,username string)error{
+	query:=`
+		UPDATE updates
+		SET hasread=true
+		WHERE  targetusername=$1
+	`
+
+	_,err:=r.DB.Exec(ctx,query,username); if err!=nil{
+		return err
+	}
+	return nil 
 }

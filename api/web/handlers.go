@@ -662,7 +662,7 @@ func (app *Application)ManagerRestrictedTask(c echo.Context) error {
 	}
 	u := models.Update{
 		Msg: msg,
-		TargetType:     "all",
+		TargetType:     "user",
 		TargetUsername: t.AssignedUsername,
 	}
 

@@ -82,7 +82,6 @@ func (app *Application) SendNotification(next echo.HandlerFunc) echo.HandlerFunc
                     targetUsername=&tu
                 }
             }
-            log.Println(username,msg,targetType,targetUsername)
             if err!=nil{
                 c.Logger().Error("Error sending notification: ", err)
                 return
@@ -90,6 +89,19 @@ func (app *Application) SendNotification(next echo.HandlerFunc) echo.HandlerFunc
             if c.Response().Status >= 200 && c.Response().Status < 300 { // Only proceed if the handler succeeds
                 if err := app.models.Notify.CreateUpdate(c.Request().Context(), projectID, msg, username, targetType, targetUsername); err != nil {
                     c.Logger().Error("Error sending notification\nerror creating notification: ", err)
+                        return 
+                }
+                
+                if targetType=="user"{
+                    count,err:=app.models.Update.GetTotalUnreadUpdates(c.Request().Context(),*targetUsername);if err!=nil{
+                        log.Println("Error getting total unread updates: ",err)
+                    }
+                    errchan:=app.websocket.PushToClients([]byte(strconv.Itoa(count)),
+                        func(w WSUser) bool {
+                        return w.Username==*targetUsername
+                    })
+                    app.CheckChannelError(c,errchan)
+
                 }
             }
             //TO-DO:
