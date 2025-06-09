@@ -92,7 +92,6 @@ export const useInvite = (id: string) => {
         console.log("error: ",data)
         throw new Error(data.error || "Failed to send invite");
       }
-
       setSuccess(true);
     } catch (err: any) {
       setError(err.message);

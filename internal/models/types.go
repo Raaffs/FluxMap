@@ -31,7 +31,7 @@ type Invitation struct{
     ID                  string         `json:"id"`
     Username            string         `json:"username"`       
     ProjectID           int            `json:"projectID,omitempty"`           // Primary Key
-    Status              string           `json:"status"`
+    Status              string         `json:"status"`
     Role                string         `json:"role"`
 }
 

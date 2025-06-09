@@ -59,16 +59,6 @@ func FormatDate(t time.Time)string{
 	return t.Format("dd-mm-yyyy")
 }
 
-func MapMessage(key string,msg string)struct{Key string; Message string}{
-    return struct{
-        Key string
-        Message string
-    }{
-        Key: key,
-        Message: msg,
-    }
-}
-
 func SetNotifyContext(c echo.Context, msg,targetType,targetUsername string){
 	log.Println("set notfiy : ",msg,targetType,targetUsername)
 	c.Set(NOTIFY_MSG,msg)
@@ -556,14 +546,3 @@ func GetAnalytics[U models.Analytic,T models.ReadDatabase[U]](v T,ctx context.Co
 	return data,result,nil
 }
 
-type FilterFunc[T any] func(t T) bool
-
-func Filter[T any](condition func(t T)bool , t []T)[]T{
-	var result []T
-	for _,val:=range t{
-		if condition(val) {
-			result = append(result, val)
-		}
-	}
-	return result 
-}

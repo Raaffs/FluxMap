@@ -7,12 +7,13 @@ import Link from "@mui/material/Link";
 import Card from "@mui/material/Card";
 import Grid2 from "@mui/material/Grid2";
 import { useAuth } from "../../context/authContext";
+import { useEffect } from "react";
 interface userAuth {
   username: string;
   password: string;
 }
 
-const LoginUser: React.FC = () => {
+const LoginUser: React.FC<{startWebSocket:()=>void}>= ({startWebSocket}) => {
   const btnStyle = { margin: '50px 0', width: '200px' };
   const navigate=useNavigate()
   const [input, setInput] = useState<userAuth>({
@@ -44,6 +45,7 @@ const LoginUser: React.FC = () => {
       const data = await response.json(); // Parse the response data
       console.log("Login successful:", data);
       login()
+      startWebSocket()
       navigate('/'); // Redirect to the home page
     })  
     .catch(err=>{
@@ -51,7 +53,7 @@ const LoginUser: React.FC = () => {
       setError(err.error)
     })
   };
-
+  
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setInput({
       ...input,
@@ -147,5 +149,7 @@ const LoginUser: React.FC = () => {
     </Box>
   );
 }
+
+
 
 export default LoginUser;

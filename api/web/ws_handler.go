@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"strconv"
 
@@ -14,7 +15,8 @@ func (app *Application)HandlWS(c echo.Context)error{
 		log.Println("Error creating websocket connection: ",err)
 		return nil
 	}
-	errchan:=make(<-chan error)
+
+	var errchan <-chan error
 
 	user := NewWSUser(username, conn, app.websocket)
 	app.websocket.AddClient(user)
@@ -33,6 +35,42 @@ func (app *Application)HandlWS(c echo.Context)error{
 	app.CheckChannelError(c,errchan)
 	return nil
 }
+
+
+func (app *Application)Send(ctx context.Context, username string){
+	if err:=app.models.Update.SetRead(ctx,username);err!=nil{
+		log.Println("Error updating read status : ")
+	}
+}
+
+func (app *Application)SendUpdateNotification(c echo.Context, username string)error{
+	count,err:=app.models.Update.GetTotalUnreadUpdates(c.Request().Context(),username);if err!=nil{
+		return err
+	}
+
+	errchan:=app.websocket.PushToClients([]byte(strconv.Itoa(count)),
+		func(w WSUser) bool {
+		return w.Username==username
+	})
+
+	app.CheckChannelError(c,errchan)
+	return nil
+}
+
+func (app *Application)SendInviteNotification(c echo.Context, username string)error{
+	count,err:=app.models.Invitation.GetTotalUnreadInvitation(c.Request().Context(),username);if err!=nil{
+		return err
+	}
+
+	errchan:=app.websocket.PushToClients([]byte(strconv.Itoa(count)),
+		func(w WSUser) bool {
+		return w.Username==username
+	})
+
+	app.CheckChannelError(c,errchan)
+	return nil
+}
+
 
 func (app *Application)CheckChannelError(c echo.Context, errchan <- chan error){
 	if len(errchan)!=0{

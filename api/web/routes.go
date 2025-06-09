@@ -82,7 +82,7 @@ func (app *Application)RegisterRoutes(e *echo.Echo){
 
 	e.PUT("/api/project/:id/task/:taskID", app.UpdateUserTask, IsAuthorizedUser, app.SendNotification)
 
-	e.PUT("/api/project/:id/task/:taskID/approve", app.ApproveTask, app.ManagerLevelAccess, app.SendNotification)
+	e.PUT("/api/project/:id/task/:taskID/approve", app.ApproveTask, app.ManagerLevelAccess)
 	e.PUT("/api/project/:id/task/:taskID/assign", app.ManagerRestrictedTask, app.ManagerLevelAccess)
 
 	// PERT & CPM routes

@@ -1,32 +1,32 @@
-import React from 'react';
-import { Box, IconButton, useTheme } from '@mui/material';
-import { useContext } from 'react';
-import { ColorModeContext, tokens, } from '../../theme';
-import InputBase from '@mui/material/InputBase';
-import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined'
-import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined'
-import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined'
-import PersonOutlinedIcon from '@mui/icons-material/PersonOutlined'
-import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined'
-import MarkunreadOutlinedIcon from '@mui/icons-material/MarkunreadOutlined';
-import SearchIcon from '@mui/icons-material/Search'
-const Topbar=(setIsSidebar: any)=>{
-    const theme =useTheme()
-    const colors=tokens(theme.palette.mode)
-    const colorMode=useContext(ColorModeContext)
-
-     return (
-    <Box display="flex" justifyContent="space-between" p={2} maxWidth='99%'> 
+import React from "react";
+import { Box, IconButton, useTheme, Badge } from "@mui/material";
+import { useContext } from "react";
+import { ColorModeContext, tokens } from "../../theme";
+import InputBase from "@mui/material/InputBase";
+import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
+import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
+import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
+import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
+import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
+import MarkunreadOutlinedIcon from "@mui/icons-material/MarkunreadOutlined";
+import SearchIcon from "@mui/icons-material/Search";
+const Topbar = (updateCount: any) => {
+  const theme = useTheme();
+  const colors = tokens(theme.palette.mode);
+  const colorMode = useContext(ColorModeContext);
+  console.log("inside top bar notification: ", updateCount);
+  return (
+    <Box display="flex" justifyContent="space-between" p={2} maxWidth="99%">
       <Box
         display="flex"
         borderRadius="3px"
         sx={{
-            backgroundColor: colors.primary[400],
+          backgroundColor: colors.primary[400],
         }}
       >
         <InputBase sx={{ ml: 2, flex: 1 }} placeholder="Search" />
         <IconButton>
-            <SearchIcon/>
+          <SearchIcon />
         </IconButton>
       </Box>
 
@@ -39,7 +39,12 @@ const Topbar=(setIsSidebar: any)=>{
           )}
         </IconButton>
         <IconButton>
-          <NotificationsOutlinedIcon />
+          <Badge badgeContent={
+            updateCount.updateCount!==""?updateCount.updateCount:null} color="error">
+            {" "}
+            {/* 5 = number of notifications */}
+            <NotificationsOutlinedIcon />
+          </Badge>
         </IconButton>
         <IconButton>
           <MarkunreadOutlinedIcon />
@@ -53,6 +58,6 @@ const Topbar=(setIsSidebar: any)=>{
       </Box>
     </Box>
   );
-}
+};
 
-export default Topbar
+export default Topbar;

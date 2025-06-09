@@ -100,7 +100,7 @@ func (app *Application) Register(c echo.Context) error {
 	u.HashedPassword = hash
 	if err := app.models.Users.Create(context.Background(), u); err != nil {
 		if errors.Is(err, models.ErrAlreadyExist) {
-			return c.JSON(http.StatusConflict, MapMessage("error", "User already exist"))
+			return c.JSON(http.StatusConflict, map[string]string{"error":"user already exist"})
 		}
 		c.Logger().Error("Error creating user: ", err)
 		return echo.NewHTTPError(echo.ErrInternalServerError.Code, "internal server error")
@@ -227,7 +227,7 @@ func (app *Application) GetAdminProjects(c echo.Context) error {
 	adminProjects, err := app.models.Projects.RetrieveAdminProjects(c.Request().Context(), username)
 	if err != nil {
 		c.Logger().Error("Error retrieving projects : ", err)
-		c.JSON(http.StatusInternalServerError, MapMessage("Project", "An error occurred while retrieving project"))
+		c.JSON(http.StatusInternalServerError, map[string]string{"error":"internal server error"})
 	}
 	c.JSON(http.StatusOK, adminProjects)
 	return nil
@@ -239,7 +239,7 @@ func (app *Application) GetManagerProjects(c echo.Context) error {
 	managerProjects, err := app.models.Projects.RetrieveManagerProjects(c.Request().Context(), username)
 	if err != nil {
 		c.Logger().Error("Error retrieving manager projects: ", err)
-		return c.JSON(http.StatusInternalServerError, MapMessage("Project", "An error occurred while retrieving manager projects"))
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error":"an error occurred while retrieving projects"})
 	}
 
 	return c.JSON(http.StatusOK, managerProjects)
@@ -252,7 +252,7 @@ func (app *Application) GetAssignedProjects(c echo.Context) error {
 	if err != nil {
 		// Log and handle errors
 		c.Logger().Error("Error retrieving assigned projects: ", err)
-		return c.JSON(http.StatusInternalServerError, MapMessage("Project", "An error occurred while retrieving assigned projects"))
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error":"An error occurred while retrieving assigned projects"})
 	}
 	return c.JSON(http.StatusOK, assignedProjects)
 }
@@ -261,16 +261,16 @@ func (app *Application) GetProjectByID(c echo.Context) error {
 	id := c.Param("id")
 	projID, err := strconv.Atoi(id)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, MapMessage("message", "Invalid project id"))
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid project id"})
 	}
 
 	projects, err := app.models.Projects.RetrieveProjectByID(c.Request().Context(), projID)
 	if err != nil {
 		if errors.Is(err, models.ErrRecordNotFound) {
-			return c.JSON(http.StatusNotFound, MapMessage("message", "Project not found"))
+			return c.JSON(http.StatusNotFound, map[string]string{"message": "Project not found"})
 		}
 		c.Logger().Error("Error retrieving project by id: ", err)
-		return c.JSON(http.StatusInternalServerError, MapMessage("message", "An error occurred while retrieving project by id"))
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "An error occurred while retrieving project by id"})
 	}
 	return c.JSON(http.StatusOK, projects)
 }
@@ -318,6 +318,11 @@ func (app *Application) Invite(c echo.Context) error {
 		c.Logger().Error("Error inviting user: ", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "internal server error"})
 	}
+
+	if err:=app.SendInviteNotification(c,invitation.Username);err!=nil{
+		c.Logger().Error("Error sending invite notification: ",err)
+	}
+
 	return c.JSON(http.StatusOK, map[string]string{"message": "invite sent"})
 }
 
@@ -328,7 +333,13 @@ func (app *Application) GetInvitations(c echo.Context) error {
 	if err != nil {
 
 		c.Logger().Error("Error getting invitations: ", err)
-		return c.JSON(http.StatusInternalServerError, MapMessage("Invitations", "Failed to get invitations"))
+		return c.JSON(http.StatusInternalServerError, map[string]string{"Invitations": "Failed to get invitations"})
+	}
+	if err:=app.models.Invitation.SetRead(c.Request().Context(),username);err!=nil{
+		c.Logger().Error("Error updating status of hasread column: ",err)
+	}
+	if err:=app.SendUpdateNotification(c,username);err!=nil{
+		c.Logger().Error("Error sending update notifiation : ",err)
 	}
 	return c.JSON(http.StatusOK, invitations)
 }
@@ -387,7 +398,7 @@ func (app *Application)CreateTask(c echo.Context) error {
 
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		c.Logger().Warn(MapMessage("error converting to string", err.Error()))
+		c.Logger().Warn("error converting to string", err.Error())
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid project ID"})
 	}
 	//gonna use this hack for now, will think of a better way later
@@ -419,7 +430,7 @@ func (app *Application)CreateTask(c echo.Context) error {
 	t.Createdby = username
 
 	if err := app.models.Task.Create(c.Request().Context(), t); err != nil {
-		c.Logger().Error(MapMessage("Error creating task", err.Error()))
+		c.Logger().Error("Error creating task", err.Error())
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "An error occured"})
 	}
 	u := models.Update{
@@ -439,13 +450,13 @@ func (app *Application) GetTasks(c echo.Context) error {
 func (app *Application) GetTaskByID(c echo.Context) error {
 	id, err := strconv.Atoi(c.Param("taskID"))
 	if err != nil {
-		c.Logger().Error(MapMessage("error converting to string", err.Error()))
-		return c.JSON(http.StatusNotFound, MapMessage("error", "task not found"))
+		c.Logger().Error("error converting to string", err.Error())
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "task not found"})
 	}
 	task, err := app.models.Task.GetTaskByID(c.Request().Context(), id)
 	if err != nil {
-		c.Logger().Error(MapMessage("Error retrieving task", err.Error()))
-		return c.JSON(http.StatusInternalServerError, MapMessage("error", "failed to retrieve task"))
+		c.Logger().Error("Error retrieving task", err.Error())
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to retrieve task"})
 	}
 
 	return c.JSON(http.StatusOK, task)
@@ -487,10 +498,10 @@ func (app *Application) UpdateUserTask(c echo.Context) error {
 	v := validator.New()
 	id, err := strconv.Atoi(c.Param("taskID"))
 	if err != nil {
-		return c.JSON(http.StatusNotFound, MapMessage("error", "task not found"))
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "task not found"})
 	}
 	if err := c.Bind(&status); err != nil {
-		return c.JSON(http.StatusBadRequest, MapMessage("error", "invalid request"))
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request"})
 	}
 	v.Check(
 		status.TaskStatus == "completed" || status.TaskStatus == "pending",
@@ -525,7 +536,7 @@ func (app *Application) UpdateManagerTask(c echo.Context) error {
 
 	if err := c.Bind(&t); err != nil {
 		c.Logger().Warn("Failed to bind request body: ", err)
-		return c.JSON(http.StatusBadRequest, MapMessage("error", "Invalid request"))
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request"})
 	}
 
 	v.Check(
@@ -541,7 +552,7 @@ func (app *Application) UpdateManagerTask(c echo.Context) error {
 
 	if !t.AssignedUsername.Valid {
 		c.Logger().Warn("Task submission missing assigned user")
-		return c.JSON(http.StatusBadRequest, MapMessage("error", "Task must be assigned to a user"))
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Task must be assigned to a user"})
 	}
 
 	if t.Approved.Bool {
@@ -550,7 +561,7 @@ func (app *Application) UpdateManagerTask(c echo.Context) error {
 
 	if err := app.models.Task.UpdateManagerTask(c.Request().Context(), t); err != nil {
 		c.Logger().Error("Error updating task in DB: ", err)
-		return c.JSON(http.StatusInternalServerError, MapMessage("error", "Internal server error"))
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Internal server error"})
 	}
 
 	return c.JSON(http.StatusOK, "Updated successfully")
@@ -607,31 +618,39 @@ func (app *Application)ApproveTask(c echo.Context) error {
 		log.Println("error inside update manager")
 		if errors.Is(err, models.ErrRecordNotFound) {
 			c.Logger().Warn("Task not found :", err)
-			return c.JSON(http.StatusNotFound, MapMessage("message", models.ErrRecordNotFound.Error()))
+			return c.JSON(http.StatusNotFound, map[string]string{"error": "task not found"})
 		}
 		c.Logger().Error("error approving task : ", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to update task"})
 	}
-	log.Println("error after update manager")
 
-	u := models.Update{
-		Msg: fmt.Sprintf(
-			"Task %s assigned to %s %s by %s",
-			t.TaskName,
-			t.AssignedUsername.String,
-			map[bool]string{true: "approved", false: "disapproved"}[t.Approved.ValueOrZero()],
-			username,
-		),
-		TargetType:     "user",
-		TargetUsername: t.AssignedUsername,
+	msg,err:=app.GenerateUpdateMessage(c.Request().Context(),t);if err!=nil{
+		c.Logger().Error("error generating update message : ", err)
 	}
-	SetNotifyContext(c, u.Msg, u.TargetType, u.TargetUsername.String)
+	log.Println("generated msg: ",msg)
+	if err:=app.models.Update.CreateUpdate(c.Request().Context(),projectID,msg,username,"user",&t.AssignedUsername.String);err!=nil{
+		switch err{
+		case sql.ErrNoRows:
+			return c.JSON(http.StatusNotFound,map[string]string{"error":"update id not found"})
+		default:
+			c.Logger().Error("Error updating updates: ",err)
+			return c.JSON(http.StatusInternalServerError,map[string]string{"error":"internal server error"})
+		}
+	}
+
+	if err:=app.SendUpdateNotification(c,t.AssignedUsername.String);err!=nil{
+		c.Logger().Error("Error sending update notification: ",err)
+	}
+	
 	return c.JSON(http.StatusOK, map[string]string{"message": "task approved successfully"})
 }
 
 func (app *Application)ManagerRestrictedTask(c echo.Context) error {
 	var t models.Task
-	
+	projectID,err:=strconv.Atoi(c.Param("id"));if err!=nil{
+		return c.JSON(http.StatusNotFound, "Invalid task ID")
+	}
+
 	if err := c.Bind(&t); err != nil {
 		c.Logger().Error("error reading json,", err)
 		return c.JSON(http.StatusBadRequest, "Invalid request body")
@@ -641,7 +660,7 @@ func (app *Application)ManagerRestrictedTask(c echo.Context) error {
 	taskID, err := strconv.Atoi(id); if err != nil {
 		return c.JSON(http.StatusNotFound, "Invalid task ID")
 	}
-
+	username:=c.Get(sessionvar.USERNAME).(string)
 	t.TaskID = taskID
 	v:=ValidateManagerUpdate(t)
 	if !v.Valid() {
@@ -655,19 +674,25 @@ func (app *Application)ManagerRestrictedTask(c echo.Context) error {
 	if err := app.models.Task.UpdateManagerTask(c.Request().Context(), t); err != nil {
 		if errors.Is(err, models.ErrRecordNotFound) {
 			c.Logger().Warn("Task not found :", err)
-			return c.JSON(http.StatusNotFound, MapMessage("message", models.ErrRecordNotFound.Error()))
+			return c.JSON(http.StatusNotFound, map[string]string{"error":"task not found"})
 		}
 		c.Logger().Error("error updating manager task : ", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to update task"})
 	}
-	u := models.Update{
-		Msg: msg,
-		TargetType:     "user",
-		TargetUsername: t.AssignedUsername,
+
+	if err:=app.models.Update.CreateUpdate(c.Request().Context(),projectID,msg,username,"user",&t.AssignedUsername.String);err!=nil{
+		switch err{
+		case sql.ErrNoRows:
+			return c.JSON(http.StatusNotFound,map[string]string{"error":"update id not found"})
+		default:
+			c.Logger().Error("Error updating updates: ",err)
+			return c.JSON(http.StatusInternalServerError,map[string]string{"error":"internal server error"})
+		}
 	}
 
-	SetNotifyContext(c, u.Msg, u.TargetType, u.TargetUsername.String)
-
+	if err:=app.SendUpdateNotification(c,t.AssignedUsername.String);err!=nil{
+		c.Logger().Error("Error sending update notification: ",err)
+	}
 	return c.JSON(http.StatusOK, "task approved")
 }
 
@@ -684,14 +709,14 @@ func (app *Application) GetPert(c echo.Context) error {
 	data, result, err := GetAnalytics(&app.models.Pert, c.Request().Context(), projectID)
 	if err != nil {
 		if errors.Is(err, models.ErrRecordNotFound) {
-			return c.JSON(http.StatusNotFound, MapMessage("message", "No data CPM related data found"))
+			return c.JSON(http.StatusNotFound, map[string]string{"message": "No data CPM related data found"})
 		}
 		if errors.Is(err, ErrFetchingResult) {
 			r.Data = data
 			return c.JSON(http.StatusPartialContent, r.Data)
 		}
 		c.Logger().Error("error getting cpm values : ", err)
-		return c.JSON(http.StatusInternalServerError, MapMessage("error", "Error getting CPM data"))
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Error getting CPM data"})
 	}
 	r.Data = data
 	r.Result = result.Result
@@ -723,9 +748,9 @@ func (app *Application) CreatePert(c echo.Context) error {
 	}
 	if err := Calculate[models.Pert, *models.PertModel[models.Pert]](&app.models.Pert, c.Request().Context(), pert[0].ParentProjectID); err != nil {
 		c.Logger().Error("Error calculating pert : ", err)
-		return c.JSON(http.StatusInternalServerError, MapMessage("Error", "Failed to calculate values"))
+		return c.JSON(http.StatusInternalServerError, map[string]string{"Error": "Failed to calculate values"})
 	}
-	return c.JSON(http.StatusOK, MapMessage("PERT", "data and result inserted successfully"))
+	return c.JSON(http.StatusOK, map[string]string{"PERT": "data and result inserted successfully"})
 }
 
 func (app *Application) GetCpm(c echo.Context) error {
@@ -743,14 +768,14 @@ func (app *Application) GetCpm(c echo.Context) error {
 	data, result, err := GetAnalytics(&app.models.Cpm, c.Request().Context(), projectID)
 	if err != nil {
 		if errors.Is(err, models.ErrRecordNotFound) {
-			return c.JSON(http.StatusNotFound, MapMessage("message", "No data CPM related data found"))
+			return c.JSON(http.StatusNotFound, map[string]string{"message": "No data CPM related data found"})
 		}
 		if errors.Is(err, ErrFetchingResult) {
 			r.Data = data
 			return c.JSON(http.StatusPartialContent, r.Data)
 		}
 		c.Logger().Error("error getting cpm values : ", err)
-		return c.JSON(http.StatusInternalServerError, MapMessage("error", "Error getting CPM data"))
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Error getting CPM data"})
 	}
 	r.Data = data
 	r.Result = result.Result
@@ -786,10 +811,16 @@ func (app *Application) GetAllUpdates(c echo.Context) error {
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			c.Logger().Warn("not updates : ", err)
-			return c.JSON(http.StatusNotFound, MapMessage("error", "No updates found"))
+			return c.JSON(http.StatusNotFound, map[string]string{"error": "No updates found"})
 		}
 		c.Logger().Error("error getting updates : ", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+	}
+	if err:=app.models.Update.SetRead(c.Request().Context(),username);err!=nil{
+		c.Logger().Error("Error updating status of hasread column: ",err)
+	}
+	if err:=app.SendUpdateNotification(c,username);err!=nil{
+		c.Logger().Error("Error sending update notifiation : ",err)
 	}
 	return c.JSON(http.StatusOK, updates)
 }
@@ -805,10 +836,16 @@ func (app *Application) GetProjectUpdates(c echo.Context) error {
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			c.Logger().Warn("not updates : ", err)
-			return c.JSON(http.StatusNotFound, MapMessage("error", "No updates found"))
+			return c.JSON(http.StatusNotFound, map[string]string{"error": "No updates found"})
 		}
 		c.Logger().Error("error getting updates : ", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+	}
+	if err:=app.models.Update.SetRead(c.Request().Context(),username);err!=nil{
+		c.Logger().Error("Error updating status of hasread column: ",err)
+	}
+	if err:=app.SendUpdateNotification(c,username);err!=nil{
+		c.Logger().Error("Error sending update notifiation : ",err)
 	}
 	return c.JSON(http.StatusOK, updates)
 }

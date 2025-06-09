@@ -173,3 +173,30 @@ func (i *InvitationModel)GetInvitationByID(ctx context.Context, invitationID int
 	}
 	return &invitation, nil
 }
+
+func (i *InvitationModel)GetTotalUnreadInvitation(ctx context.Context, username string)(int,error){
+	var count int 
+
+	query:=`
+		SELECT COUNT(*)
+		FROM invitation
+		WHERE username=$1
+		AND hasread=false
+	`
+	if err:=i.DB.QueryRow(ctx,query,username).Scan(&count);err!=nil{
+		return -1,err
+	}
+	return count,nil
+}
+
+func (i *InvitationModel)SetRead(ctx context.Context, username string)(error){
+	query:=`
+		UPDATE invitation
+		SET hasread=true
+		WHERE username=$1 
+	` 
+	_,err:=i.DB.Exec(ctx,query,username); if err!=nil{
+		return err
+	}
+	return nil
+}
