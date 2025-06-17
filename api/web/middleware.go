@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/Raaffs/FluxMap/internal/sessionVar"
 	"github.com/labstack/echo/v4"
@@ -60,51 +59,4 @@ func (app *Application)AdminLevelAccess(next echo.HandlerFunc)echo.HandlerFunc{
 		}
 		return next(c)
 	})
-}
-
-func (app *Application) SendNotification(next echo.HandlerFunc) echo.HandlerFunc {
-    return func(c echo.Context) error {
-        id:=c.Param("id")
-        projectID,err:=strconv.Atoi(id);if err!=nil{
-            c.Logger().Error("Error sending notification, invalid projectid : ",err)
-        }
-        log.Println("projectid ",projectID)
-        // Defer notification, so it's only sent if the handler executes successfully
-        defer func() {
-            // var targetUsername *string
-
-            // username:=c.Get(sessionvar.USERNAME).(string);
-            // log.Println("username : ",username)
-            // msg,ok:=c.Get(NOTIFY_MSG).(string);if !ok {c.Logger().Error("error converting notify msg to string. message: ",msg)}
-            // targetType,ok:=c.Get(NOTIFY_TARGET_TYPE).(string);if !ok {c.Logger().Error("error converting notify target type to string, target type: ",targetType)}
-            
-            // if targetType=="user"{
-            //     tu,ok:=c.Get(NOTIFY_TARGET_USERNAME).(string);if ok {
-            //         targetUsername=&tu
-            //     }
-            // }
-            // if err!=nil{
-            //     c.Logger().Error("Error sending notification: ", err)
-            //     return
-            // }
-            // if c.Response().Status >= 200 && c.Response().Status < 300 { // Only proceed if the handler succeeds
-            //     if err := app.models.Update.CreateUpdate(c.Request().Context(), projectID, msg, username, targetType, targetUsername); err != nil {
-            //         c.Logger().Error("Error sending notification\nerror creating notification: ", err)
-            //             return 
-            //     }
-            //     if targetType=="user"{
-            //         count,err:=app.models.Update.GetTotalUnreadUpdates(c.Request().Context(),*targetUsername);if err!=nil{
-            //             log.Println("Error getting total unread updates: ",err)
-            //         }
-            //         errchan:=app.websocket.PushToClients([]byte(strconv.Itoa(count)),
-            //             func(w WSUser) bool {
-            //             return w.Username==*targetUsername
-            //         })
-            //         app.CheckChannelError(c,errchan)
-            //     }
-            // }
-            // c.Logger().Print(err)
-        }()
-        return next(c)
-    }
 }

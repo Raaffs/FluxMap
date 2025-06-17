@@ -18,6 +18,7 @@ import { tokens } from "../theme";
 import { tasks } from "../hooks/types";
 import CreateTaskModal from "./modals/createTask";
 import PopUp from "../scenes/global/Popup";
+import { log } from "console";
 export const ProjectTaskDetailPage = ({
   tasks,
   //to re-renders the component on adding/modifying a task
@@ -38,7 +39,7 @@ export const ProjectTaskDetailPage = ({
     taskID: 0, // Set to 0 or another default value if necessary
     taskName: "",
     taskDescription: "",
-    taskStatus: "",
+    taskStatus: "pending",
     taskStartDate: null,
     taskDueDate: null,
     parentProjectID: Number(id), // Assuming the project ID is available
@@ -48,19 +49,20 @@ export const ProjectTaskDetailPage = ({
     taskApprovedDate: null,
     createdBy: "",
   });
-  const [error, setError] = useState<string | null>(null); // Define error state
+  const [error, setError] = useState<any | null>(null); // Define error state
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
 
   const handleOpenNewTaskModal = () => setOpenNewTaskModal(true);
   const handleCloseNewTaskModal = () => {
     setOpenNewTaskModal(false);
+    // setIsEditTask(false)
     setError(null); // Reset errors when closing modal
   };
 
   const handleCreateNewTask = async () => {
     try {
-      if (!newTask.taskName || !newTask.assignedUsername) {
+      if (!newTask.taskName ) {
         setError("Task Name and Assigned User are required.");
         return;
       }
@@ -73,6 +75,7 @@ export const ProjectTaskDetailPage = ({
           ? new Date(newTask.taskStartDate).toISOString()
           : null,
       };
+
       const response = await fetch(
         `http://localhost:4000/api/project/${id}/task`,
         {
@@ -87,24 +90,30 @@ export const ProjectTaskDetailPage = ({
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error(errorData);
-        setError(
-          errorData.error || "Failed to save the task. Please try again."
-        );
+        console.log(response)
+        console.log("err data: ,",errorData)
+         const errors = [
+           errorData.error,
+          errorData.Errors.description,
+          errorData.Errors.name,
+          errorData.Errors.email,
+          errorData.Errors.phone,
+        ].filter(Boolean).join('\n'); 
+        setError(errors);
+        handleOpenNewTaskModal()
       } else {
+        handleCloseNewTaskModal()
         setFetchTrigger(true);
-        console.log("created task new task");
+
       }
     } catch (err) {
       console.error("Failed to create task", err);
     } finally {
-      handleCloseNewTaskModal();
     }
   };
 
   const updateTask = async () => {
     try {
-      console.log("new updaated task : ",newTask)
       const response = await fetch(
         `http://localhost:4000/api/project/${id}/task/${newTask.taskID}/manager`,
         {
@@ -133,32 +142,33 @@ export const ProjectTaskDetailPage = ({
           data.Errors.description,
           data.Errors.name,
           data.Errors.email,
-          data.Errors.phone
-        ].filter(Boolean).join('\n'); // Or use '\n' if you want line breaks
-        
+          data.Errors.phone,
+          data.error
+        ].filter(Boolean).join('\n'); 
         setError(errors);
+      }
+      if(response.ok){
+        setOpenNewTaskModal(false)
       }
     } catch (err) {
       console.error("failed to udate task" ,err);
-      setError("Something went wrong while updating the task");
+      setError(err);
     } finally {
-      setFetchTrigger(true); // re-fetch like a boss
+      setIsEditTask(false)
+      setOpenNewTaskModal(false)
     }
   };
 
   const toggleApproval = async (taskID: number, approved: boolean) => {
     let task = tasks.find((task) => task.taskID === Number(taskID));
     if (task) {
-      console.log("updated task: ", task);
       task.approved = !approved;
     }
-
-    console.log("updated task: ", task);
 
     try {
       const response = await fetch(
         `http://localhost:4000/api/project/${id}/task/${taskID}/approve`,
-        {
+        { 
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -186,7 +196,6 @@ export const ProjectTaskDetailPage = ({
         }
       );
       if (response.ok) {
-
       } else {
         setError("Failed to update approval status");
       }
@@ -203,7 +212,6 @@ export const ProjectTaskDetailPage = ({
     status: string,
     username: string
   ) => {
-    console.log("status: ", status);
     try {
       const response = await fetch(
         `http://localhost:4000/api/project/${id}/task/${taskID}`,
@@ -463,7 +471,6 @@ export const ProjectTaskDetailPage = ({
         </Button>
       </Box>
       <DataGrid rows={rows} columns={columns} />
-      {/*Create new task modal*/}
       <CreateTaskModal
         open={openNewTaskModal}
         newTask={newTask}

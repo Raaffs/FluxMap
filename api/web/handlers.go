@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -147,7 +146,6 @@ func (app *Application) CreateProject(c echo.Context) error {
 
 	// Bind JSON payload to the project struct
 	if err := c.Bind(&p); err != nil {
-		log.Println("Error json: ", err)
 		return c.JSON(http.StatusBadRequest, map[string]string{
 			"error": "Invalid JSON payload222",
 		})
@@ -328,7 +326,9 @@ func (app *Application) Invite(c echo.Context) error {
 
 func (app *Application) GetInvitations(c echo.Context) error {
 	username := c.Get(sessionvar.USERNAME).(string)
-
+	_,err:=strconv.Atoi(c.Param("id"));if err!=nil{
+		c.JSON(http.StatusBadRequest,map[string]string{"error":"invalid projectID" })
+	}
 	invitations, err := app.models.Invitation.GetPendingInvitations(c.Request().Context(), username)
 	if err != nil {
 
@@ -338,9 +338,7 @@ func (app *Application) GetInvitations(c echo.Context) error {
 	if err:=app.models.Invitation.SetRead(c.Request().Context(),username);err!=nil{
 		c.Logger().Error("Error updating status of hasread column: ",err)
 	}
-	if err:=app.SendUpdateNotification(c,username);err!=nil{
-		c.Logger().Error("Error sending update notifiation : ",err)
-	}
+	
 	return c.JSON(http.StatusOK, invitations)
 }
 
@@ -396,49 +394,27 @@ func (app *Application)CreateTask(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid Json payload"})
 	}
 
-	id, err := strconv.Atoi(c.Param("id"))
+	projectID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.Logger().Warn("error converting to string", err.Error())
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid project ID"})
 	}
-	//gonna use this hack for now, will think of a better way later
-	isAdmin, ok := c.Get("isAdmin").(bool)
-	if !ok {
-		isAdmin = false
+	if accepted:=app.CheckInvitationStatus(c,t,projectID,username);!accepted{
+		return nil
 	}
-	//check if they're part of project
-	accepted, err := app.models.Invitation.HasAcceptedInvitation(c.Request().Context(), id, t.AssignedUsername.String)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			c.Logger().Warn("user is has not accepted invitation")
-			return c.JSON(http.StatusForbidden, map[string]string{"error": "User isn't part of the project or hasn't accepted the invitation yet"})
-		}
-		c.Logger().Error("error getting invitation status: ", err)
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "internal server error"})
-	}
-	if !accepted && !isAdmin {
-		c.Logger().Warn("user is has not accepted invitation")
-		return c.JSON(http.StatusForbidden, map[string]string{"error": "User isn't part of the project or hasn't accepted the invitation yet"})
-	}
+
 	v:=ValidateTask(t)
 	if !v.Valid(){
-		c.Logger().Warn("invalid task : ",v.Errors)
-		return c.JSON(http.StatusBadRequest,map[string]string{"error":"invalid task format"})	
+		c.Logger().Error("invalid task : ",v.Errors)
+		return c.JSON(http.StatusBadRequest,v)	
 	}
-	t.ParentProjectID = id
 
+	t.ParentProjectID = projectID
 	t.Createdby = username
-
 	if err := app.models.Task.Create(c.Request().Context(), t); err != nil {
 		c.Logger().Error("Error creating task", err.Error())
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "An error occured"})
 	}
-	u := models.Update{
-		Msg:            fmt.Sprintf("Task %s created by %s assigned to %s", t.TaskName, username, t.AssignedUsername.String),
-		TargetType:     "user",
-		TargetUsername: t.AssignedUsername,
-	}
-	SetNotifyContext(c, u.Msg, u.TargetType, u.TargetUsername.String)
 	return c.JSON(http.StatusOK, "task created")
 }
 
@@ -569,22 +545,22 @@ func (app *Application) UpdateManagerTask(c echo.Context) error {
 
 func (app *Application)ApproveTask(c echo.Context) error {
 	var t models.Task
-	username := c.Get(sessionvar.USERNAME).(string)
 	projectID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.Logger().Warn("Error converting project id from string to int : ", err)
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid project ID"})
 	}
+
 	id := c.Param("taskID")
 	taskID, err := strconv.Atoi(id)
 	if err != nil {
 		return c.JSON(http.StatusNotFound, "Invalid task ID")
 	}
-
 	if err := c.Bind(&t); err != nil {
 		c.Logger().Warn("Error reading json: ", err)
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request"})
 	}
+
 	t.TaskID = taskID
 
 	accepted, err := app.models.Invitation.HasAcceptedInvitation(c.Request().Context(), projectID, t.AssignedUsername.String)
@@ -592,6 +568,9 @@ func (app *Application)ApproveTask(c echo.Context) error {
 		c.Logger().Error("Error getting invitation status: ", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Internal server error"})
 	}
+	// Since the project admin isn't listed in the invitation table,
+	// we need to verify if the user is the admin,
+	// as the admin is obviously part of their own project.
 	isAdmin, ok := c.Get("isAdmin").(bool)
 	if !ok {
 		isAdmin = false
@@ -603,19 +582,17 @@ func (app *Application)ApproveTask(c echo.Context) error {
 
 	v := ValidateManagerUpdate(t)
 	if !v.Valid() {
-
 		c.Logger().Error("Validation failed for task: ", v.Errors)
 		return c.JSON(http.StatusBadRequest, v)
 	}
+
 	if t.Approved.ValueOrZero() {
 		t.TaskApprovedDate = null.NewTime(time.Now(), true)
 	} else {
 		t.TaskApprovedDate = null.NewTime(time.Time{}, false)
 	}
 
-
 	if err := app.models.Task.UpdateManagerTask(c.Request().Context(), t); err != nil {
-		log.Println("error inside update manager")
 		if errors.Is(err, models.ErrRecordNotFound) {
 			c.Logger().Warn("Task not found :", err)
 			return c.JSON(http.StatusNotFound, map[string]string{"error": "task not found"})
@@ -627,18 +604,8 @@ func (app *Application)ApproveTask(c echo.Context) error {
 	msg,err:=app.GenerateUpdateMessage(c.Request().Context(),t);if err!=nil{
 		c.Logger().Error("error generating update message : ", err)
 	}
-	log.Println("generated msg: ",msg)
-	if err:=app.models.Update.CreateUpdate(c.Request().Context(),projectID,msg,username,"user",&t.AssignedUsername.String);err!=nil{
-		switch err{
-		case sql.ErrNoRows:
-			return c.JSON(http.StatusNotFound,map[string]string{"error":"update id not found"})
-		default:
-			c.Logger().Error("Error updating updates: ",err)
-			return c.JSON(http.StatusInternalServerError,map[string]string{"error":"internal server error"})
-		}
-	}
-
-	if err:=app.SendUpdateNotification(c,t.AssignedUsername.String);err!=nil{
+	
+	if err:=app.UpdateCountAndNotify(c,projectID,msg,t.AssignedUsername.String);err!=nil{
 		c.Logger().Error("Error sending update notification: ",err)
 	}
 	
@@ -660,17 +627,18 @@ func (app *Application)ManagerRestrictedTask(c echo.Context) error {
 	taskID, err := strconv.Atoi(id); if err != nil {
 		return c.JSON(http.StatusNotFound, "Invalid task ID")
 	}
-	username:=c.Get(sessionvar.USERNAME).(string)
+
 	t.TaskID = taskID
 	v:=ValidateManagerUpdate(t)
 	if !v.Valid() {
-		log.Println("error : ",v.Errors)
 		c.Logger().Error(v)
 		return c.JSON(http.StatusBadRequest, v.Errors)
 	}
+
 	msg,err:=app.GenerateUpdateMessage(c.Request().Context(),t);if err!=nil{
 		c.Logger().Error("error generating update message : ", err)
 	}
+
 	if err := app.models.Task.UpdateManagerTask(c.Request().Context(), t); err != nil {
 		if errors.Is(err, models.ErrRecordNotFound) {
 			c.Logger().Warn("Task not found :", err)
@@ -679,20 +647,11 @@ func (app *Application)ManagerRestrictedTask(c echo.Context) error {
 		c.Logger().Error("error updating manager task : ", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to update task"})
 	}
-
-	if err:=app.models.Update.CreateUpdate(c.Request().Context(),projectID,msg,username,"user",&t.AssignedUsername.String);err!=nil{
-		switch err{
-		case sql.ErrNoRows:
-			return c.JSON(http.StatusNotFound,map[string]string{"error":"update id not found"})
-		default:
-			c.Logger().Error("Error updating updates: ",err)
-			return c.JSON(http.StatusInternalServerError,map[string]string{"error":"internal server error"})
-		}
-	}
-
-	if err:=app.SendUpdateNotification(c,t.AssignedUsername.String);err!=nil{
+	
+	if err:=app.UpdateCountAndNotify(c,projectID,msg,t.AssignedUsername.String);err!=nil{
 		c.Logger().Error("Error sending update notification: ",err)
 	}
+
 	return c.JSON(http.StatusOK, "task approved")
 }
 
@@ -819,9 +778,16 @@ func (app *Application) GetAllUpdates(c echo.Context) error {
 	if err:=app.models.Update.SetRead(c.Request().Context(),username);err!=nil{
 		c.Logger().Error("Error updating status of hasread column: ",err)
 	}
-	if err:=app.SendUpdateNotification(c,username);err!=nil{
-		c.Logger().Error("Error sending update notifiation : ",err)
+	count,err:=app.models.Update.GetTotalUnreadUpdates(c.Request().Context(),username);if err!=nil{
+		c.Logger().Error("Error getting total updates: ",err)
 	}
+
+	errchan:=app.websocket.PushToClients([]byte(strconv.Itoa(count)),
+		func(w WSUser) bool {
+		return w.Username==username
+	})
+
+	app.CheckChannelError(errchan)
 	return c.JSON(http.StatusOK, updates)
 }
 
@@ -844,8 +810,17 @@ func (app *Application) GetProjectUpdates(c echo.Context) error {
 	if err:=app.models.Update.SetRead(c.Request().Context(),username);err!=nil{
 		c.Logger().Error("Error updating status of hasread column: ",err)
 	}
-	if err:=app.SendUpdateNotification(c,username);err!=nil{
-		c.Logger().Error("Error sending update notifiation : ",err)
+
+	count,err:=app.models.Update.GetTotalUnreadUpdates(c.Request().Context(),username);if err!=nil{
+		c.Logger().Error("Error getting total updates: ",err)
 	}
+
+	errchan:=app.websocket.PushToClients([]byte(strconv.Itoa(count)),
+		func(w WSUser) bool {
+		return w.Username==username
+	})
+
+	app.CheckChannelError(errchan)
+	
 	return c.JSON(http.StatusOK, updates)
 }

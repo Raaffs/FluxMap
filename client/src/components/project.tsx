@@ -72,9 +72,7 @@ export const ProjectComponent = ({ URI }: { URI: string }) => {
   };
 
   const handleOpenModal = () => {
-    console.log("opened");
     setModalOpen(true);
-    console.log(modalOpen);
   };
   const handleCloseModal = () => setModalOpen(false);
 

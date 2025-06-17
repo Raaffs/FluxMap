@@ -76,11 +76,11 @@ func (app *Application)RegisterRoutes(e *echo.Echo){
 	
 	// Task routes
 	e.GET("/api/project/:id/tasks", app.GetTasks, IsAuthorizedUser)
-	e.POST("/api/project/:id/task", app.CreateTask, app.ManagerLevelAccess, app.SendNotification)
+	e.POST("/api/project/:id/task", app.CreateTask, app.ManagerLevelAccess)
 	e.GET("/api/project/:id/task/:taskID", app.GetTaskByID, IsAuthorizedUser)
-	e.PUT("/api/project/:id/task/:taskID/manager", app.ManagerRestrictedTask, app.SendNotification, app.ManagerLevelAccess)
+	e.PUT("/api/project/:id/task/:taskID/manager", app.ManagerRestrictedTask, app.ManagerLevelAccess)
 
-	e.PUT("/api/project/:id/task/:taskID", app.UpdateUserTask, IsAuthorizedUser, app.SendNotification)
+	e.PUT("/api/project/:id/task/:taskID", app.UpdateUserTask, IsAuthorizedUser)
 
 	e.PUT("/api/project/:id/task/:taskID/approve", app.ApproveTask, app.ManagerLevelAccess)
 	e.PUT("/api/project/:id/task/:taskID/assign", app.ManagerRestrictedTask, app.ManagerLevelAccess)

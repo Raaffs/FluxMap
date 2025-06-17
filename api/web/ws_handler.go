@@ -2,11 +2,20 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"strconv"
 
 	sessionvar "github.com/Raaffs/FluxMap/internal/sessionVar"
 	"github.com/labstack/echo/v4"
+)
+
+
+type NotificationType string
+
+const(
+	InviteNotification="inviteNotification"
+	UpdateNotification="updateNotification"
 )
 
 func (app *Application)HandlWS(c echo.Context)error{
@@ -32,50 +41,66 @@ func (app *Application)HandlWS(c echo.Context)error{
 			return w.Username==username
 	})
 
-	app.CheckChannelError(c,errchan)
+	app.CheckChannelError(errchan)
 	return nil
 }
 
-
-func (app *Application)Send(ctx context.Context, username string){
-	if err:=app.models.Update.SetRead(ctx,username);err!=nil{
-		log.Println("Error updating read status : ")
+func (app *Application)UpdateCountAndNotify(c echo.Context,projectID int, msg, targetUsername string)error{
+	username:=c.Get(sessionvar.USERNAME).(string)
+	log.Println("Target user name in notify: ",targetUsername)
+	if err:=app.models.Update.CreateUpdate(c.Request().Context(),projectID,msg,username,"user",&targetUsername);err!=nil{
+			c.Logger().Error("Error updating updates: ",err)
+			return err
 	}
+	app.SendUpdateNotification(c.Request().Context(),targetUsername)
+
+	return nil
 }
 
-func (app *Application)SendUpdateNotification(c echo.Context, username string)error{
-	count,err:=app.models.Update.GetTotalUnreadUpdates(c.Request().Context(),username);if err!=nil{
-		return err
+func(app *Application)SendUpdateNotification(ctx context.Context, username string){
+
+	count,err:=app.models.Update.GetTotalUnreadUpdates(ctx,username);if err!=nil{
+		app.logger.Error("Error getting total updates: ",err)
+	}
+	m:=map[NotificationType]int{UpdateNotification:count}
+
+	msg,err:=json.Marshal(m);if err!=nil{
+		app.logger.Error("Error marshalling json: ",err)
+		return 
 	}
 
-	errchan:=app.websocket.PushToClients([]byte(strconv.Itoa(count)),
+	errchan:=app.websocket.PushToClients([]byte(msg),
 		func(w WSUser) bool {
 		return w.Username==username
 	})
 
-	app.CheckChannelError(c,errchan)
-	return nil
+	app.CheckChannelError(errchan)
 }
 
 func (app *Application)SendInviteNotification(c echo.Context, username string)error{
 	count,err:=app.models.Invitation.GetTotalUnreadInvitation(c.Request().Context(),username);if err!=nil{
 		return err
 	}
+	
+	m:=map[NotificationType]int{InviteNotification:count}
 
-	errchan:=app.websocket.PushToClients([]byte(strconv.Itoa(count)),
+	msg,err:=json.Marshal(m);if err!=nil{
+		return err
+	}
+	
+	errchan:=app.websocket.PushToClients(msg,
 		func(w WSUser) bool {
 		return w.Username==username
 	})
 
-	app.CheckChannelError(c,errchan)
+	app.CheckChannelError(errchan)
 	return nil
 }
 
-
-func (app *Application)CheckChannelError(c echo.Context, errchan <- chan error){
+func (app *Application)CheckChannelError( errchan <- chan error){
 	if len(errchan)!=0{
 		for err:=range errchan{
-			c.Logger().Warn("error pushing notification: ",err)
+			app.logger.Warn("error pushing notification: ",err)
 		}
 	}
 }

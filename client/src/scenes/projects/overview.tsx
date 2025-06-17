@@ -45,7 +45,6 @@ export const ProjectOverview = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   const [tasks, fetchLoading, fetchError] = useFetchTaskData(id, fetchTrigger,setFetchTrigger);
-  console.log("tasksksks: ",tasks)
   useEffect(() => {
     const fetchProjectOverviewByID = async () => {
       try {
@@ -60,7 +59,6 @@ export const ProjectOverview = () => {
           }
         );
         const data = await response.json();
-        console.log("data : ", data);
         setProject(data);
         setLoading(false);
       } catch (err) {
@@ -112,7 +110,6 @@ export const ProjectOverview = () => {
         );
       } else {
         setFetchTrigger(true);
-        console.log("created task new task");
       }
     } catch (err) {
       console.error("Failed to create task", err);

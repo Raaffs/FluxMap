@@ -1,4 +1,3 @@
-import React from "react";
 import { Box, IconButton, useTheme, Badge } from "@mui/material";
 import { useContext } from "react";
 import { ColorModeContext, tokens } from "../../theme";
@@ -10,8 +9,15 @@ import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
 import MarkunreadOutlinedIcon from "@mui/icons-material/MarkunreadOutlined";
 import SearchIcon from "@mui/icons-material/Search";
-const Topbar = (updateCount: any) => {
+import { useNavigate } from "react-router-dom";
+
+const Topbar = (
+  updateCount: any, 
+  invitationCount: any
+) => {
   const theme = useTheme();
+  console.log("Update count; ",updateCount)
+  const navigate=useNavigate()
   const colors = tokens(theme.palette.mode);
   const colorMode = useContext(ColorModeContext);
   console.log("inside top bar notification: ", updateCount);
@@ -38,15 +44,22 @@ const Topbar = (updateCount: any) => {
             <LightModeOutlinedIcon />
           )}
         </IconButton>
-        <IconButton>
-          <Badge badgeContent={
-            updateCount.updateCount!==""?updateCount.updateCount:null} color="error">
+        <IconButton
+          onClick={()=>{navigate('/updates')}}
+        >
+          <Badge
+            badgeContent={
+              updateCount.updateCount !== 0 || updateCount.updateCount!==undefined ? updateCount.updateCount : null
+            }
+            color="error"
+          >
             {" "}
-            {/* 5 = number of notifications */}
             <NotificationsOutlinedIcon />
           </Badge>
         </IconButton>
-        <IconButton>
+        <IconButton
+          onClick={()=>{navigate('/invitations')}}
+        >
           <MarkunreadOutlinedIcon />
         </IconButton>
         <IconButton>

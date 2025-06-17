@@ -118,11 +118,11 @@ func (i *InvitationModel) HasAcceptedInvitation(ctx context.Context, projectID i
 	if err != nil {
 
 		if errors.Is(err, sql.ErrNoRows) {
-			log.Println("error ",err)
+			log.Println("has not accepted: ",username)
 			return false, nil // not accepted
 		}
 		log.Println("false, error",err)
-		return false, err // something went boom
+		return false, err // something went wrong
 	}
 
 	return true, nil // yes, they accepted

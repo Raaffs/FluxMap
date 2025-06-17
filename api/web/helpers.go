@@ -199,7 +199,7 @@ func ValidateManagerUpdate(t models.Task)(*validator.Validator){
 	v:=validator.New()
 	
 	v.Check(
-		t.AssignedUsername.Valid,
+		t.AssignedUsername.Valid && t.AssignedUsername.String!="",
 		"user",
 		"no valid user",
 	)
@@ -251,7 +251,7 @@ func ValidateTask(t models.Task)(*validator.Validator){
 	)
 
 	v.Check(
-		validator.MinNameLength(t.TaskName),
+		validator.MinNameLength(t.TaskDescription.String) && t.TaskDescription.Valid,
 		validator.ErrDescriptionTooShort.Key,
 		validator.ErrDescriptionTooShort.Message,
 	)
@@ -265,6 +265,33 @@ func ValidateTask(t models.Task)(*validator.Validator){
 	return v
 }
 
+func (app *Application)CheckInvitationStatus(c echo.Context,t models.Task, projectID int, username string)bool{
+	//gonna use this hack for now, will think of a better way later
+	//10/6/25: this not a hack, it's permanent now. 
+	log.Println("assigned user: ",t.AssignedUsername)
+	isAdmin, ok := c.Get("isAdmin").(bool)
+	if !ok {
+		isAdmin = false
+	}
+	if isAdmin && t.AssignedUsername.String==username{
+		return true
+	}
+	//check if they're part of project
+	accepted, err := app.models.Invitation.HasAcceptedInvitation(c.Request().Context(), projectID, t.AssignedUsername.String)
+	if err != nil {
+		c.Logger().Error("error getting invitation status: ", err)
+		c.JSON(http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+		return false 
+	}
+	log.Println("accepted,err: ",accepted,err)
+	if !accepted {
+		c.Logger().Error("user has not accepted invitation")
+		c.JSON(http.StatusNotFound, map[string]string{"error": "User isn't part of the project or hasn't accepted the invitation yet"})
+		return false
+	}
+	return accepted
+}
+
 func (app *Application) GenerateUpdateMessage(ctx context.Context, updatedTask models.Task) (string, error) {
 	// Get the old task from DB
 	oldTask, err := app.models.Task.GetTaskByID(ctx, updatedTask.TaskID)
@@ -275,7 +302,7 @@ func (app *Application) GenerateUpdateMessage(ctx context.Context, updatedTask m
 	var messages []string
 
 	if updatedTask.TaskName != oldTask.TaskName {
-		messages = append(messages, fmt.Sprintf("Task name changeUpdate created by Mariad from \"%s\" to \"%s\".", oldTask.TaskName, updatedTask.TaskName))
+		messages = append(messages, fmt.Sprintf("Task name changed from \"%s\" to \"%s\".", oldTask.TaskName, updatedTask.TaskName))
 	}
 
 	if updatedTask.TaskDescription != oldTask.TaskDescription {

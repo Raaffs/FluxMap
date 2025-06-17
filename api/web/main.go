@@ -17,6 +17,7 @@ type Application struct{
 	env 			map[string]string
 	models			models.Models 
 	websocket		*ConnectionManager
+	logger 			echo.Logger
 }
 
 func main(){
@@ -36,9 +37,10 @@ func main(){
 		env:	envMap,
 		models: models.NewModels(conn),
 		websocket: NewConnectionManager(),
+		logger: echo.New().Logger,
 	}
 	router:=echo.New()
-
+	
 	app.LoadMiddleware(router)
 	app.RegisterRoutes(router)
 

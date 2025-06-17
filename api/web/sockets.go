@@ -19,7 +19,6 @@ type WSUser struct{
 
 type MessageJob struct {
 	Message []byte
-	Filter  func(WSUser) bool // If nil, broadcast to all
 	Errchan chan error
 }
 
@@ -121,12 +120,10 @@ func(client *WSUser)WriteMessage(job MessageJob,ok bool){
 		// Return to close the goroutine
 		return
 	}
-	log.Println("writing to: ",client.Username)
-	if job.Filter(*client){
-		if err:=client.Websocket.WriteMessage(websocket.TextMessage,job.Message);err!=nil{
-			job.Errchan<-err
-			return
-		}
+	
+	if err:=client.Websocket.WriteMessage(websocket.TextMessage,job.Message);err!=nil{
+		job.Errchan<-err
+		return
 	}
 }
 
@@ -139,13 +136,13 @@ func (cm *ConnectionManager) PushToClients(msg []byte, filter func(WSUser) bool)
 		cm.mutex.Lock()
 		defer cm.mutex.Unlock()
 		for _, client := range cm.Clients {
-			client.Send <- MessageJob{
-				Message: msg,
-				Filter:  filter,
-				Errchan: errchan,
+			if filter(*client){
+				client.Send <- MessageJob{
+					Message: msg,
+					Errchan: errchan,
+				}
 			}
 		}
 	}()
-	
 	return errchan
 }

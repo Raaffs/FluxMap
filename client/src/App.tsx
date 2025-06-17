@@ -24,8 +24,9 @@ import { useWebSocket } from "./hooks/websocket";
 function App() {
   const [theme, colorMode] = useMode();
   const [isSidebar, setIsSidebar] = useState(true);
-  const [updateCount, setUpdateCount]=useState("")
-  const [startWebSocket]=useWebSocket("ws://localhost:4000/api/ws",setUpdateCount)
+  const [updateCount, setUpdateCount]=useState(0)
+  const [invitationCount, setInvitationcount]=useState(0)
+  const [startWebSocket]=useWebSocket("ws://localhost:4000/api/ws",setUpdateCount,setInvitationcount)
   return (
     <AuthProvider>
       <ColorModeContext.Provider value={colorMode}>
@@ -34,7 +35,7 @@ function App() {
           <div className="App">
             {isSidebar && <SidebarEx />}
             <main className="content">
-              <Topbar updateCount={updateCount}/>
+              <Topbar updateCount={updateCount} invitationCount={invitationCount}/>
               <Routes>
                 {/* Public Routes */}
                 <Route path="/login" element={<LoginUser startWebSocket={startWebSocket} />} />
