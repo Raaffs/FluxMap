@@ -7,7 +7,6 @@ import Link from "@mui/material/Link";
 import Card from "@mui/material/Card";
 import Grid2 from "@mui/material/Grid2";
 import { useAuth } from "../../context/authContext";
-import { useEffect } from "react";
 interface userAuth {
   username: string;
   password: string;
@@ -39,11 +38,10 @@ const LoginUser: React.FC<{startWebSocket:()=>void}>= ({startWebSocket}) => {
         console.log(response)
         const errorData = await response.json();
         setError(errorData.error)
-        console.log("error logging in : ",errorData)
         throw new Error(errorData.error);
       }
       const data = await response.json(); // Parse the response data
-      console.log("Login successful:", data);
+      console.log("Login successful:", data.roles.admin);
       login()
       startWebSocket()
       navigate('/'); // Redirect to the home page
@@ -149,7 +147,5 @@ const LoginUser: React.FC<{startWebSocket:()=>void}>= ({startWebSocket}) => {
     </Box>
   );
 }
-
-
 
 export default LoginUser;

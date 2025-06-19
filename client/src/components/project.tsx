@@ -2,24 +2,21 @@ import React, { useState } from "react";
 import { useRetrieveProjectsFrom } from "../hooks/projects";
 import { usePostProject } from "../hooks/projects";
 import {
-  Card,
   Box,
   Typography,
   Button,
-  Modal,
   TextField,
   useTheme,
   FormControl,
-  InputLabel,
   Select,
   MenuItem,
-  SelectChangeEvent,
 } from "@mui/material";
 import { tokens } from "../theme";
 import LinearProgress from "@mui/material/LinearProgress";
 import { useNavigate } from "react-router-dom";
 import { Projects } from "../hooks/types";
 import CreateProjectModal from "./modals/createProject";
+
 export const ProjectComponent = ({ URI }: { URI: string }) => {
   const { projects, loading, error } = useRetrieveProjectsFrom(URI);
   const [searchQuery, setSearchQuery] = useState("");
@@ -351,14 +348,12 @@ export const ProjectComponent = ({ URI }: { URI: string }) => {
           onClick={() => navigate(`/project/${project.projectID}`)}
           sx={{
             display: "flex",
+            // borderColor: theme.palette.mode==="dark"?"grey.800":"#d0d7de",
             flexDirection: "column",
             textAlign: "left",
             alignItems: "flex-start",
             justifyContent: "flex-start",
-            borderBottom:
-              index !== sortedAndFilteredProjects.length - 1
-                ? "1px solid #e1e4e8"
-                : "none",
+            borderBottom: theme.palette.mode==="dark"?"1px solid #2E3C57":"1px solid #e1e4e8",
             py: 2,
             px: 2,
             cursor: "pointer",
@@ -366,7 +361,7 @@ export const ProjectComponent = ({ URI }: { URI: string }) => {
             borderRadius: "10px",
             "&:hover": {
               backgroundColor:
-                theme.palette.mode === "dark" ? "#2c2c2c" : "#f6f8fa",
+                theme.palette.mode === "dark" ? colors.blueAccent[700] : "#f6f8fa",
             },
           }}
         >

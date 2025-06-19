@@ -65,15 +65,13 @@ func(app *Application)SendUpdateNotification(ctx context.Context, username strin
 	m:=map[NotificationType]int{UpdateNotification:count}
 
 	msg,err:=json.Marshal(m);if err!=nil{
-		app.logger.Error("Error marshalling json: ",err)
 		return 
 	}
-
+	app.logger.Error("here is sent")
 	errchan:=app.websocket.PushToClients([]byte(msg),
 		func(w WSUser) bool {
 		return w.Username==username
 	})
-
 	app.CheckChannelError(errchan)
 }
 
@@ -81,7 +79,7 @@ func (app *Application)SendInviteNotification(c echo.Context, username string)er
 	count,err:=app.models.Invitation.GetTotalUnreadInvitation(c.Request().Context(),username);if err!=nil{
 		return err
 	}
-	
+
 	m:=map[NotificationType]int{InviteNotification:count}
 
 	msg,err:=json.Marshal(m);if err!=nil{

@@ -44,10 +44,6 @@ func main(){
 	app.LoadMiddleware(router)
 	app.RegisterRoutes(router)
 
-	// Start the global dispatcher goroutine that listens on ws.Send channel
-	// and broadcasts messages to connected clients.
-	// This ensures only one goroutine reads from the Send channel,
-	// preventing race conditions and message loss.
 	PORT:=fmt.Sprintf(":%s",app.env[env.API_PORT])
 	if err:=router.Start(PORT);err!=nil{
 		log.Fatal("Error starting server %w\n",err)

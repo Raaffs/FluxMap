@@ -22,7 +22,7 @@ export const ProjectOverview = () => {
       taskID: 0, // Set to 0 or another default value if necessary
       taskName: "",
       taskDescription: "",
-      taskStatus: "",
+      taskStatus: "pending",
       taskStartDate: null,
       taskDueDate: null,
       parentProjectID: Number(id), // Assuming the project ID is available

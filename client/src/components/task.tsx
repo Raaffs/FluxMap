@@ -12,7 +12,7 @@ import {
   Button,
   useTheme,
 } from "@mui/material";
-import EditIcon from '@mui/icons-material/Edit';
+import EditIcon from "@mui/icons-material/Edit";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { tokens } from "../theme";
 import { tasks } from "../hooks/types";
@@ -34,7 +34,7 @@ export const ProjectTaskDetailPage = ({
   const [currentDescription, setCurrentDescription] = useState("");
   const [selectedTaskID, setSelectedTaskID] = useState<number | null>(null);
   const [openNewTaskModal, setOpenNewTaskModal] = useState(false);
-  const [isEditTask,setIsEditTask]=useState(false)
+  const [isEditTask, setIsEditTask] = useState(false);
   const [newTask, setNewTask] = useState<tasks>({
     taskID: 0, // Set to 0 or another default value if necessary
     taskName: "",
@@ -62,7 +62,7 @@ export const ProjectTaskDetailPage = ({
 
   const handleCreateNewTask = async () => {
     try {
-      if (!newTask.taskName ) {
+      if (!newTask.taskName) {
         setError("Task Name and Assigned User are required.");
         return;
       }
@@ -90,21 +90,22 @@ export const ProjectTaskDetailPage = ({
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.log(response)
-        console.log("err data: ,",errorData)
-         const errors = [
-           errorData.error,
+        console.log(response);
+        console.log("err data: ,", errorData);
+        const errors = [
+          errorData.error,
           errorData.Errors.description,
           errorData.Errors.name,
           errorData.Errors.email,
           errorData.Errors.phone,
-        ].filter(Boolean).join('\n'); 
+        ]
+          .filter(Boolean)
+          .join("\n");
         setError(errors);
-        handleOpenNewTaskModal()
+        handleOpenNewTaskModal();
       } else {
-        handleCloseNewTaskModal()
+        handleCloseNewTaskModal();
         setFetchTrigger(true);
-
       }
     } catch (err) {
       console.error("Failed to create task", err);
@@ -132,30 +133,32 @@ export const ProjectTaskDetailPage = ({
             parentProjectId: newTask.parentProjectID,
             assignedUsername: newTask.assignedUsername,
             taskCompletedDate: newTask.taskCompletedDate,
-            approved: newTask.approved
+            approved: newTask.approved,
           }),
         }
       );
-      const data=await response.json()
+      const data = await response.json();
       if (!response.ok) {
         const errors = [
           data.Errors.description,
           data.Errors.name,
           data.Errors.email,
           data.Errors.phone,
-          data.error
-        ].filter(Boolean).join('\n'); 
+          data.error,
+        ]
+          .filter(Boolean)
+          .join("\n");
         setError(errors);
       }
-      if(response.ok){
-        setOpenNewTaskModal(false)
+      if (response.ok) {
+        setOpenNewTaskModal(false);
       }
     } catch (err) {
-      console.error("failed to udate task" ,err);
+      console.error("failed to udate task", err);
       setError(err);
     } finally {
-      setIsEditTask(false)
-      setOpenNewTaskModal(false)
+      setIsEditTask(false);
+      setOpenNewTaskModal(false);
     }
   };
 
@@ -168,7 +171,7 @@ export const ProjectTaskDetailPage = ({
     try {
       const response = await fetch(
         `http://localhost:4000/api/project/${id}/task/${taskID}/approve`,
-        { 
+        {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -428,18 +431,18 @@ export const ProjectTaskDetailPage = ({
       ),
     },
     {
-      field:"edit",
-      headerName:"edit",
-      renderCell: (params)=>(
+      field: "edit",
+      headerName: "edit",
+      renderCell: (params) => (
         <EditIcon
-          onClick={()=>{
-            setIsEditTask(true)
+          onClick={() => {
+            setIsEditTask(true);
             setOpenNewTaskModal(true);
-            setNewTask(params.row); 
+            setNewTask(params.row);
           }}
         />
-      )
-    }
+      ),
+    },
   ];
 
   const rows = tasks.map((task) => ({
@@ -459,7 +462,9 @@ export const ProjectTaskDetailPage = ({
     <Box
       sx={{ height: "100%", width: "99%", border: "5px", borderRadius: "10px" }}
     >
-      {error && <PopUp Error={error} Message="" onClose={()=> setError(null)}/>}
+      {error && (
+        <PopUp Error={error} Message="" onClose={() => setError(null)} />
+      )}
       <Box sx={{ padding: 1, display: "flex", justifyContent: "flex-end" }}>
         <Button
           onClick={handleOpenNewTaskModal} // Opens the modal
@@ -475,7 +480,7 @@ export const ProjectTaskDetailPage = ({
         open={openNewTaskModal}
         newTask={newTask}
         onClose={handleCloseNewTaskModal}
-        handleCreateNewTask={ isEditTask? updateTask : handleCreateNewTask}
+        handleCreateNewTask={isEditTask ? updateTask : handleCreateNewTask}
         setNewTask={setNewTask}
       />
       {/* Task Name Modal */}

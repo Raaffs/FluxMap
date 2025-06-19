@@ -77,18 +77,17 @@ func AppendToSessionArray(session *sessions.Session, key string, value int) erro
 	return nil
 }
 
-func (app *Application) CacheUserProjectsToSession(c echo.Context) error {
+func (app *Application) CacheUserProjectsToSession(c echo.Context) (map[string][]*models.Project, error) {
 	projectschan := make(chan ProjectResult)
 
 	sess, err := session.Get(sessionvar.SESSION_NAME, c)
 	if err != nil {
-		log.Println("sess in store session projects", sess.Values)
-		return err
+		return nil,err
 	}
 
 	username, ok := sess.Values[sessionvar.USERNAME].(string)
 	if !ok {
-		return c.JSON(http.StatusUnauthorized, "Unauthorized")
+		return nil,c.JSON(http.StatusUnauthorized, "Unauthorized")
 	}
 	ctx,cancel:=context.WithTimeout(c.Request().Context(),10*time.Second)
 	defer cancel()
@@ -97,7 +96,7 @@ func (app *Application) CacheUserProjectsToSession(c echo.Context) error {
 	projects := <-projectschan
 
 	if projects.Err != nil {
-		return c.JSON(http.StatusInternalServerError, "failed to fetch projects")
+		return nil, projects.Err
 	}
 
 	projectRoleMap := map[string][]*models.Project{
@@ -114,8 +113,7 @@ func (app *Application) CacheUserProjectsToSession(c echo.Context) error {
 			}
 		}
 	}
-	log.Println(sess.Values)
-	return nil
+	return projectRoleMap,err
 }
 
 

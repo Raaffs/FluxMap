@@ -22,7 +22,6 @@ func IsAuthorizedUser(next echo.HandlerFunc)echo.HandlerFunc{
 
 func(app *Application)ManagerLevelAccess(next echo.HandlerFunc) echo.HandlerFunc {
     return IsAuthorizedUser(func(c echo.Context) error {
-		
         username:=c.Get(sessionvar.USERNAME).(string)
 		isAdmin,err:=app.models.Users.IsAdmin(c.Request().Context(),username,c.Param("id"));if err!=nil{
 			c.Logger().Error("error getting access level: ",err)
