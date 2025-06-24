@@ -8,6 +8,16 @@ import {
   MenuItem,
 } from "@mui/material";
 
+
+interface PertRows {
+  parentTaskID: number; // Also update this field to match
+  predecessorTaskId?: number | string| null;
+  optimistic: number;
+  pessimistic: number;
+  mostLikely: number;
+  taskName?: string;
+}
+
 interface AddPertTaskModalProps {
   open: boolean;
   onClose: () => void;
@@ -16,14 +26,7 @@ interface AddPertTaskModalProps {
   pertTasks: PertRows[];
 }
 
-interface PertRows {
-    parentTaskID: number; // Also update this field to match
-    predecessorTaskId?: number | null;
-    optimistic: number;
-    pessimistic: number;
-    mostLikely: number;
-    taskName?: string;
-  }
+
   
 
 const AddPertTaskModal: React.FC<AddPertTaskModalProps> = ({

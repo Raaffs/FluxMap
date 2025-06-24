@@ -56,12 +56,12 @@ func (app *Application) Login(c echo.Context) error {
 		c.Logger().Error("error saving session: ", err)
 		return c.JSON(http.StatusInternalServerError, "error saving session")
 	}
-	projectRoleMap,err:= app.CacheUserProjectsToSession(c); if err!=nil{
+	roleToProjectMap,err:= app.CacheUserProjectsToSession(c); if err!=nil{
 		c.Logger().Error("Error caching projects : ",err)
 		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"interval server error"})
 	}
-
-	return c.JSON(http.StatusOK, map[string]any{"roles":projectRoleMap})
+	app.SendUpdateNotification(c.Request().Context(),u.Username)
+	return c.JSON(http.StatusOK, map[string]any{"roles":roleToProjectMap})
 }
 
 func (app *Application) Register(c echo.Context) error {
@@ -747,6 +747,21 @@ func (app *Application) GetAllUpdates(c echo.Context) error {
 
 	app.CheckChannelError(errchan)
 	return c.JSON(http.StatusOK, updates)
+}
+
+func (app *Application)RemoveTasks(c echo.Context)error{
+	taskID,err:=strconv.Atoi(c.Param("taskID"));if err!=nil{
+		return c.JSON(http.StatusBadRequest,map[string]string{"error":"Invalid task id"})
+	}
+	if err:=app.models.Task.Delete(c.Request().Context(),taskID); err!=nil{
+		if errors.Is(err,sql.ErrNoRows){
+			c.Logger().Errorf("Task with %d id not found. Error: %s",taskID,err)
+			return c.JSON(http.StatusNotFound,map[string]string{"error":"task not found"})
+		}
+		c.Logger().Error("Error deleting task : ",err)
+		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"internal server error"})
+	}
+	return c.JSON(http.StatusOK,map[string]string{"message":"Task successfully removed"})
 }
 
 func (app *Application) GetProjectUpdates(c echo.Context) error {

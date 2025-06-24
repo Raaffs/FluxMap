@@ -12,22 +12,24 @@ import {
   Button,
   useTheme,
 } from "@mui/material";
+import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import EditIcon from "@mui/icons-material/Edit";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { tokens } from "../theme";
-import { tasks } from "../hooks/types";
+import { tasks, UserRole } from "../hooks/types";
 import CreateTaskModal from "./modals/createTask";
 import PopUp from "../scenes/global/Popup";
-import { log } from "console";
 export const ProjectTaskDetailPage = ({
   tasks,
-  //to re-renders the component on adding/modifying a task
+  role,
   setFetchTrigger,
 }: {
   tasks: tasks[];
+  role: UserRole;
   setFetchTrigger: React.Dispatch<React.SetStateAction<boolean>>;
 }) => {
-  const { id } = useParams(); // Get the project id from the URL
+  const { id } = useParams();
   const [openTaskNameModal, setOpenTaskNameModal] = useState(false);
   const [openDescriptionModal, setOpenDescriptionModal] = useState(false);
   const [currentTaskName, setCurrentTaskName] = useState("");
@@ -35,6 +37,7 @@ export const ProjectTaskDetailPage = ({
   const [selectedTaskID, setSelectedTaskID] = useState<number | null>(null);
   const [openNewTaskModal, setOpenNewTaskModal] = useState(false);
   const [isEditTask, setIsEditTask] = useState(false);
+  const [allowedActions, setAllowedActions] = useState<string[]>([]);
   const [newTask, setNewTask] = useState<tasks>({
     taskID: 0, // Set to 0 or another default value if necessary
     taskName: "",
@@ -53,6 +56,15 @@ export const ProjectTaskDetailPage = ({
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
 
+  const PERMISSIONS = {
+    admin: ["view", "edit", "delete"],
+    manager: ["view", "edit"],
+    user: ["view"]
+  };
+
+  useEffect(() => {
+    setAllowedActions(PERMISSIONS[role]);
+  }, []);
   const handleOpenNewTaskModal = () => setOpenNewTaskModal(true);
   const handleCloseNewTaskModal = () => {
     setOpenNewTaskModal(false);
@@ -90,8 +102,6 @@ export const ProjectTaskDetailPage = ({
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.log(response);
-        console.log("err data: ,", errorData);
         const errors = [
           errorData.error,
           errorData.Errors.description,
@@ -289,7 +299,6 @@ export const ProjectTaskDetailPage = ({
           }
         );
         if (response.ok) {
-          // Update tasks state after task name change
           handleCloseModal();
         } else {
           setError("Failed to update task name");
@@ -314,7 +323,6 @@ export const ProjectTaskDetailPage = ({
           }
         );
         if (response.ok) {
-          // Update tasks state after description change
           handleCloseModal();
         } else {
           setError("Failed to update task description");
@@ -431,16 +439,33 @@ export const ProjectTaskDetailPage = ({
       ),
     },
     {
-      field: "edit",
-      headerName: "edit",
+      field: "action",
+      flex: 1.4,
+      headerName: "Actions",
       renderCell: (params) => (
-        <EditIcon
-          onClick={() => {
-            setIsEditTask(true);
-            setOpenNewTaskModal(true);
-            setNewTask(params.row);
-          }}
-        />
+        <div>
+          {allowedActions.includes("edit") && (
+            <EditIcon
+              sx={{ color: colors.blueAccent[400], borderRadius: "1px" }}
+              onClick={() => {
+                setIsEditTask(true);
+                setOpenNewTaskModal(true);
+                setNewTask(params.row);
+              }}
+            />
+          )}
+          {allowedActions.includes("view") && (
+            <VisibilityIcon
+              sx={{ color: colors.greenAccent[400], borderRadius: "1px" }}
+            />
+          )}
+
+          {allowedActions.includes("delete") && (
+            <DeleteOutlineOutlinedIcon
+              sx={{ color: colors.redAccent[600], borderRadius: "1px" }}
+            />
+          )}
+        </div>
       ),
     },
   ];

@@ -20,12 +20,14 @@ import {
 import { AuthProvider } from "./context/authContext";
 import ProtectedRoute from "./context/protected"; 
 import { useWebSocket } from "./hooks/websocket";
+import { UserRole } from "./hooks/types";
 
 function App() {
   const [theme, colorMode] = useMode();
   const [isSidebar, setIsSidebar] = useState(true);
   const [updateCount, setUpdateCount]=useState(0)
   const [invitationCount, setInvitationcount]=useState(0)
+  const [userProjectRoleMap,setUserProjectRoleMap]=useState<Record<number, UserRole>>({})
   const [startWebSocket]=useWebSocket("ws://localhost:4000/api/ws",setUpdateCount,setInvitationcount)
   return (
     <AuthProvider>
@@ -38,7 +40,7 @@ function App() {
               <Topbar updateCount={updateCount} invitationCount={invitationCount}/>
               <Routes>
                 {/* Public Routes */}
-                <Route path="/login" element={<LoginUser startWebSocket={startWebSocket} />} />
+                <Route path="/login" element={<LoginUser startWebSocket={startWebSocket} setUserProjectRoleMap={setUserProjectRoleMap} />} />
                 <Route path="/register" element={<SignUpUser />} />
 
                 {/* Protected Routes */}
@@ -46,7 +48,7 @@ function App() {
                   <Route path="/projects/admin" element={<AdminProjects />} />
                   <Route path="/projects/manager" element={<ManagerProjects />} />
                   <Route path="/projects/allocated" element={<AllocatedProjects />} />
-                  <Route path="/project/:id" element={<ProjectOverview />} />
+                  <Route path="/project/:id" element={<ProjectOverview userProjectRoleMap={userProjectRoleMap}/>} />
                   <Route path="/" element={<Graphs />} />
                   <Route path="/invitations" element={<Invitation />} />
                   <Route path="/voice" element={<VoiceRecorder />} />

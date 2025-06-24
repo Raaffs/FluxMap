@@ -144,3 +144,14 @@ func(t *TaskModel)GetTaskByID(ctx context.Context,taskID int)(Task,error){
 	}
 	return task,nil
 }
+
+func(t *TaskModel)Delete(ctx context.Context,id int)error{
+	query:=`
+		DELETE FROM tasks 
+		WHERE taskID=$1
+	`
+	_,err:=t.DB.Exec(ctx,query,id);if err!=nil{
+		return err
+	}
+	return nil
+}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ProjectTaskDetailPage } from "../../components/task";
 import { useParams } from "react-router-dom";
-import { Projects, tasks } from "../../hooks/types";
+import { Projects, tasks, UserRole } from "../../hooks/types";
 import { Tab, Tabs, Box, Card, useTheme, Typography, Button, TextField, Modal } from "@mui/material";
 import { tokens } from "../../theme";
 import Graphs from "../../components/graphs/LineGraphs";
@@ -11,11 +11,14 @@ import {
   ContributerTaskTable,
 } from "../../components/contributer";
 import useFetchTaskData from "../../hooks/task";
-import CpmNormalDistributionChart from "../../components/cpm";
+// import CpmNormalDistributionChart from "../../components/cpm";
+import CpmTable from "../../components/cpm";
 import { useFetchPertData } from "../../hooks/pert";
 import { useFetchCpmData } from "../../hooks/cpm";
 import CreateTaskModal from "../../components/modals/createTask";
-export const ProjectOverview = () => {
+export const ProjectOverview:React.FC<{
+  userProjectRoleMap:Record<number,UserRole>
+}> = ({userProjectRoleMap}) => {
   const { id } = useParams();
   const [openNewTaskModal, setOpenNewTaskModal] = useState(false);
     const [newTask, setNewTask] = useState<tasks>({
@@ -288,6 +291,7 @@ export const ProjectOverview = () => {
             <Box>
               <ProjectTaskDetailPage
                 tasks={tasks}
+                role={userProjectRoleMap[Number(id)]}
                 setFetchTrigger={setFetchTrigger}
               />
               <Graphs />
@@ -311,7 +315,7 @@ export const ProjectOverview = () => {
           )}
           {selectedTab === 3 && (
             <Box>
-              <CpmNormalDistributionChart data={cpmApiResponse} />
+              <CpmTable data={cpmApiResponse} tasks={tasks} />
             </Box>
           )}
         </Card>

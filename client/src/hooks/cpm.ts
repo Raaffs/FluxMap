@@ -17,11 +17,10 @@ export const useFetchCpmData =(id: any):[CpmResult|null,boolean,any]=>{
                 method: "GET",
                 credentials: "include",
               });
-      
+    
               if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
               }
-      
               const data = await response.json();
               setData(data?.result);
             } catch (err: any) {

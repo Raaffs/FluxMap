@@ -24,7 +24,7 @@ export interface tasks {
 
 export interface PertData {
     parentTaskID: number;        // Required, Foreign Key (Task.TaskID)
-    predecessorTaskId?: number|null;  // Optional, Foreign Key (Task.TaskID)
+    predecessorTaskId?: number|string|null;  // Optional, Foreign Key (Task.TaskID)
     optimistic: number;          // Required
     pessimistic: number;         // Required
     mostLikely: number;          // Required
@@ -47,8 +47,10 @@ export  interface ApiResponse {
 
 export interface CpmApiResponse {
     taskId: number;
+    taskName:string
     parentProjectID: number;
     dependencies: number[];
+    dependenciesName:string[];
     duration: number;
     earliestStart: number;
     earliestFinish: number;
@@ -94,9 +96,4 @@ export interface Update {
   projectDescription: string;
 }
 
-// let u :Update[]=[]
-
-// const grouped: Record<number, Update[]> = {};
-// u.forEach(update => {
-//   (grouped[update.projectID] ||= []).push(update);
-// });
+export type UserRole="user"|"manager"|"admin"

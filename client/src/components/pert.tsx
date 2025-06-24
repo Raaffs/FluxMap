@@ -29,7 +29,7 @@ ChartJS.register(
 interface PertRows {
   id: number; // Update this to number
   parentTaskID: number; // Also update this field to match
-  predecessorTaskId?: number | null;
+  predecessorTaskId?: number | string | null;
   optimistic: number;
   pessimistic: number;
   mostLikely: number;
@@ -39,16 +39,11 @@ interface PertRows {
 export const PertTable: React.FC<{
   pertTasks: PertData[] | undefined;
   tasks: tasks[];
-  setPertFetchTrigger: React.Dispatch<React.SetStateAction<boolean>>
-}> = ({ 
-  pertTasks, 
-  tasks,
-  setPertFetchTrigger 
-}) => {
+  setPertFetchTrigger: React.Dispatch<React.SetStateAction<boolean>>;
+}> = ({ pertTasks, tasks, setPertFetchTrigger }) => {
   const { id } = useParams();
-  console.log("USER PARAMS ID ", Number(id));
   const [open, setOpen] = useState(false);
- 
+
   const [pertData, setPertData] = useState<PertData[]>(pertTasks || []);
 
   const { addPert, pertloading, perterror, pertsuccess } = useAddPert(
@@ -57,24 +52,22 @@ export const PertTable: React.FC<{
 
   const handleAddTask = (newTask: PertData) => {
     setPertData([...pertData, newTask]);
-    console.log("nex perx tsx ", newTask);
     addPert(newTask);
-    setPertFetchTrigger(true)
+    setPertFetchTrigger(true);
   };
-
 
   if (pertTasks === undefined || pertTasks === null) {
     let PertAddableTask: PertRows[] = [];
     for (const task of tasks) {
-        PertAddableTask.push({
-          id: 0,
-          parentTaskID: task.taskID,
-          predecessorTaskId: 0,
-          optimistic: 0,
-          pessimistic: 0,
-          mostLikely: 0,
-          taskName: task.taskName,
-        });
+      PertAddableTask.push({
+        id: 0,
+        parentTaskID: task.taskID,
+        predecessorTaskId: 0,
+        optimistic: 0,
+        pessimistic: 0,
+        mostLikely: 0,
+        taskName: task.taskName,
+      });
     }
     return (
       <Box>
@@ -88,7 +81,7 @@ export const PertTable: React.FC<{
             Add New Task
           </Button>
         </Box>
-        {perterror && <PopUp Error={perterror} Message="" onClose={()=>{}} />}
+        {perterror && <PopUp Error={perterror} Message="" onClose={() => {}} />}
         <AddPertTaskModal
           open={open}
           onClose={() => setOpen(false)}
@@ -134,7 +127,10 @@ export const PertTable: React.FC<{
     rows.push({
       id: pertTask.parentTaskID,
       parentTaskID: pertTask.parentTaskID,
-      predecessorTaskId: pertTask.predecessorTaskId,
+      predecessorTaskId:
+        tasks.find((task) => {
+          return task.taskID === pertTask.predecessorTaskId;
+        })?.taskName || "",
       optimistic: pertTask.optimistic,
       pessimistic: pertTask.pessimistic,
       mostLikely: pertTask.mostLikely,

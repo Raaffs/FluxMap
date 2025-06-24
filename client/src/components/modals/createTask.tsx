@@ -1,4 +1,3 @@
-import React, { useState } from "react";
 import { tasks } from "../../hooks/types";
 import {
   Box,

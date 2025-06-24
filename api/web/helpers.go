@@ -60,7 +60,6 @@ func FormatDate(t time.Time)string{
 }
 
 func SetNotifyContext(c echo.Context, msg,targetType,targetUsername string){
-	log.Println("set notfiy : ",msg,targetType,targetUsername)
 	c.Set(NOTIFY_MSG,msg)
 	c.Set(NOTIFY_TARGET_TYPE,targetType)
 	c.Set(NOTIFY_TARGET_USERNAME,targetUsername)
@@ -77,7 +76,7 @@ func AppendToSessionArray(session *sessions.Session, key string, value int) erro
 	return nil
 }
 
-func (app *Application) CacheUserProjectsToSession(c echo.Context) (map[string][]*models.Project, error) {
+func (app *Application) CacheUserProjectsToSession(c echo.Context) (map[string]any,  error) {
 	projectschan := make(chan ProjectResult)
 
 	sess, err := session.Get(sessionvar.SESSION_NAME, c)
@@ -113,7 +112,13 @@ func (app *Application) CacheUserProjectsToSession(c echo.Context) (map[string][
 			}
 		}
 	}
-	return projectRoleMap,err
+	
+	roleToProjectMap:=make(map[string]any)
+	roleToProjectMap[string(AdminRole)]=sess.Values[string(AdminRole)]
+	roleToProjectMap[string(ManagerRole)]=sess.Values[string(ManagerRole)]
+	roleToProjectMap[string(UserRoleVal)]=sess.Values[string(UserRoleVal)]
+
+	return roleToProjectMap,err
 }
 
 
@@ -266,7 +271,6 @@ func ValidateTask(t models.Task)(*validator.Validator){
 func (app *Application)CheckInvitationStatus(c echo.Context,t models.Task, projectID int, username string)bool{
 	//gonna use this hack for now, will think of a better way later
 	//10/6/25: this not a hack, it's permanent now. 
-	log.Println("assigned user: ",t.AssignedUsername)
 	isAdmin, ok := c.Get("isAdmin").(bool)
 	if !ok {
 		isAdmin = false
@@ -281,7 +285,6 @@ func (app *Application)CheckInvitationStatus(c echo.Context,t models.Task, proje
 		c.JSON(http.StatusInternalServerError, map[string]string{"error": "internal server error"})
 		return false 
 	}
-	log.Println("accepted,err: ",accepted,err)
 	if !accepted {
 		c.Logger().Error("user has not accepted invitation")
 		c.JSON(http.StatusNotFound, map[string]string{"error": "User isn't part of the project or hasn't accepted the invitation yet"})
@@ -445,7 +448,6 @@ func (app *Application)UserTasks(c echo.Context)error{
     sess,err:=session.Get(sessionvar.SESSION_NAME,c);if err!=nil{
         return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
     }
-    log.Println("sess in access task2",sess.Values)
     username,ok:=sess.Values[sessionvar.USERNAME].(string);if !ok{
         return c.JSON(http.StatusUnauthorized,map[string]string{"error":"you're not authorized"})
     }

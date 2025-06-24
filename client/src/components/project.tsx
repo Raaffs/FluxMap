@@ -17,7 +17,8 @@ import { useNavigate } from "react-router-dom";
 import { Projects } from "../hooks/types";
 import CreateProjectModal from "./modals/createProject";
 
-export const ProjectComponent = ({ URI }: { URI: string }) => {
+//displays the list of project
+export const ProjectListComponent = ({ URI }: { URI: string }) => {
   const { projects, loading, error } = useRetrieveProjectsFrom(URI);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOption, setSortOption] = useState("dueDate");
