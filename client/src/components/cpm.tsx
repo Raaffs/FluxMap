@@ -16,7 +16,6 @@ const CpmTable: React.FC<{
     // setPertFetchTrigger(true)
   };
 
-  // console.log("CPM DATA IN GRID: ",CPMData)
   const columns: GridColDef[] = [
     { field: "taskId", headerName: "Task ID", flex: 1 },
     { field: "dependencies", headerName: "Dependencies", flex: 1 },
@@ -31,8 +30,7 @@ const CpmTable: React.FC<{
   ];
   let CPMAddableTasks: CpmApiResponse[] = [];
   CPMAddableTasks = getCPMAddableTask(tasks, data?.Result || []);
-  let tester = setTaskNames(CPMData,tasks);
-  console.log("cpmaddable ", getDependenciesName(tester));
+  let formattedCPMData = setTaskNames(CPMData,tasks);
   // Prepare rows for the DataGrid
   const rows = data?.Result.map((task) => ({
     id: task.taskId,
@@ -65,7 +63,7 @@ const CpmTable: React.FC<{
         onClose={() => setOpen(false)}
         onAddTask={handleAddCPMTask}
         CPMAddableTasks={CPMAddableTasks || []}
-        CPMTask={CPMData || []}
+        CPMTasks={formattedCPMData || []}
       />
 
       <DataGrid rows={rows} columns={columns} />
@@ -87,15 +85,12 @@ function getDependenciesName(CPMTasks: CpmApiResponse[]) {
       CPMTasks[i].dependencies === null ||
       CPMTasks[i].dependencies.length === 0
     ) {
-      console.log("continued",i,CPMTasks.length,CPMTasks[i].dependencies)
       continue;
     }
     if (CPMTasks[i].dependenciesName === undefined) {
-      console.log("pusheddd: ")
       CPMTasks[i].dependenciesName = [];
     }
     for (let id of CPMTasks[i].dependencies) {
-      console.log("pusheddd: ",id,CPMTaskMap.get(id))
       CPMTasks[i].dependenciesName.push(CPMTaskMap.get(id) || "");
     }
   }

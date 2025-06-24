@@ -20,7 +20,7 @@ interface AddCPMTaskModalProps {
   onClose: () => void;
   onAddTask: (newCPMTask: CpmApiResponse) => void;
   CPMAddableTasks: CpmApiResponse[];
-  CPMTask: CpmApiResponse[];
+  CPMTasks: CpmApiResponse[];
 }
 
 const names = [
@@ -41,7 +41,7 @@ export const AddCPMTaskModal: React.FC<AddCPMTaskModalProps> = ({
   onClose,
   onAddTask,
   CPMAddableTasks,
-  CPMTask,
+  CPMTasks,
 }) => {
   const [personName, setPersonName] = React.useState<string[]>([]);
   const [newCPMTask, setNewCPMTask] = useState<CpmApiResponse>(
@@ -148,34 +148,44 @@ export const AddCPMTaskModal: React.FC<AddCPMTaskModalProps> = ({
           sx={{ mb: 2 }}
         />
         <Autocomplete
-          multiple
-          id="checkboxes-tags-demo"
-          options={names}
-          disableCloseOnSelect
-          getOptionLabel={(option) => option}
-          renderOption={(props, option, { selected }) => {
-            const { key, ...optionProps } = props;
-            return (
-              <li key={key} {...optionProps}>
-                <Checkbox
-                  icon={icon}
-                  checkedIcon={checkedIcon}
-                  style={{ marginRight: 8 }}
-                  checked={selected}
-                />
-                {option}
-              </li>
-            );
-          }}
-          sx={{
-            alignItems: "center",
-            mb: 2,
-            width: 370,
-          }}
-          renderInput={(params) => (
-            <TextField {...params} label="Checkboxes" placeholder="Favorites" />
-          )}
+  multiple
+  id="checkboxes-tags-demo"
+  options={CPMTasks}
+  disableCloseOnSelect
+  getOptionLabel={(option: CpmApiResponse) => option.taskName}
+  isOptionEqualToValue={(option: CpmApiResponse, value: CpmApiResponse) =>
+    option.taskId === value.taskId
+  }
+  renderOption={(props, option, { selected }) => {
+    return (
+      <li {...props}>
+        <Checkbox
+          icon={icon}
+          checkedIcon={checkedIcon}
+          style={{ marginRight: 8 }}
+          checked={selected}
         />
+        {option.taskName}
+      </li>
+    );
+  }}
+  sx={{
+    alignItems: "center",
+    mb: 2,
+    width: 370,
+  }}
+  renderInput={(params) => (
+    <TextField {...params} label="Checkboxes" placeholder="Favorites" />
+  )}
+  onChange={(
+    event: React.SyntheticEvent<Element, Event>,
+    newValue: CpmApiResponse[]
+  ) => {
+    const selectedIds = newValue.map((task) => task.taskId);
+    console.log("Selected task IDs:", selectedIds);
+    // do your backend thing here
+  }}
+/>
       </Box>
     </Modal>
   );
