@@ -8,62 +8,61 @@ export interface Projects {
 }
 
 export interface tasks {
-    taskID: number;
-    taskName: string;           // Required
-    taskDescription?: string;   // Optional
-    taskStatus?: string|"";        // Optional
-    taskStartDate?: string|null;     // Optional, ISO date string
-    taskDueDate?: string|null;       // Optional, ISO date string
-    parentProjectID: number;    // Required, Foreign Key (Project.ProjectID)
-    assignedUsername: string;   // Required, Foreign Key (User.Username)
-    approved?: boolean|false;         // Optional
-    taskCompletedDate?:  string|null
-    taskApprovedDate?:  string|null
-    createdBy:string;
+  taskID: number;
+  taskName: string; // Required
+  taskDescription?: string; // Optional
+  taskStatus?: string | ""; // Optional
+  taskStartDate?: string | null; // Optional, ISO date string
+  taskDueDate?: string | null; // Optional, ISO date string
+  parentProjectID: number; // Required, Foreign Key (Project.ProjectID)
+  assignedUsername: string; // Required, Foreign Key (User.Username)
+  approved?: boolean | false; // Optional
+  taskCompletedDate?: string | null;
+  taskApprovedDate?: string | null;
+  createdBy: string;
 }
 
 export interface PertData {
-    parentTaskID: number;        // Required, Foreign Key (Task.TaskID)
-    predecessorTaskId?: number|string|null;  // Optional, Foreign Key (Task.TaskID)
-    optimistic: number;          // Required
-    pessimistic: number;         // Required
-    mostLikely: number;          // Required
+  parentTaskID: number; // Required, Foreign Key (Task.TaskID)
+  predecessorTaskId?: number | string | null; // Optional, Foreign Key (Task.TaskID)
+  optimistic: number; // Required
+  pessimistic: number; // Required
+  mostLikely: number; // Required
 }
 
-interface PertTaskResult {  
-    mean:   number;
-    stddev: number;
-    taskId: number;
-  }
-  
-export  interface ApiResponse {
-    data: PertData[];
-    result: {
-      criticalPath: number[];
-      taskResults: PertTaskResult[];
-    };
+interface PertTaskResult {
+  mean: number;
+  stddev: number;
+  taskId: number;
 }
 
+export interface ApiResponse {
+  data: PertData[];
+  result: {
+    criticalPath: number[];
+    taskResults: PertTaskResult[];
+  };
+}
 
 export interface CpmApiResponse {
-    taskId: number;
-    taskName:string
-    parentProjectID: number;
-    dependencies: number[];
-    dependenciesName:string[];
-    duration: number;
-    earliestStart: number;
-    earliestFinish: number;
-    latestStart: number;
-    latestFinish: number;
-    totalFloat: number;
-    freeFloat: number;
-    independentFloat: number;
-    isCriticalPath: boolean;
-  }
-  
+  taskId: number;
+  taskName: string;
+  parentProjectID: number;
+  dependencies: number[];
+  dependenciesName: string[];
+  duration: number;
+  earliestStart: number;
+  earliestFinish: number;
+  latestStart: number;
+  latestFinish: number;
+  totalFloat: number;
+  freeFloat: number;
+  independentFloat: number;
+  isCriticalPath: boolean;
+}
+
 export interface CpmResult {
-    Result: CpmApiResponse[];
+  Result: CpmApiResponse[];
 }
 
 export interface DisplayInvitations {
@@ -79,7 +78,7 @@ export interface DisplayInvitations {
 export interface Invitation {
   id: string;
   username: string;
-  projectID?: number; 
+  projectID?: number;
   accepted: boolean;
   role: string;
 }
@@ -90,10 +89,10 @@ export interface Update {
   msg: string;
   createdAt: string; // ISO timestamp string
   createdBy: string; // references users.username
-  targetType: 'all' | 'user';
+  targetType: "all" | "user";
   targetUsername: string | null; // nullable, only set if targetType = 'user'
   projectName: string;
   projectDescription: string;
 }
 
-export type UserRole="user"|"manager"|"admin"
+export type UserRole = "user" | "manager" | "admin";

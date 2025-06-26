@@ -153,7 +153,6 @@ export const useGetConfirmedUsers=(projectID: number)=>{
         const data=await res.json()
         if (!res.ok) {
           const data = await res.json();
-          console.log("error: ",data)
           throw new Error(data.error || "Failed to fetch users");
         }
         setUsers(data.users)

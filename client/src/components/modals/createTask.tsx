@@ -127,16 +127,5 @@ const CreateTaskModal: React.FC<CreateTaskProps> = ({
     </Modal>
   );
 };
-const UserList = () => {
-  const { id } = useParams();
-  const { users, usersLoading, usersError } = useGetConfirmedUsers(Number(id));
-  return (
-    <Autocomplete
-      disablePortal
-      options={users}
-      sx={{ width: 300 }}
-      renderInput={(params) => <TextField {...params} label="Movie" />}
-    />
-  );
-};
-export default CreateTaskModal;
+
+export default CreateTaskModal

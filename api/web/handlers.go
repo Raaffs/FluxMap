@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -707,6 +708,7 @@ func (app *Application) CreateCpm(c echo.Context) error {
 	if len(cpm) == 0 {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "no cpm data provided"})
 	}
+	log.Println("cpm recieved data: ",cpm[0])
 	if err := DetectCycleCpm(cpm); err != nil {
 		c.Logger().Warn(err)
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Cyclic dependencies are not allowed"})

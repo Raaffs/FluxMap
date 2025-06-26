@@ -8,6 +8,8 @@ import {
   Checkbox,
   SelectChangeEvent,
   Autocomplete,
+  FormControlLabel,
+  Button,
 } from "@mui/material";
 import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
@@ -22,20 +24,6 @@ interface AddCPMTaskModalProps {
   CPMAddableTasks: CpmApiResponse[];
   CPMTasks: CpmApiResponse[];
 }
-
-const names = [
-  "Oliver Hansen",
-  "Van Henry",
-  "April Tucker",
-  "Ralph Hubbard",
-  "Omar Alexander",
-  "Carlos Abbott",
-  "Miriam Wagner",
-  "Bradley Wilkerson",
-  "Virginia Andrews",
-  "Kelly Snyder",
-];
-
 export const AddCPMTaskModal: React.FC<AddCPMTaskModalProps> = ({
   open,
   onClose,
@@ -86,7 +74,7 @@ export const AddCPMTaskModal: React.FC<AddCPMTaskModalProps> = ({
   };
 
   const handleSubmit = () => {
-    console.log("new pert task", newCPMTask, newCPMTask?.taskId);
+    console.log("new cpm task", newCPMTask, newCPMTask?.taskId);
     if (!newCPMTask?.taskId) {
       alert("Please select a task.");
       return;
@@ -124,15 +112,16 @@ export const AddCPMTaskModal: React.FC<AddCPMTaskModalProps> = ({
           select
           fullWidth
           label="Select Task"
-          value={newCPMTask?.taskId}
+          value={newCPMTask.taskId}
           onChange={
-            (e) => console.log(CPMAddableTasks[0].taskName)
-            // handleChange("task?.taskId", Number(e.target.value))
+            (e) => {
+               handleChange("taskId", Number(e.target.value))
+            }
           }
           sx={{ mb: 2 }}
         >
           {CPMAddableTasks.map((CPMTask) => (
-            <MenuItem >
+            <MenuItem key={CPMTask.taskId} value={CPMTask.taskId}>
               Task {CPMTask.taskName}
             </MenuItem>
           ))}
@@ -148,44 +137,68 @@ export const AddCPMTaskModal: React.FC<AddCPMTaskModalProps> = ({
           sx={{ mb: 2 }}
         />
         <Autocomplete
-  multiple
-  id="checkboxes-tags-demo"
-  options={CPMTasks}
-  disableCloseOnSelect
-  getOptionLabel={(option: CpmApiResponse) => option.taskName}
-  isOptionEqualToValue={(option: CpmApiResponse, value: CpmApiResponse) =>
-    option.taskId === value.taskId
-  }
-  renderOption={(props, option, { selected }) => {
-    return (
-      <li {...props}>
-        <Checkbox
-          icon={icon}
-          checkedIcon={checkedIcon}
-          style={{ marginRight: 8 }}
-          checked={selected}
+          multiple
+          id="checkboxes-tags-demo"
+          options={CPMTasks}
+          disableCloseOnSelect
+    
+          getOptionLabel={(option: CpmApiResponse) => option.taskName}
+          isOptionEqualToValue={(
+            option: CpmApiResponse,
+            value: CpmApiResponse
+          ) => option.taskId === value.taskId}
+          renderOption={(props, option, { selected }) => {
+            return (
+              <li {...props}>
+                <Checkbox
+                  icon={icon}
+                  checkedIcon={checkedIcon}
+                  style={{ marginRight: 8 }}
+                  checked={selected}
+                />
+                {option.taskName}
+              </li>
+            );
+          }}
+          sx={{
+            alignItems: "center",
+            mb: 2,
+            width: 370,
+          }}
+          renderInput={(params) => (
+            <TextField {...params} label="Checkboxes" placeholder="Favorites" />
+          )}
+          onChange={(
+            event: React.SyntheticEvent<Element, Event>,
+            newValue: CpmApiResponse[]
+          ) => {
+            const selectedIds = newValue.map((task) => task.taskId);
+            setNewCPMTask((prev)=>({...prev,"dependencies":selectedIds}))
+            // do your backend thing here
+          }}
         />
-        {option.taskName}
-      </li>
-    );
-  }}
-  sx={{
-    alignItems: "center",
-    mb: 2,
-    width: 370,
-  }}
-  renderInput={(params) => (
-    <TextField {...params} label="Checkboxes" placeholder="Favorites" />
-  )}
-  onChange={(
-    event: React.SyntheticEvent<Element, Event>,
-    newValue: CpmApiResponse[]
-  ) => {
-    const selectedIds = newValue.map((task) => task.taskId);
-    console.log("Selected task IDs:", selectedIds);
-    // do your backend thing here
-  }}
-/>
+        <FormControlLabel
+          control={<Checkbox 
+              onChange={()=>{
+                setNewCPMTask(prev=>({...prev,"isCriticalPath":!newCPMTask.isCriticalPath}))
+              }}
+            />}
+          label="is critical?"
+          sx={{
+            marginLeft: 0,
+            paddingLeft: 0,
+            justifyContent: "flex-start", // push everything to the left
+            width: "100%", // full width so alignment works
+            "& .MuiCheckbox-root": {
+              marginLeft: 0, // remove default margin on checkbox
+            },
+          }}
+        />
+        <Button
+          onClick={handleSubmit}
+        >
+          Add CPM task
+        </Button>
       </Box>
     </Modal>
   );

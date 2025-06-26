@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { ApiResponse, PertData } from "./types";
-import { useParams } from "react-router-dom";
 
 export const useFetchPertData = (
   id: any,

@@ -3,22 +3,27 @@ import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { Box, Button } from "@mui/material";
 import { CpmApiResponse, CpmResult, tasks } from "../hooks/types";
 import { AddCPMTaskModal } from "./modals/cpm";
-
+import EditIcon from "@mui/icons-material/Edit";
+import { usePostCpmData } from "../hooks/cpm";
+import { useParams } from "react-router-dom";
 const CpmTable: React.FC<{
   data: CpmResult | null;
   tasks: tasks[];
 }> = ({ data, tasks }) => {
+  const {id}=useParams()
+  console.log("id of project",id)
   const [open, setOpen] = useState<boolean>(false);
   const [CPMData, setCPMData] = useState<CpmApiResponse[]>(data?.Result || []);
+  const {addCPM,cpmloading,cpmerror,cpmsuccess}=usePostCpmData(Number(id))
+  
   const handleAddCPMTask = (newCPMTask: CpmApiResponse) => {
     setCPMData([...CPMData, newCPMTask]);
-    // addPert(newCPMTask);
-    // setPertFetchTrigger(true)
+    console.log("new cpm task in component: ",newCPMTask)
+    addCPM(newCPMTask)
   };
-
   const columns: GridColDef[] = [
     { field: "taskId", headerName: "Task ID", flex: 1 },
-    { field: "dependencies", headerName: "Dependencies", flex: 1 },
+    { field: "dependenciesName", headerName: "Dependencies", flex: 1 },
     { field: "duration", headerName: "Duration", flex: 1 },
     { field: "earliestStart", headerName: "Earliest Start", flex: 1 },
     { field: "earliestFinish", headerName: "Earliest Finish", flex: 1 },
@@ -27,15 +32,29 @@ const CpmTable: React.FC<{
     { field: "totalFloat", headerName: "Total Float", flex: 1 },
     { field: "freeFloat", headerName: "Free Float", flex: 1 },
     { field: "independentFloat", headerName: "Independent Float", flex: 1 },
+    {
+      field:"action",
+      flex:1,
+      headerName:"Actions",
+      renderCell:(params)=>{
+        return(
+          <Box>
+            <EditIcon/>
+          </Box>
+        )
+      }
+    }
   ];
   let CPMAddableTasks: CpmApiResponse[] = [];
   CPMAddableTasks = getCPMAddableTask(tasks, data?.Result || []);
   let formattedCPMData = setTaskNames(CPMData,tasks);
+  getDependenciesName(formattedCPMData)
+  console.log("formatted cpm",formattedCPMData)
   // Prepare rows for the DataGrid
-  const rows = data?.Result.map((task) => ({
+  const rows = formattedCPMData.map((task) => ({
     id: task.taskId,
     taskId: task.taskId,
-    dependencies: task.dependencies, // Join dependencies into a string
+    dependenciesName: task.dependenciesName, 
     duration: task.duration,
     earliestStart: task.earliestStart,
     earliestFinish: task.earliestFinish,
@@ -94,7 +113,6 @@ function getDependenciesName(CPMTasks: CpmApiResponse[]) {
       CPMTasks[i].dependenciesName.push(CPMTaskMap.get(id) || "");
     }
   }
-  return CPMTasks;
 }
 
 function getCPMAddableTask(

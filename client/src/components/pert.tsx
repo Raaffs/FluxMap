@@ -89,7 +89,6 @@ export const PertTable: React.FC<{
           pertAddableTasks={PertAddableTask}
           pertTasks={[]}
         />
-        {/* Modal */}
       </Box>
     );
   }

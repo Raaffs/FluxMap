@@ -1,59 +1,76 @@
 def calculateCpm(tasks):
-    """
-    Calculate CPM fields for tasks.
+    # Ensure dependencies are lists, never None
+    for task in tasks:
+        if task["dependencies"] is None:
+            task["dependencies"] = []
 
-    :param tasks: List of tasks where each task is a dictionary with:
-                  - taskId: int
-                  - projectId: int
-                  - dependencies: list of task IDs this task depends on
-                  - duration: int
-    :return: List of tasks with calculated fields (earliestStart, earliestFinish, etc.)
-    """
-    # Create a dictionary for quick lookup by taskId
     taskDict = {task["taskId"]: task for task in tasks}
 
-    # Add required fields for CPM calculations
+    # Build successors list for backward pass
+    for task in tasks:
+        task["successors"] = []
+    for task in tasks:
+        for depId in task["dependencies"]:
+            taskDict[depId]["successors"].append(task["taskId"])
+
+    # Initialize CPM fields
     for task in tasks:
         task["earliestStart"] = 0
         task["earliestFinish"] = 0
-        task["latestStart"] = -1  # Use -1 as a placeholder for infinity
-        task["latestFinish"] = -1  # Use -1 as a placeholder for infinity
+        task["latestStart"] = -1
+        task["latestFinish"] = -1
         task["totalFloat"] = 0
         task["freeFloat"] = 0
         task["independentFloat"] = 0
         task["isCriticalPath"] = False
 
-    # Forward pass to calculate earliestStart (ES) and earliestFinish (EF)
-    for task in tasks:
+    # Forward pass function
+    def forward(task):
         if task["dependencies"]:
-            task["earliestStart"] = max(
-                taskDict[dep]["earliestFinish"] for dep in task["dependencies"]
-            )
+            task["earliestStart"] = max(taskDict[dep]["earliestFinish"] for dep in task["dependencies"])
+        else:
+            task["earliestStart"] = 0
         task["earliestFinish"] = task["earliestStart"] + task["duration"]
 
-    # Backward pass to calculate latestStart (LS) and latestFinish (LF)
+    # Run forward pass until stable
+    changed = True
+    while changed:
+        changed = False
+        for task in tasks:
+            old_es = task["earliestStart"]
+            forward(task)
+            if task["earliestStart"] != old_es:
+                changed = True
+
     projectFinishTime = max(task["earliestFinish"] for task in tasks)
-    for task in reversed(tasks):
-        if not any(t["taskId"] in task["dependencies"] for t in tasks):
+
+    # Backward pass function
+    def backward(task):
+        if not task["successors"]:
             task["latestFinish"] = projectFinishTime
         else:
-            task["latestFinish"] = min(
-                taskDict[dep]["latestStart"] for dep in task["dependencies"]
-            )
+            task["latestFinish"] = min(taskDict[succ]["latestStart"] for succ in task["successors"])
         task["latestStart"] = task["latestFinish"] - task["duration"]
 
-    # Calculate floats and determine the critical path
+    # Run backward pass until stable
+    changed = True
+    while changed:
+        changed = False
+        for task in reversed(tasks):
+            old_lf = task["latestFinish"]
+            backward(task)
+            if task["latestFinish"] != old_lf:
+                changed = True
+
+    # Calculate floats and critical path flag, clean up
     for task in tasks:
         task["totalFloat"] = task["latestStart"] - task["earliestStart"]
-        task["freeFloat"] = min(
-            (taskDict[dep]["earliestStart"] - task["earliestFinish"])
-            for dep in task["dependencies"]
-        ) if task["dependencies"] else task["totalFloat"]
-        task["independentFloat"] = max(
-            0,
-            task["freeFloat"] - task["totalFloat"]
-        )
-        task["isCriticalPath"] = task["totalFloat"] == 0
+        if task["successors"]:
+            task["freeFloat"] = min(taskDict[succ]["earliestStart"] for succ in task["successors"]) - task["earliestFinish"]
+        else:
+            task["freeFloat"] = task["totalFloat"]
+        task["independentFloat"] = max(0, task["freeFloat"] - task["totalFloat"])
+        task["isCriticalPath"] = (task["totalFloat"] == 0)
+        del task["successors"]  # remove temp field
 
-    # Return the updated task list with replaced placeholders for infinity/None values
     return tasks

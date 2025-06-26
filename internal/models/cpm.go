@@ -17,7 +17,6 @@ type CpmModel[T Analytic] struct {
 }
 
 func (m *CpmModel[T]) Insert(ctx context.Context, cpmValues []Cpm) error {
-	fmt.Println("herereererere")
 	query := `
 	INSERT INTO Cpm (TaskID, ParentProjectID, Dependencies, Duration)
 	VALUES ($1, $2, $3, $4)
@@ -30,7 +29,6 @@ func (m *CpmModel[T]) Insert(ctx context.Context, cpmValues []Cpm) error {
     Duration = $4 
 	`
 	for _, cpm := range cpmValues {
-		fmt.Println("inserting...")
 		_, err := m.DB.Exec(ctx, query, cpm.TaskID, cpm.ParentProjectID, cpm.Dependencies, cpm.Duration)
 		if err != nil {
 			log.Printf("Error inserting data into Cpm table changelog: %v", err)
