@@ -67,7 +67,6 @@ func(app *Application)SendUpdateNotification(ctx context.Context, username strin
 	msg,err:=json.Marshal(m);if err!=nil{
 		return 
 	}
-	app.logger.Error("here is sent")
 	errchan:=app.websocket.PushToClients([]byte(msg),
 		func(w WSUser) bool {
 		return w.Username==username

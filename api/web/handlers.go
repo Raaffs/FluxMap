@@ -391,6 +391,11 @@ func (app *Application) ConfirmInvitation(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{"message": "Invitation confirmed successfully"})
 }
 
+func(app *Application)RemoveUser(c echo.Context)error{
+
+	return c.JSON(http.StatusOK,map[string]string{"message":"user removed successfully"})
+}
+
 func (app *Application)CreateTask(c echo.Context) error {
 	var t models.Task
 	username := c.Get(sessionvar.USERNAME).(string)
@@ -480,8 +485,10 @@ func (app *Application) UpdateUserTask(c echo.Context) error {
 	}{}
 	username := c.Get(sessionvar.USERNAME).(string)
 	v := validator.New()
-	id, err := strconv.Atoi(c.Param("taskID"))
-	if err != nil {
+	taskID, err := strconv.Atoi(c.Param("taskID"));if err != nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "task not found"})
+	}
+	projectID,err:=strconv.Atoi(c.Param("id"));if err != nil {
 		return c.JSON(http.StatusNotFound, map[string]string{"error": "task not found"})
 	}
 	if err := c.Bind(&status); err != nil {
@@ -496,8 +503,7 @@ func (app *Application) UpdateUserTask(c echo.Context) error {
 		c.Logger().Warn("invalid status : ",status)
 		return c.JSON(http.StatusBadRequest,map[string]string{"error":"invalid status"})
 	}
-	taskName, err := app.models.Task.UpdateTask(c.Request().Context(), id, status.TaskStatus)
-	if err != nil {
+	taskName, err := app.models.Task.UpdateTask(c.Request().Context(), projectID, taskID, status.TaskStatus);if err != nil {
 		c.Logger().Error("error updating task: ", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "internal server error"})
 	}
@@ -534,7 +540,7 @@ func (app *Application)ApproveTask(c echo.Context) error {
 
 	t.TaskID = taskID
 
-	if accepted:=app.CheckInvitationStatus(c,t,projectID,c.Get(sessionvar.USERNAME).(string));!accepted{
+	if accepted:=app.CheckInvitationStatus(c,t,projectID,t.AssignedUsername.String);!accepted{
 		return nil
 	}
 
@@ -554,7 +560,7 @@ func (app *Application)ApproveTask(c echo.Context) error {
 		c.Logger().Error("error generating update message : ", err)
 	}
 
-	if err := app.models.Task.UpdateManagerTask(c.Request().Context(), t); err != nil {
+	if err := app.models.Task.UpdateManagerTask(c.Request().Context(),projectID, t); err != nil {
 		if errors.Is(err, models.ErrRecordNotFound) {
 			c.Logger().Warn("Task not found :", err)
 			return c.JSON(http.StatusNotFound, map[string]string{"error": "task not found"})
@@ -594,11 +600,15 @@ func (app *Application)ManagerRestrictedTask(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, v.Errors)
 	}
 
+	if accepted:=app.CheckInvitationStatus(c,t,projectID,t.AssignedUsername.String);!accepted{
+		return nil
+	}
+
 	msg,err:=app.GenerateUpdateMessage(c.Request().Context(),t);if err!=nil{
 		c.Logger().Error("error generating update message : ", err)
 	}
 
-	if err := app.models.Task.UpdateManagerTask(c.Request().Context(), t); err != nil {
+	if err := app.models.Task.UpdateManagerTask(c.Request().Context(),projectID, t); err != nil {
 		if errors.Is(err, models.ErrRecordNotFound) {
 			c.Logger().Warn("Task not found :", err)
 			return c.JSON(http.StatusNotFound, map[string]string{"error":"task not found"})
@@ -611,7 +621,7 @@ func (app *Application)ManagerRestrictedTask(c echo.Context) error {
 		c.Logger().Error("Error sending update notification: ",err)
 	}
 
-	return c.JSON(http.StatusOK, "task approved")
+	return c.JSON(http.StatusOK, "task updated")
 }
 
 func (app *Application) GetPert(c echo.Context) error {
@@ -755,7 +765,10 @@ func (app *Application)RemoveTasks(c echo.Context)error{
 	taskID,err:=strconv.Atoi(c.Param("taskID"));if err!=nil{
 		return c.JSON(http.StatusBadRequest,map[string]string{"error":"Invalid task id"})
 	}
-	if err:=app.models.Task.Delete(c.Request().Context(),taskID); err!=nil{
+	projectID,err:=strconv.Atoi(c.Param("id"));if err!=nil{
+		return c.JSON(http.StatusBadRequest,map[string]string{"error":"Invalid task id"})
+	}
+	if err:=app.models.Task.Delete(c.Request().Context(),projectID,taskID); err!=nil{
 		if errors.Is(err,sql.ErrNoRows){
 			c.Logger().Errorf("Task with %d id not found. Error: %s",taskID,err)
 			return c.JSON(http.StatusNotFound,map[string]string{"error":"task not found"})
@@ -765,6 +778,7 @@ func (app *Application)RemoveTasks(c echo.Context)error{
 	}
 	return c.JSON(http.StatusOK,map[string]string{"message":"Task successfully removed"})
 }
+
 
 func (app *Application) GetProjectUpdates(c echo.Context) error {
 	username := c.Get(sessionvar.USERNAME).(string)
@@ -799,3 +813,4 @@ func (app *Application) GetProjectUpdates(c echo.Context) error {
 	
 	return c.JSON(http.StatusOK, updates)
 }
+

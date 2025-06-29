@@ -20,6 +20,13 @@ func IsAuthorizedUser(next echo.HandlerFunc)echo.HandlerFunc{
 	}
 }
 
+func (app *Application)HasProjectAccess(next echo.HandlerFunc)echo.HandlerFunc{
+	return func(c echo.Context) error {
+		
+		return next(c)
+	}
+}
+
 func(app *Application)ManagerLevelAccess(next echo.HandlerFunc) echo.HandlerFunc {
     return IsAuthorizedUser(func(c echo.Context) error {
         username:=c.Get(sessionvar.USERNAME).(string)

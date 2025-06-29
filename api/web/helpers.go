@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"log"
@@ -126,9 +127,13 @@ func (app *Application) EnsureExists(c echo.Context, checkFunc func(context.Cont
     ctx := c.Request().Context()
     exist, err := checkFunc(ctx)
     if err != nil {
-        c.Logger().Errorf("Failed checking existence: %v", err)
-        c.JSON(http.StatusInternalServerError, map[string]string{"error": "internal server error"})
-        return ErrorCheckingExistStatus
+		if 	errors.Is(err,sql.ErrNoRows){
+			exist=false
+		}else{
+			c.Logger().Errorf("Failed checking existence: %v", err)
+        	c.JSON(http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+        	return ErrorCheckingExistStatus
+		}
     }
     if !exist {
         return NotExists
@@ -275,22 +280,27 @@ func (app *Application)CheckInvitationStatus(c echo.Context,t models.Task, proje
 	if !ok {
 		isAdmin = false
 	}
+	//check if a	dmin is assigning task to themselves
 	if isAdmin && t.AssignedUsername.String==username{
 		return true
 	}
-	//check if they're part of project
-	accepted, err := app.models.Invitation.HasAcceptedInvitation(c.Request().Context(), projectID, t.AssignedUsername.String)
-	if err != nil {
-		c.Logger().Error("error getting invitation status: ", err)
-		c.JSON(http.StatusInternalServerError, map[string]string{"error": "internal server error"})
-		return false 
-	}
-	if !accepted {
-		c.Logger().Error("user has not accepted invitation")
+
+	switch status := app.EnsureExists(c, func(ctx context.Context) (bool, error) {
+		return app.models.Invitation.HasAcceptedInvitation(ctx,projectID,t.AssignedUsername.String)
+	}); status {
+	case ErrorCheckingExistStatus:
+	// error response already sent by EnsureExists, just exit
+		return false	
+	case NotExists:
+		c.Logger().Error("user has not accepted invitation or does not exist in this project")
 		c.JSON(http.StatusNotFound, map[string]string{"error": "User isn't part of the project or hasn't accepted the invitation yet"})
 		return false
+	case Exists:
+		return true 
+	default:
+		return false
 	}
-	return accepted
+	
 }
 
 func (app *Application) GenerateUpdateMessage(ctx context.Context, updatedTask models.Task) (string, error) {

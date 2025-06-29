@@ -58,10 +58,10 @@ const LoginUser: React.FC<{
           throw new Error(errorData.error);
         }
         const data = await response.json(); // Parse the response data
-        console.log("Login successful:", data.roles);
         const roles = data.roles as Record<UserRole, number[] | null>;
         const normal = normalizeAccessMap(roles);
         setUserProjectRoleMap(normal);
+        localStorage.setItem("userProjectRoleMap", JSON.stringify(normal));
         login();
         startWebSocket();
         navigate("/"); // Redirect to the home page

@@ -112,3 +112,4 @@ func (m *CpmModel[T]) GetResult(ctx context.Context, projectID int) (Result, err
 	}
 	return result, nil
 }
+

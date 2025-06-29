@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import "./App.css";
 import { Route, Routes } from "react-router-dom";
 import { ColorModeContext, useMode } from "./theme";
@@ -29,6 +29,17 @@ function App() {
   const [invitationCount, setInvitationcount]=useState(0)
   const [userProjectRoleMap,setUserProjectRoleMap]=useState<Record<number, UserRole>>({})
   const [startWebSocket]=useWebSocket("ws://localhost:4000/api/ws",setUpdateCount,setInvitationcount)
+  useEffect(() => {
+  const cachedMap = localStorage.getItem("userProjectRoleMap");
+  if (cachedMap) {
+    try {
+      const parsedMap = JSON.parse(cachedMap);
+      setUserProjectRoleMap(parsedMap);
+    } catch (err) {
+      console.error("Failed to parse userProjectRoleMap:", err);
+    }
+  }
+}, []);
   return (
     <AuthProvider>
       <ColorModeContext.Provider value={colorMode}>

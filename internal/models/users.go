@@ -57,8 +57,11 @@ func (u *UserModel) Exist(ctx context.Context, username string) (bool, error) {
 	var exists bool
 	err := u.DB.QueryRow(ctx, selectQuery, username).Scan(&exists)
 	if err != nil {
+		if errors.Is(err,sql.ErrNoRows){
+			return false,nil
+		}
 		return false, err
-	}
+	}	
 	return exists, nil
 }
 

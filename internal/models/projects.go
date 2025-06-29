@@ -28,6 +28,21 @@ func (p *ProjectModel)Create(ctx context.Context, project Project)error{
 	return nil
 }
 
+func (p *ProjectModel)Exist(ctx context.Context, username string,  projectID int)(bool,error){
+	query:=`
+		SELECT EXISTS(SELECT 1 FROM Projects WHERE projectID=$1 username=$2)
+	`
+	var exists bool
+	err := p.DB.QueryRow(ctx, query, username).Scan(&exists)
+	if err != nil {
+		if errors.Is(err,sql.ErrNoRows){
+			return false,nil
+		}
+		return false, err
+	}	
+	return exists, nil
+}
+
 func(p *ProjectModel)RetrieveProjectByID(ctx context.Context,id int)(Project,error){
 	var project Project
 	retrieve:=`

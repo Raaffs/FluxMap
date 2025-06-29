@@ -26,13 +26,14 @@ func (t *TaskModel)Create(ctx context.Context, task Task)error{
 	return nil
 }
 
-func (t *TaskModel) UpdateTask(ctx context.Context, taskID int, status string) (string, error) {
+func (t *TaskModel) UpdateTask(ctx context.Context, projectID int, taskID int, status string) (string, error) {
 	query := `
 		UPDATE tasks 
 		SET 
 			taskStatus = $1,
 			taskCompletedDate = NOW()
 			WHERE taskID = $2
+			AND	  parentProjectID=$3
 			RETURNING taskName
 	`
 
@@ -49,13 +50,13 @@ func (t *TaskModel) UpdateTask(ctx context.Context, taskID int, status string) (
 }
 
 
-func (t *TaskModel)UpdateManagerTask(ctx context.Context,task Task)error{
+func (t *TaskModel)UpdateManagerTask(ctx context.Context,projectID int,task Task)error{
 	query:=`
 	UPDATE tasks 
 	SET taskname=$1, taskDescription=$2, taskStatus=$3, taskStartDate=$4, taskDueDate=$5, AssignedUsername=$6, Approved=$7, taskApprovedDate=$8
-	WHERE taskID=$9
+	WHERE parentProjectID=$9 AND taskID=$10
 	`
-	_,err:=t.DB.Exec(ctx,query,task.TaskName,task.TaskDescription,task.TaskStatus,task.TaskStartDate,task.TaskDueDate,task.AssignedUsername,task.Approved,task.TaskApprovedDate.Time.Format("2006-01-02"),task.TaskID);if err!=nil{
+	_,err:=t.DB.Exec(ctx,query,task.TaskName,task.TaskDescription,task.TaskStatus,task.TaskStartDate,task.TaskDueDate,task.AssignedUsername,task.Approved,task.TaskApprovedDate.Time.Format("2006-01-02"),projectID,task.TaskID);if err!=nil{
 		t.Errorlog.Println(err)
 		return err
 	}
@@ -145,12 +146,13 @@ func(t *TaskModel)GetTaskByID(ctx context.Context,taskID int)(Task,error){
 	return task,nil
 }
 
-func(t *TaskModel)Delete(ctx context.Context,id int)error{
+func(t *TaskModel)Delete(ctx context.Context,projectID int, taskID int)error{
 	query:=`
 		DELETE FROM tasks 
-		WHERE taskID=$1
+		WHERE parentprojectID=$1
+		AND taskID=$2
 	`
-	_,err:=t.DB.Exec(ctx,query,id);if err!=nil{
+	_,err:=t.DB.Exec(ctx,query,projectID,taskID);if err!=nil{
 		return err
 	}
 	return nil
