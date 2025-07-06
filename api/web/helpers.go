@@ -21,6 +21,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/sync/errgroup"
+	"slices"
 )
 
 type UserRole string
@@ -500,10 +501,8 @@ func detectCycle(graph map[int][]int) error {
 		}
 		visited[node] = true
 		onStack[node] = true
-		for _, neighbor := range graph[node] {
-			if dfs(neighbor) {
+		if slices.ContainsFunc(graph[node], dfs) {
 				return true
-			}
 		}
 		onStack[node] = false
 		return false

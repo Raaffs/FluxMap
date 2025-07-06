@@ -69,6 +69,7 @@ func(t *TaskModel)GetTasks(ctx context.Context,projectID int)([]*Task,error){
 		SELECT taskID, taskName, taskDescription, taskStatus, taskStartDate, taskDueDate, parentProjectID, assignedUsername, Approved, taskCompletedDate, taskApprovedDate
 		FROM tasks 
 		WHERE parentProjectID=$1
+		AND ARCHIEVED=FALSE
 		ORDER BY taskID
 	`
 	rows,err:=t.DB.Query(ctx,query,projectID);if err!=nil{
@@ -98,6 +99,7 @@ func(t *TaskModel)GetUserTasks(ctx context.Context,projectID int,username string
 		FROM tasks 
 		WHERE parentProjectID=$1
 		AND assignedUsername=$2
+		AND archieved=false
 		ORDER BY taskIDp
 	`
 	rows,err:=t.DB.Query(ctx,query,projectID,username);if err!=nil{
@@ -146,10 +148,11 @@ func(t *TaskModel)GetTaskByID(ctx context.Context,taskID int)(Task,error){
 	return task,nil
 }
 
-func(t *TaskModel)Delete(ctx context.Context,projectID int, taskID int)error{
+func(t *TaskModel)Archieve(ctx context.Context,projectID int, taskID int)error{
 	query:=`
-		DELETE FROM tasks 
-		WHERE parentprojectID=$1
+		UPDATE tasks
+		SET archieved=TRUE
+		WHERE projectID=$1
 		AND taskID=$2
 	`
 	_,err:=t.DB.Exec(ctx,query,projectID,taskID);if err!=nil{

@@ -20,6 +20,7 @@ import { tokens } from "../theme";
 import { tasks, UserRole } from "../hooks/types";
 import CreateTaskModal from "./modals/createTask";
 import PopUp from "../scenes/global/Popup";
+import ViewTaskModal from "./modals/viewTask";
 export const ProjectTaskDetailPage = ({
   tasks,
   role,
@@ -36,6 +37,7 @@ export const ProjectTaskDetailPage = ({
   const [currentDescription, setCurrentDescription] = useState("");
   const [selectedTaskID, setSelectedTaskID] = useState<number | null>(null);
   const [openNewTaskModal, setOpenNewTaskModal] = useState(false);
+  const [openViewTaskModal, setOpenViewTaskModal] = useState(false);
   const [isEditTask, setIsEditTask] = useState(false);
   const [allowedActions, setAllowedActions] = useState<string[]>([]);
   const [newTask, setNewTask] = useState<tasks>({
@@ -457,7 +459,13 @@ export const ProjectTaskDetailPage = ({
           {allowedActions.includes("view") && (
             <VisibilityIcon
               sx={{ color: colors.greenAccent[400], borderRadius: "1px" }}
+              onClick={() => {
+                setIsEditTask(true);
+                setOpenViewTaskModal(true);
+                setNewTask(params.row);
+              }}
             />
+          
           )}
 
           {allowedActions.includes("delete") && (
@@ -507,6 +515,11 @@ export const ProjectTaskDetailPage = ({
         onClose={handleCloseNewTaskModal}
         handleCreateNewTask={isEditTask ? updateTask : handleCreateNewTask}
         setNewTask={setNewTask}
+      />
+      <ViewTaskModal
+        open={openViewTaskModal}
+        onClose={()=> setOpenViewTaskModal(false)}
+        newTask={newTask}
       />
       {/* Task Name Modal */}
       <Modal open={openTaskNameModal} onClose={handleCloseModal}>

@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from "react";
+import { useCallback } from "react";
 
 export function useWebSocket(
   url: string,
   setUpdateCount: React.Dispatch<React.SetStateAction<number>>,
   setInvitationtCount: React.Dispatch<React.SetStateAction<number>>
 ) {
-  const startWebSocket = () => {
+  const startWebSocket = useCallback(() => {
     const socket = new WebSocket(url);
 
     socket.onopen = () => {
@@ -14,15 +14,12 @@ export function useWebSocket(
 
     socket.onmessage = (event) => {
       console.log("📨 Message from server:", event.data);
-      // Parse data & update count, for example:
       try {
         const data = JSON.parse(event.data);
-        console.log("📨 data from server:", data.updateNotification);
         setUpdateCount(data.updateNotification);
-        setInvitationtCount(data.invitationNotification)
-        console.log("data seted ")
+        setInvitationtCount(data.invitationNotification);
       } catch (error) {
-        console.error(error);
+        console.error("Error parsing WebSocket message:", error);
       }
     };
 
@@ -37,6 +34,7 @@ export function useWebSocket(
     return () => {
       socket.close();
     };
-  };
+  }, [url, setUpdateCount, setInvitationtCount]);
+
   return [startWebSocket];
 }

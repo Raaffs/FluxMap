@@ -30,6 +30,7 @@ function App() {
   const [userProjectRoleMap,setUserProjectRoleMap]=useState<Record<number, UserRole>>({})
   const [startWebSocket]=useWebSocket("ws://localhost:4000/api/ws",setUpdateCount,setInvitationcount)
   useEffect(() => {
+  startWebSocket()
   const cachedMap = localStorage.getItem("userProjectRoleMap");
   if (cachedMap) {
     try {
@@ -39,7 +40,7 @@ function App() {
       console.error("Failed to parse userProjectRoleMap:", err);
     }
   }
-}, []);
+}, [startWebSocket]);
   return (
     <AuthProvider>
       <ColorModeContext.Provider value={colorMode}>

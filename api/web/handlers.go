@@ -794,7 +794,7 @@ func (app *Application)RemoveTasks(c echo.Context)error{
 	projectID,err:=strconv.Atoi(c.Param("id"));if err!=nil{
 		return c.JSON(http.StatusBadRequest,map[string]string{"error":"Invalid task id"})
 	}
-	if err:=app.models.Task.Delete(c.Request().Context(),projectID,taskID); err!=nil{
+	if err:=app.models.Task.Archieve(c.Request().Context(),projectID,taskID); err!=nil{
 		if errors.Is(err,sql.ErrNoRows){
 			c.Logger().Errorf("Task with %d id not found. Error: %s",taskID,err)
 			return c.JSON(http.StatusNotFound,map[string]string{"error":"task not found"})

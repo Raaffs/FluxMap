@@ -1,17 +1,19 @@
 def calculateCpm(tasks):
     # Ensure dependencies are lists, never None
     for task in tasks:
-        if task["dependencies"] is None:
+        if task.get("dependencies") is None:
             task["dependencies"] = []
 
-    taskDict = {task["taskId"]: task for task in tasks}
+    taskDict = {task["taskId"]: task for task in tasks if task is not None and "taskId" in task}
 
     # Build successors list for backward pass
     for task in tasks:
         task["successors"] = []
+
     for task in tasks:
         for depId in task["dependencies"]:
-            taskDict[depId]["successors"].append(task["taskId"])
+            if depId in taskDict:
+                taskDict[depId]["successors"].append(task["taskId"])
 
     # Initialize CPM fields
     for task in tasks:
@@ -27,7 +29,11 @@ def calculateCpm(tasks):
     # Forward pass function
     def forward(task):
         if task["dependencies"]:
-            task["earliestStart"] = max(taskDict[dep]["earliestFinish"] for dep in task["dependencies"])
+            valid_deps = [dep for dep in task["dependencies"] if dep in taskDict]
+            if valid_deps:
+                task["earliestStart"] = max(taskDict[dep]["earliestFinish"] for dep in valid_deps)
+            else:
+                task["earliestStart"] = 0
         else:
             task["earliestStart"] = 0
         task["earliestFinish"] = task["earliestStart"] + task["duration"]
@@ -46,10 +52,11 @@ def calculateCpm(tasks):
 
     # Backward pass function
     def backward(task):
-        if not task["successors"]:
+        valid_succs = [succ for succ in task.get("successors", []) if succ in taskDict]
+        if not valid_succs:
             task["latestFinish"] = projectFinishTime
         else:
-            task["latestFinish"] = min(taskDict[succ]["latestStart"] for succ in task["successors"])
+            task["latestFinish"] = min(taskDict[succ]["latestStart"] for succ in valid_succs)
         task["latestStart"] = task["latestFinish"] - task["duration"]
 
     # Run backward pass until stable
@@ -65,8 +72,9 @@ def calculateCpm(tasks):
     # Calculate floats and critical path flag, clean up
     for task in tasks:
         task["totalFloat"] = task["latestStart"] - task["earliestStart"]
-        if task["successors"]:
-            task["freeFloat"] = min(taskDict[succ]["earliestStart"] for succ in task["successors"]) - task["earliestFinish"]
+        valid_succs = [succ for succ in task.get("successors", []) if succ in taskDict]
+        if valid_succs:
+            task["freeFloat"] = min(taskDict[succ]["earliestStart"] for succ in valid_succs) - task["earliestFinish"]
         else:
             task["freeFloat"] = task["totalFloat"]
         task["independentFloat"] = max(0, task["freeFloat"] - task["totalFloat"])
