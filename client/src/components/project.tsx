@@ -16,6 +16,7 @@ import LinearProgress from "@mui/material/LinearProgress";
 import { useNavigate } from "react-router-dom";
 import { Projects } from "../hooks/types";
 import CreateProjectModal from "./modals/createProject";
+import PopUp from "../scenes/global/Popup";
 
 //displays the list of project
 export const ProjectListComponent = ({ URI }: { URI: string }) => {
@@ -55,13 +56,17 @@ export const ProjectListComponent = ({ URI }: { URI: string }) => {
       return dateA.getTime() - dateB.getTime(); // Compare the dates
     } else if (sortOption === "startDate") {
       // Ensure projectStartDate is a valid date string or Date object
-      const startDateA = a.projectStartDate ? new Date(a.projectStartDate) : new Date(0); // Default to an "epoch" date if not available
-      const startDateB = b.projectStartDate ? new Date(b.projectStartDate) : new Date(0); // Same here
+      const startDateA = a.projectStartDate
+        ? new Date(a.projectStartDate)
+        : new Date(0); // Default to an "epoch" date if not available
+      const startDateB = b.projectStartDate
+        ? new Date(b.projectStartDate)
+        : new Date(0); // Same here
       return startDateA.getTime() - startDateB.getTime(); // Compare the start dates
     } else if (sortOption === "projectName") {
       // Sort by project name
       return a.projectName.localeCompare(b.projectName);
-    } 
+    }
     return 0; // Default return if no sort option is matched
   });
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,9 +91,9 @@ export const ProjectListComponent = ({ URI }: { URI: string }) => {
     };
 
     postProject(formattedProject, URI);
-
-    if (!postError) {
-      handleCloseModal(); // Close modal on successful creation
+    console.log("error here 2 ",postError)
+    if (postError?.length === 0) {
+      handleCloseModal();
     }
   };
 
@@ -102,6 +107,8 @@ export const ProjectListComponent = ({ URI }: { URI: string }) => {
           minHeight: "50vh",
         }}
       >
+      {error && <PopUp Error={postError} Message="" onClose={() => {}} />}
+
         <LinearProgress
           color="success"
           sx={{
@@ -132,6 +139,8 @@ export const ProjectListComponent = ({ URI }: { URI: string }) => {
           border: `2px solid ${theme.palette.divider}`,
         }}
       >
+      {error && <PopUp Error={postError} Message="" onClose={() => {}} />}
+
         <Typography
           variant="h4"
           color="error"
@@ -179,6 +188,8 @@ export const ProjectListComponent = ({ URI }: { URI: string }) => {
             theme.palette.mode === "dark" ? colors.primary[500] : "white",
         }}
       >
+      {error && <PopUp Error={postError} Message="" onClose={() => {}} />}
+
         <Typography
           variant="h4"
           color="text.secondary"
@@ -201,8 +212,8 @@ export const ProjectListComponent = ({ URI }: { URI: string }) => {
             fontStyle: "italic",
           }}
         >
-          Looks like you don't have any projects here yet. Create one to get started
-          and bring your ideas to life!
+          Looks like you don't have any projects here yet. Create one to get
+          started and bring your ideas to life!
         </Typography>
         <Button
           variant="contained"
@@ -223,6 +234,8 @@ export const ProjectListComponent = ({ URI }: { URI: string }) => {
         >
           Create a New Project
         </Button>
+      {error && <PopUp Error={postError} Message="" onClose={() => {}} />}
+
         <CreateProjectModal
           open={modalOpen}
           onClose={handleCloseModal}
@@ -247,6 +260,7 @@ export const ProjectListComponent = ({ URI }: { URI: string }) => {
         boxShadow: 1,
       }}
     >
+      {error && <PopUp Error={postError} Message="" onClose={() => {}} />}
       <Box
         sx={{
           display: "flex",
@@ -281,9 +295,9 @@ export const ProjectListComponent = ({ URI }: { URI: string }) => {
               sx={{
                 fontSize: "0.75rem",
                 fontWeight: 500,
-                borderRadius: "11px", 
+                borderRadius: "11px",
                 width: "130px", // Make the width smaller, in line with the "New" button
-                height:"46px",
+                height: "46px",
                 backgroundColor:
                   theme.palette.mode === "dark" ? "#388e3c" : "#4caf50", // Darker, richer green
                 color: "#fff", // Keep text white for contrast
@@ -330,9 +344,9 @@ export const ProjectListComponent = ({ URI }: { URI: string }) => {
               fontWeight: 600,
               textTransform: "none",
               whiteSpace: "nowrap",
-              width:"120px",
+              width: "120px",
               borderRadius: "12px",
-              backgroundColor:'royalblue',
+              backgroundColor: "royalblue",
               px: 3,
               py: 1.25,
               boxShadow: 2,
@@ -354,7 +368,10 @@ export const ProjectListComponent = ({ URI }: { URI: string }) => {
             textAlign: "left",
             alignItems: "flex-start",
             justifyContent: "flex-start",
-            borderBottom: theme.palette.mode==="dark"?"1px solid #2E3C57":"1px solid #e1e4e8",
+            borderBottom:
+              theme.palette.mode === "dark"
+                ? "1px solid #2E3C57"
+                : "1px solid #e1e4e8",
             py: 2,
             px: 2,
             cursor: "pointer",
@@ -362,7 +379,9 @@ export const ProjectListComponent = ({ URI }: { URI: string }) => {
             borderRadius: "10px",
             "&:hover": {
               backgroundColor:
-                theme.palette.mode === "dark" ? colors.blueAccent[700] : "#f6f8fa",
+                theme.palette.mode === "dark"
+                  ? colors.blueAccent[700]
+                  : "#f6f8fa",
             },
           }}
         >
@@ -418,7 +437,7 @@ export const ProjectListComponent = ({ URI }: { URI: string }) => {
           boxShadow: 3,
           textTransform: "none",
           borderRadius: "12px",
-          backgroundColor:"royalblue"
+          backgroundColor: "royalblue",
         }}
       >
         + Create New Project

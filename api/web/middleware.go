@@ -1,8 +1,12 @@
 package main
 
 import (
+	"context"
+	"database/sql"
+	"errors"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/Raaffs/FluxMap/internal/sessionVar"
 	"github.com/labstack/echo/v4"
@@ -22,8 +26,39 @@ func IsAuthorizedUser(next echo.HandlerFunc)echo.HandlerFunc{
 
 func (app *Application)HasProjectAccess(next echo.HandlerFunc)echo.HandlerFunc{
 	return func(c echo.Context) error {
-		
-		return next(c)
+		username,ok:=c.Get(sessionvar.USERNAME).(string);if!ok{
+			return c.JSON(http.StatusUnauthorized,map[string]string{"error":"unauthorized access"})
+		}
+		projectID,err:=strconv.Atoi(c.Param("id"));if err!=nil{
+			c.Logger().Error("error converting project id string to int: ",err)
+			return c.JSON(http.StatusNotFound, map[string]string{"error": "project not found"})
+		}
+		isAdmin,err:=app.models.Users.IsAdmin(c.Request().Context(),username,strconv.Itoa(projectID));if err!=nil{
+			if errors.Is(err,sql.ErrNoRows){
+				c.Logger().Error("error getting access level: ",err)
+				return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized access"})
+			}
+			c.Logger().Error("error getting access level: ",err)
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+		}
+		if isAdmin{
+			return next(c)
+		}
+
+		switch status:=app.EnsureExists(c,func(ctx context.Context) (bool, error) {
+		return app.models.Invitation.HasAcceptedInvitation(ctx,projectID,username)
+		});status{
+		case ErrorCheckingExistStatus:
+		// error response already sent by EnsureExists, just exit
+			return nil
+		case Exists: 
+			return next(c)
+		case NotExists:
+			    c.Logger().Infof("user %s has no accepted invitation to project %d", username, projectID)
+			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized access"})
+		default:
+			return c.JSON(http.StatusInternalServerError,"If this happens I'm quitting")
+		}
 	}
 }
 
@@ -36,7 +71,6 @@ func(app *Application)ManagerLevelAccess(next echo.HandlerFunc) echo.HandlerFunc
 		}
 
 		if isAdmin{
-            c.Set("isAdmin",true)
 			return next(c)
 		}
 

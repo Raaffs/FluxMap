@@ -62,11 +62,18 @@ export const usePostProject = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.log("project post err",errorData)
-        throw new Error(errorData.error || "Failed to post the project");
+        
+        const errors=[
+          errorData.error,
+          errorData.Errors.description,
+          errorData.Errors.name,
+        ]
+        .filter(Boolean)
+        .join("\n")
+        setError(errors)
+        return
       }
 
-      await response.json(); // Assuming success response has no additional data
       setSuccess(true);
     } catch (err) {
       console.error("Error posting project:", err);

@@ -32,7 +32,6 @@ func RequestAndCalculatePERTCPM[T models.Analytic](a []*T) (models.Result, error
 	if err != nil {
 		return models.Result{}, err		
 	}
-	fmt.Println(resp.Body)
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return models.Result{}, fmt.Errorf("received non-200 response: %s", resp.Status)

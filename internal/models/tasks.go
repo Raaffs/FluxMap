@@ -157,3 +157,16 @@ func(t *TaskModel)Delete(ctx context.Context,projectID int, taskID int)error{
 	}
 	return nil
 }
+
+func(t *TaskModel)TransferUserTask(ctx context.Context, projectID int, removedUser, fallBackUser string)error{
+	query:=`
+		UPDATE tasks
+		SET username=$1
+		WHERE username=$2 AND
+		parentProjectID=$3
+	`
+	_,err:=t.DB.Exec(ctx,query,fallBackUser,removedUser,projectID);if err!=nil{
+		return err
+	}
+	return nil
+}

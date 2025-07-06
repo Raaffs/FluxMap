@@ -200,3 +200,15 @@ func (i *InvitationModel)SetRead(ctx context.Context, username string)(error){
 	}
 	return nil
 }
+
+func (i *InvitationModel)Delete(ctx context.Context, projectID int,username string)error{
+	query:=`
+		DELETE FROM invitation
+		WHERE projectID=$1
+		username=$2
+	`
+	_,err:=i.DB.Exec(ctx,query,projectID,username);if err!=nil{
+		return err
+	}
+	return nil
+}

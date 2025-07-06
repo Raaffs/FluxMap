@@ -56,7 +56,6 @@ func (ws *ConnectionManager)AddClient(user *WSUser){
 	ws.mutex.Lock()
 	ws.Clients[user.Websocket]=user
 	ws.mutex.Unlock()
-	log.Println("CLIENTS: ",ws.Clients)
 }
 
 func (ws *ConnectionManager)RemoveClient(conn *websocket.Conn){
@@ -98,15 +97,11 @@ func (client *WSUser)KeepAlive(userWhoSendReq string){
 	for{
 		select{
 		case job,ok:=<-client.Send:
-			log.Println("JOB MF : ",string(job.Message),"sent to : ",client.Username)
 			client.WriteMessage(job,ok)
 		case <-ticker.C:
 			if err := client.Websocket.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
-				log.Println("writemsg: ", err)
 				return // return to break this goroutine triggeing cleanup
 			}
-			log.Println("Pinged")
-
 		}
 	}
 }
@@ -135,7 +130,7 @@ func (cm *ConnectionManager) PushToClients(msg []byte, filter func(WSUser) bool)
 	go func() {
 		cm.mutex.Lock()
 		defer cm.mutex.Unlock()
-		for _, client := range cm.Clients {
+		for _, client := range cm.	Clients {
 			if filter(*client){
 				client.Send <- MessageJob{
 					Message: msg,

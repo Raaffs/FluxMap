@@ -167,3 +167,44 @@ export const useGetConfirmedUsers=(projectID: number)=>{
   },[])
   return {users,usersLoading,usersError}
 }
+
+export const useRemoveUserFromProject = () => {
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<boolean>(false);
+
+  const deleteProject = async (projectId: string) => {
+    setLoading(true);
+    setError(null);
+    setSuccess(false);
+
+    try {
+      const response = await fetch(`http://localhost:4000/api/projects/${projectId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        const errors = [
+          errorData.error,
+          errorData.Errors?.description,
+          errorData.Errors?.name,
+        ]
+          .filter(Boolean)
+          .join("\n");
+        setError(errors);
+        return;
+      }
+
+      setSuccess(true);
+    } catch (err) {
+      console.error("Error deleting project:", err);
+      setError(err instanceof Error ? err.message : "An unknown error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { deleteProject, loading, error, success };
+};

@@ -273,12 +273,15 @@ func ValidateTask(t models.Task)(*validator.Validator){
 	return v
 }
 
-func (app *Application)CheckInvitationStatus(c echo.Context,t models.Task, projectID int, username string)bool{
+func (app *Application)CheckInvitationStatus(c echo.Context,t models.Task, projectID int, username string)(bool){
 	//gonna use this hack for now, will think of a better way later
-	//10/6/25: this not a hack, it's permanent now. 
-	isAdmin, ok := c.Get("isAdmin").(bool)
-	if !ok {
-		isAdmin = false
+	isAdmin,err:=app.models.Users.IsAdmin(c.Request().Context(),username,c.Param("id"));if err!=nil{
+		if !errors.Is(err,sql.ErrNoRows){
+			c.Logger().Error("error getting access level: ",err)
+			c.JSON(http.StatusNotFound, map[string]string{"error": "internal server error"})
+			return false
+		}
+		isAdmin=false
 	}
 	//check if a	dmin is assigning task to themselves
 	if isAdmin && t.AssignedUsername.String==username{
@@ -300,7 +303,6 @@ func (app *Application)CheckInvitationStatus(c echo.Context,t models.Task, proje
 	default:
 		return false
 	}
-	
 }
 
 func (app *Application) GenerateUpdateMessage(ctx context.Context, updatedTask models.Task) (string, error) {

@@ -4,13 +4,12 @@ import Alert from '@mui/material/Alert';
 
 interface PopUpProps {
     Message?: string;
-    Error?: string;
+    Error?: string|null;
     onClose?: () => void;
 }
 
 const PopUp: React.FC<PopUpProps> = ({ Message, Error, onClose }) => {
     const [open, setOpen] = React.useState<boolean>(true);
-
     const handleClose = (
         event?: React.SyntheticEvent | Event,
         reason?: string

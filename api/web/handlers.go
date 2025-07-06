@@ -151,7 +151,7 @@ func (app *Application) CreateProject(c echo.Context) error {
 	// Bind JSON payload to the project struct
 	if err := c.Bind(&p); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{
-			"error": "Invalid JSON payload222",
+			"error": "Invalid JSON payload",
 		})
 	}
 
@@ -177,10 +177,8 @@ func (app *Application) CreateProject(c echo.Context) error {
 
 	// If validation fails, return detailed validation errors
 	if !v.Valid() {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
-			"error":  "Validation error",
-			"fields": v.Errors, // Assuming v.Errors contains the validation error details
-		})
+		log.Println("project errors: ",v.Errors)
+		return c.JSON(http.StatusBadRequest, v)
 	}
 
 	// Attempt to create the project
@@ -392,7 +390,35 @@ func (app *Application) ConfirmInvitation(c echo.Context) error {
 }
 
 func(app *Application)RemoveUser(c echo.Context)error{
+	removeUser:=struct{
+		Username string `json:"username"`
+		FallBackUser string `json:"fallBackUser"`
+	}{}
+	projectID,err:=strconv.Atoi(c.Param("id"));if err!=nil{
+		c.Logger().Warn("Error converting projectid string to int: ",err)
+		return c.JSON(http.StatusNotFound,map[string]string{"error":"project not found"})
 
+	}
+	if err:=c.Bind(&removeUser);err!=nil{
+		c.Logger().Error("Error binding json to removeUser struct: ",err)
+		return c.JSON(http.StatusBadRequest,map[string]string{"error":"invalid json format"})
+	}
+
+	if err:=app.models.Task.TransferUserTask(c.Request().Context(),projectID,removeUser.Username,removeUser.FallBackUser);err!=nil{
+		if errors.Is(err,sql.ErrNoRows){
+			return c.JSON(http.StatusNotFound,map[string]string{"error":"user not found"})
+		}
+		c.Logger().Error("Error transferring task to user: ",err)
+		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"internal server error"})
+	}
+
+	if err:=app.models.Invitation.Delete(c.Request().Context(),projectID,removeUser.Username);err!=nil{
+		if errors.Is(err,sql.ErrNoRows){
+			return c.JSON(http.StatusNotFound,map[string]string{"error":"user not found"})
+		}
+		c.Logger().Error("Error removing user from invitation: ",err)
+		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"internal server error"})
+	}
 	return c.JSON(http.StatusOK,map[string]string{"message":"user removed successfully"})
 }
 

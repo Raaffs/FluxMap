@@ -60,6 +60,7 @@ func (app *Application)RegisterRoutes(e *echo.Echo){
 	e.POST("/api/projects", app.CreateProject, IsAuthorizedUser)
 	e.GET("/api/project/:id", app.GetProjectByID, IsAuthorizedUser)
 	e.PUT("/api/project/:id", app.UpdateProject, app.ManagerLevelAccess)
+	e.DELETE("/api/project/:id/user",app.RemoveUser,app.ManagerLevelAccess)
 
 	// Admin & Manager routes
 	e.PUT("/api/project/admin/:id", app.UpdateProject, app.AdminLevelAccess)
@@ -67,15 +68,14 @@ func (app *Application)RegisterRoutes(e *echo.Echo){
 	e.GET("/api/projects/admin", app.GetAdminProjects, IsAuthorizedUser)
 	e.GET("/api/projects/manager", app.GetManagerProjects, IsAuthorizedUser)
 	e.GET("/api/projects/assigned", app.GetAssignedProjects, IsAuthorizedUser)
-
 	// Invitation routes
 	e.POST("/api/project/:id/invite", app.Invite,IsAuthorizedUser)
 	e.GET("/api/invitation", app.GetInvitations,IsAuthorizedUser)
 	e.PUT("/api/invitation/:id", app.ConfirmInvitation,IsAuthorizedUser)
 	e.GET("/api/invitation/:id/confirmed",app.GetConfirmedUsers,IsAuthorizedUser)
-	
+
 	// Task routes
-	e.GET("/api/project/:id/tasks", app.GetTasks, IsAuthorizedUser)
+	e.GET("/api/project/:id/tasks", app.GetTasks, IsAuthorizedUser,app.HasProjectAccess)
 	e.POST("/api/project/:id/task", app.CreateTask, app.ManagerLevelAccess)
 	e.GET("/api/project/:id/task/:taskID", app.GetTaskByID, IsAuthorizedUser)
 	e.PUT("/api/project/:id/task/:taskID/manager", app.ManagerRestrictedTask, app.ManagerLevelAccess)
@@ -86,13 +86,13 @@ func (app *Application)RegisterRoutes(e *echo.Echo){
 	e.PUT("/api/project/:id/task/:taskID/assign", app.ManagerRestrictedTask, app.ManagerLevelAccess)
 
 	// PERT & CPM routes
-	e.GET("/api/project/:id/pert", app.GetPert, IsAuthorizedUser)
-	e.POST("/api/project/:id/pert", app.CreatePert, IsAuthorizedUser)
+	e.GET("/api/project/:id/pert", app.GetPert, IsAuthorizedUser,app.HasProjectAccess)
+	e.POST("/api/project/:id/pert", app.CreatePert, IsAuthorizedUser,app.HasProjectAccess)
 
-	e.GET("/api/project/:id/cpm", app.GetCpm, IsAuthorizedUser)
-	e.POST("/api/project/:id/cpm", app.CreateCpm, IsAuthorizedUser)
+	e.GET("/api/project/:id/cpm", app.GetCpm, IsAuthorizedUser,app.HasProjectAccess)
+	e.POST("/api/project/:id/cpm", app.CreateCpm, IsAuthorizedUser,app.HasProjectAccess,app.ManagerLevelAccess)
 
-	e.GET("/api/project/:id/update",app.GetProjectUpdates,IsAuthorizedUser)
+	e.GET("/api/project/:id/update",app.GetProjectUpdates,IsAuthorizedUser,app.HasProjectAccess)
 	e.GET("/api/updates",app.GetAllUpdates,IsAuthorizedUser)
 
 	e.GET("/api/ws",app.HandlWS,IsAuthorizedUser)
