@@ -54,16 +54,21 @@ export const useAddPert=(id:string)=>{
     setSuccess(false);
     console.log("add pert: ",pert)
     try{
+
       const res=await fetch(`http://localhost:4000/api/project/${id}/pert`,{
         method:"POST",
         credentials:'include',
         headers:{
           'Content-Type':'application/json'
         },
-        //backend takes this as an array for some reason. I don't know why. 
+        //backend takes this as an array.
+        //since endpoint is created so that you can technically add
+        //multiple pert tasks at once.
+        //but UI is designed to add one at a time.
+        //so we wrap it in an array.
         body:JSON.stringify([{
           parentTaskID: pert.parentTaskID,
-          predecessorTaskId: pert.predecessorTaskId,
+          predecessorTaskId: pert.predecessorTaskId===""? null : pert.predecessorTaskId,
           optimistic: pert.optimistic,
           pessimistic: pert.pessimistic,
           mostLikely: pert.mostLikely,

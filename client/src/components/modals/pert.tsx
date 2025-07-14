@@ -64,7 +64,7 @@ const AddPertTaskModal: React.FC<AddPertTaskModalProps> = ({
       alert("Please fix input errors before submitting.");
       return;
     }
-
+    console.log("edited pert task:",newTask)
     onAddTask(newTask);
     onClose();
   };
@@ -88,7 +88,6 @@ const AddPertTaskModal: React.FC<AddPertTaskModalProps> = ({
           Add New PERT Task
         </Typography>
 
-        {/* Task Selection */}
         <TextField
           select
           fullWidth
@@ -106,7 +105,6 @@ const AddPertTaskModal: React.FC<AddPertTaskModalProps> = ({
           ))}
         </TextField>
 
-        {/* Predecessor Selection */}
         <TextField
           select
           fullWidth

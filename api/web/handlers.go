@@ -680,7 +680,7 @@ func (app *Application) GetPert(c echo.Context) error {
 func (app *Application) CreatePert(c echo.Context) error {
 	var pert []models.Pert
 	if err := c.Bind(&pert); err != nil {
-		c.Logger().Warn("error binding pert : ", err)
+		c.Logger().Error("error binding pert : ", err)
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid json body"})
 	}
 	

@@ -61,8 +61,9 @@ export const PertTable: React.FC<{
   );
 
   useEffect(()=>{
-    
-  })
+    const PertAddableTasks = getPertAddableTask(tasks, pertTasks || []);
+    setPertAddableTasksState(PertAddableTasks);
+  },[tasks, pertTasks])
 
   const handleAddTask = (newTask: PertData) => {
     setPertData([...pertData, newTask]);
@@ -136,21 +137,6 @@ export const PertTable: React.FC<{
   tasks.forEach((task) => tasksMap.set(task.taskID, true));
   pertTasks.forEach((pertTask) => pertTaskMap.set(pertTask.parentTaskID, true));
 
-  let PertAddableTask: PertRows[] = [];
-  for (const task of tasks) {
-    if (!pertTaskMap.has(task.taskID)) {
-      PertAddableTask.push({
-        id: 0,
-        parentTaskID: task.taskID,
-        predecessorTaskId: 0,
-        optimistic: 0,
-        pessimistic: 0,
-        mostLikely: 0,
-        taskName: task.taskName,
-      });
-    }
-  }
-
   // const PertAddableTask: PertData[] = (pertTasks || []).filter((task) => !tasksMap.has(task.parentTaskID))
   let rows: PertRows[] = [];
   //for some reason even though PertData has field ParentTaskID
@@ -177,21 +163,6 @@ export const PertTable: React.FC<{
     });
   }
 
-  let addAbleRows: PertRows[] = [];
-  for (const pertTask of PertAddableTask) {
-    addAbleRows.push({
-      id: pertTask.parentTaskID,
-      parentTaskID: pertTask.parentTaskID,
-      predecessorTaskId: pertTask.predecessorTaskId,
-      optimistic: pertTask.optimistic,
-      pessimistic: pertTask.pessimistic,
-      mostLikely: pertTask.mostLikely,
-      taskName:
-        tasks.find((task) => task.taskID === pertTask.parentTaskID)?.taskName ||
-        "",
-    });
-  }
-
   const columns: GridColDef[] = [
     { field: "taskName", headerName: "Name", width: 150 },
     { field: "predecessorTaskId", headerName: "Predecessor", width: 150 },
@@ -206,7 +177,9 @@ export const PertTable: React.FC<{
           <Box>
             <EditIcon
               onClick={() => {
-                setNewTask(params.row)
+                const currentTask = params.row;
+                setNewTask(currentTask);
+                setPertAddableTasksState((prev) => [...(prev ?? []), currentTask]);
                 setOpen(true);
               }}
             />
@@ -215,6 +188,7 @@ export const PertTable: React.FC<{
       }
     },
   ];
+  
   return (
     <Box>
       <Box sx={{ padding: 1, display: "flex", justifyContent: "flex-end" }}>
@@ -231,16 +205,38 @@ export const PertTable: React.FC<{
         open={open}
         onClose={() => setOpen(false)}
         onAddTask={handleAddTask}
-        pertAddableTasks={PertAddableTask}
+        pertAddableTasks={pertAddableTasksState || []}
         pertTasks={rows}
         newTask={newTask}
         setNewTask={setNewTask}
       />
       <DataGrid rows={rows} columns={columns} />
-      {/* Modal */}
     </Box>
   );
 };
+
+
+function getPertAddableTask(taskList: tasks[], pertTaskList: PertData[]):PertRows[] {
+  const tasksMap = new Map<number, boolean>();
+  const pertTaskMap = new Map<number, boolean>();
+  taskList.forEach((task) => tasksMap.set(task.taskID, true));
+  pertTaskList.forEach((pertTask) => pertTaskMap.set(pertTask.parentTaskID, true));
+  let PertAddableTask: PertRows[] = [];
+  for (const task of taskList) {
+    if (!pertTaskMap.has(task.taskID)) {
+      PertAddableTask.push({
+        id: 0,
+        parentTaskID: task.taskID,
+        predecessorTaskId: 0,
+        optimistic: 0,
+        pessimistic: 0,
+        mostLikely: 0,
+        taskName: task.taskName,
+      });
+    }
+  }
+  return PertAddableTask;
+}
 
 const PertNormalDistributionChart: React.FC<{
   apiResponse: ApiResponse | null;
@@ -252,7 +248,6 @@ const PertNormalDistributionChart: React.FC<{
   const [zValue, setZValue] = useState<number | null>(null);
   const [probability, setProbability] = useState<number | null>(null);
   const [xInput, setXInput] = useState<string>("");
-  const selectTasks = tasks?.map((task) => task.taskID);
   const standardNormalCDF = (z: number): number => {
     return 0.5 * (1 + erf(z / Math.sqrt(2)));
   };

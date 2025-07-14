@@ -64,8 +64,6 @@ const CpmTable: React.FC<{
       },
     },
   ];
-  let CPMAddableTasks: CpmApiResponse[] = [];
-  CPMAddableTasks = getCPMAddableTask(tasks, data?.Result || []);
   let formattedCPMData = setTaskNames(CPMData, tasks);
   getDependenciesName(formattedCPMData);
   // Prepare rows for the DataGrid
