@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { Projects, UserRole } from "./types";
-import { normalize } from "path";
 import { normalizeAccessMap } from "../helpers/filter";
 export const useRetrieveProjectsFrom = (
   link: string,
+  fetchTrigger: boolean,
+  setFetchTrigger:React.Dispatch<React.SetStateAction<boolean>>
+  
 ) => {
   const [projects, setProjects] = useState<Projects[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -38,20 +40,28 @@ export const useRetrieveProjectsFrom = (
         console.error("Error fetching projects:", err);
         setError(error); // Handle all errors here
         setLoading(false);
+      })
+      .finally(() => {
+        setFetchTrigger(false); 
       });
-  },[link]);
+  },[link,fetchTrigger]);
 
   return { projects, loading, error };
 };
 
 export const usePostProject = (  
   setUserProjectRoleMap: React.Dispatch<React.SetStateAction<Record<number,UserRole>>>
+
 ) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<boolean>(false);
 
-  const postProject = async (newProject: Projects, link: string) => {
+  const postProject = async (
+    newProject: Projects, 
+    link: string,
+    setFetchTrigger: React.Dispatch<React.SetStateAction<boolean>>
+  ) => {
     setLoading(true);
     setError(null);
     setSuccess(false);
@@ -82,10 +92,9 @@ export const usePostProject = (
       let noramlizedRoleMap=normalizeAccessMap(data.roles as Record<UserRole, number[] | null>)
       setUserProjectRoleMap(noramlizedRoleMap)
       localStorage.setItem("userProjectRoleMap", JSON.stringify(noramlizedRoleMap));
-      console.log("roles set in project: ",noramlizedRoleMap)
       setSuccess(true);
+      setFetchTrigger(true);
     } catch (err) {
-      console.error("Error posting project:", err);
       setError(err instanceof Error ? err.message : "An unknown error occurred");
     } finally {
       setLoading(false);

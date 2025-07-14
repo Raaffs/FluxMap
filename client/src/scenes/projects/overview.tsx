@@ -58,7 +58,7 @@ export const ProjectOverview:React.FC<{
             headers: {
               "Content-Type": "application/json",
             },
-            credentials: "include", // Include credentials (cookies, authentication tokens, etc.)
+            credentials: "include",
           }
         );
         const data = await response.json();

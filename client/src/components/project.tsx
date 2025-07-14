@@ -21,9 +21,10 @@ type ProjectListProps = {
   URI: string;
   setUserProjectRoleMap: React.Dispatch<React.SetStateAction<Record<number, UserRole>>>;
 };
-//displays the list of project
+
 export const ProjectListComponent = ({ URI, setUserProjectRoleMap }: ProjectListProps) => {
-  const { projects, loading, error } = useRetrieveProjectsFrom(URI);
+  const [fetchTrigger, setFetchTrigger] = useState<boolean>(false);
+  const { projects, loading, error } = useRetrieveProjectsFrom(URI, fetchTrigger, setFetchTrigger);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOption, setSortOption] = useState("dueDate");
   const {
@@ -93,10 +94,10 @@ export const ProjectListComponent = ({ URI, setUserProjectRoleMap }: ProjectList
         : null,
     };
 
-    postProject(formattedProject, URI);
+    postProject(formattedProject, URI, setFetchTrigger);
     console.log("error here 2 ",postError)
     if (postError?.length === 0) {
-      handleCloseModal();
+      setModalOpen(false);
     }
   };
 

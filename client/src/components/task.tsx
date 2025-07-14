@@ -41,7 +41,7 @@ export const ProjectTaskDetailPage = ({
   const [isEditTask, setIsEditTask] = useState(false);
   const [allowedActions, setAllowedActions] = useState<string[]>([]);
   const [newTask, setNewTask] = useState<tasks>({
-    taskID: 0, // Set to 0 or another default value if necessary
+    taskID: 0, 
     taskName: "",
     taskDescription: "",
     taskStatus: "pending",
