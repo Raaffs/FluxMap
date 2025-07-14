@@ -200,12 +200,12 @@ export const ProjectOverview:React.FC<{
         margin: "5px",
         width: "100%",
         minHeight: "100%",
-        padding: "16px",
-        border: "5px #ddd",
-        borderRadius: "8px",
+        padding: "10px",
+        // border: "5px #ddd",
+        // borderRadius: "8px",
         backgroundColor:
           theme.palette.mode === "dark" ? colors.primary[400] : "white",
-        boxShadow: "0 4px 8px rgba(0,0,0,0.5)",
+        // boxShadow: "0 4px 8px rgba(0,0,0,0.5)",
         alignContent: "left",
         overflowX: "auto",
       }}
@@ -214,17 +214,12 @@ export const ProjectOverview:React.FC<{
         sx={{
           width: "99%",
           minHeight: "20%",
-          marginBottom: "16px",
-          padding: "16px",
-          borderRadius: "8px",
+          padding: "20px",
           backgroundColor:
-            theme.palette.mode === "dark" ? colors.primary[400] : "#f",
-          boxShadow: "0 2px 4px rgba(0,0,0,0.5)",
+            theme.palette.mode === "dark" ? colors.primary[400] : "#f5f5f5",
           alignContent: "left",
           alignItems: "left",
-          textAlign: "left",
-          cursor: "pointer", // This makes the cursor a pointer on hover, indicating it's clickable
-         
+          textAlign: "left",         
         }}
       >
         <Typography variant="h4" sx={{ fontWeight: "bold" }}>

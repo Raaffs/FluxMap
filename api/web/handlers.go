@@ -65,6 +65,14 @@ func (app *Application) Login(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]any{"roles":roleToProjectMap})
 }
 
+func (app *Application)SendProjectRoleCache(c echo.Context)error{
+	roleToProjectMap,err:=app.CacheUserProjectsToSession(c);if err!=nil{
+		c.Logger().Error("Error caching user projects: ",err)
+		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"internal server error"})
+	}
+	return c.JSON(http.StatusOK,map[string]any{"roles":roleToProjectMap})
+}
+
 func (app *Application) Register(c echo.Context) error {
 	u := models.User{}
 	v := validator.New()
@@ -188,11 +196,10 @@ func (app *Application) CreateProject(c echo.Context) error {
 			"error": "An error occurred while creating the project",
 		})
 	}
-
-	// Successfully created the project
-	return c.JSON(http.StatusOK, map[string]string{
-		"message": "Project created successfully",
-	})
+	roleMap,err:=app.CacheUserProjectsToSession(c);if err!=nil{
+		c.Logger().Error("Error caching projects to session: ",err)
+	}
+	return c.JSON(http.StatusOK, map[string]any{"roles":roleMap})
 }
 
 func (app *Application) GetProjects(c echo.Context) error {
@@ -250,7 +257,6 @@ func (app *Application) GetAssignedProjects(c echo.Context) error {
 
 	assignedProjects, err := app.models.Projects.RetrieveAssginedProjects(c.Request().Context(), username)
 	if err != nil {
-		// Log and handle errors
 		c.Logger().Error("Error retrieving assigned projects: ", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error":"An error occurred while retrieving assigned projects"})
 	}
@@ -319,9 +325,7 @@ func (app *Application) Invite(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "internal server error"})
 	}
 
-	if err:=app.SendInviteNotification(c,invitation.Username);err!=nil{
-		c.Logger().Error("Error sending invite notification: ",err)
-	}
+	app.SendInviteNotification(c.Request().Context(),invitation.Username)
 
 	return c.JSON(http.StatusOK, map[string]string{"message": "invite sent"})
 }
@@ -404,7 +408,7 @@ func(app *Application)RemoveUser(c echo.Context)error{
 		return c.JSON(http.StatusBadRequest,map[string]string{"error":"invalid json format"})
 	}
 
-	if err:=app.models.Task.TransferUserTask(c.Request().Context(),projectID,removeUser.Username,removeUser.FallBackUser);err!=nil{
+	if err:=app.models.Task.ReallocateUser(c.Request().Context(),projectID,removeUser.Username,removeUser.FallBackUser);err!=nil{
 		if errors.Is(err,sql.ErrNoRows){
 			return c.JSON(http.StatusNotFound,map[string]string{"error":"user not found"})
 		}
@@ -468,7 +472,7 @@ func (app *Application) GetTaskByID(c echo.Context) error {
 		c.Logger().Error("error converting to string", err.Error())
 		return c.JSON(http.StatusNotFound, map[string]string{"error": "task not found"})
 	}
-	task, err := app.models.Task.GetTaskByID(c.Request().Context(), id)
+	task, err := app.models.Task.GetByID(c.Request().Context(), id)
 	if err != nil {
 		c.Logger().Error("Error retrieving task", err.Error())
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to retrieve task"})
@@ -509,7 +513,7 @@ func (app *Application) UpdateUserTask(c echo.Context) error {
 	status := struct {
 		TaskStatus string `json:"taskStatus"`
 	}{}
-	username := c.Get(sessionvar.USERNAME).(string)
+	username:=c.Get(sessionvar.USERNAME).(string)
 	v := validator.New()
 	taskID, err := strconv.Atoi(c.Param("taskID"));if err != nil {
 		return c.JSON(http.StatusNotFound, map[string]string{"error": "task not found"})
@@ -529,20 +533,16 @@ func (app *Application) UpdateUserTask(c echo.Context) error {
 		c.Logger().Warn("invalid status : ",status)
 		return c.JSON(http.StatusBadRequest,map[string]string{"error":"invalid status"})
 	}
-	taskName, err := app.models.Task.UpdateTask(c.Request().Context(), projectID, taskID, status.TaskStatus);if err != nil {
+	assignedByName, err := app.models.Task.UpdateStatus(c.Request().Context(), projectID, taskID, status.TaskStatus);if err != nil {
 		c.Logger().Error("error updating task: ", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "internal server error"})
 	}
-	u := models.Update{
-		Msg: fmt.Sprintf(
-			"Task %s has been set to %s by %s",
-			taskName,
-			status.TaskStatus,
-			username,
-		),
-		TargetType: "all",
+
+	msg:=fmt.Sprintf("Task status set to %s by %s",status.TaskStatus,username)
+	if err:=app.UpdateCountAndNotify(c,projectID,msg,assignedByName);err!=nil{
+		c.Logger().Error("Error sending update notification: ",err)
 	}
-	SetNotifyContext(c, u.Msg, u.TargetType, u.TargetUsername.String)
+
 	return nil
 }
 
@@ -586,7 +586,7 @@ func (app *Application)ApproveTask(c echo.Context) error {
 		c.Logger().Error("error generating update message : ", err)
 	}
 
-	if err := app.models.Task.UpdateManagerTask(c.Request().Context(),projectID, t); err != nil {
+	if err := app.models.Task.ManagerAuthorizedUpdate(c.Request().Context(),projectID, t); err != nil {
 		if errors.Is(err, models.ErrRecordNotFound) {
 			c.Logger().Warn("Task not found :", err)
 			return c.JSON(http.StatusNotFound, map[string]string{"error": "task not found"})
@@ -595,7 +595,6 @@ func (app *Application)ApproveTask(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to update task"})
 	}
 
-	
 	if err:=app.UpdateCountAndNotify(c,projectID,msg,t.AssignedUsername.String);err!=nil{
 		c.Logger().Error("Error sending update notification: ",err)
 	}
@@ -634,7 +633,7 @@ func (app *Application)ManagerRestrictedTask(c echo.Context) error {
 		c.Logger().Error("error generating update message : ", err)
 	}
 
-	if err := app.models.Task.UpdateManagerTask(c.Request().Context(),projectID, t); err != nil {
+	if err := app.models.Task.ManagerAuthorizedUpdate(c.Request().Context(),projectID, t); err != nil {
 		if errors.Is(err, models.ErrRecordNotFound) {
 			c.Logger().Warn("Task not found :", err)
 			return c.JSON(http.StatusNotFound, map[string]string{"error":"task not found"})
@@ -787,7 +786,7 @@ func (app *Application) GetAllUpdates(c echo.Context) error {
 	return c.JSON(http.StatusOK, updates)
 }
 
-func (app *Application)RemoveTasks(c echo.Context)error{
+func (app *Application)RemoveTask(c echo.Context)error{
 	taskID,err:=strconv.Atoi(c.Param("taskID"));if err!=nil{
 		return c.JSON(http.StatusBadRequest,map[string]string{"error":"Invalid task id"})
 	}
@@ -839,4 +838,3 @@ func (app *Application) GetProjectUpdates(c echo.Context) error {
 	
 	return c.JSON(http.StatusOK, updates)
 }
-

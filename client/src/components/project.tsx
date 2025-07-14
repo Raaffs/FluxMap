@@ -14,12 +14,15 @@ import {
 import { tokens } from "../theme";
 import LinearProgress from "@mui/material/LinearProgress";
 import { useNavigate } from "react-router-dom";
-import { Projects } from "../hooks/types";
+import { Projects, UserRole } from "../hooks/types";
 import CreateProjectModal from "./modals/createProject";
 import PopUp from "../scenes/global/Popup";
-
+type ProjectListProps = {
+  URI: string;
+  setUserProjectRoleMap: React.Dispatch<React.SetStateAction<Record<number, UserRole>>>;
+};
 //displays the list of project
-export const ProjectListComponent = ({ URI }: { URI: string }) => {
+export const ProjectListComponent = ({ URI, setUserProjectRoleMap }: ProjectListProps) => {
   const { projects, loading, error } = useRetrieveProjectsFrom(URI);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOption, setSortOption] = useState("dueDate");
@@ -28,7 +31,7 @@ export const ProjectListComponent = ({ URI }: { URI: string }) => {
     loading: postLoading,
     error: postError,
     success,
-  } = usePostProject();
+  } = usePostProject(setUserProjectRoleMap);
   const [modalOpen, setModalOpen] = useState(false);
   const [newProject, setNewProject] = useState<Projects>({
     projectID: 0,

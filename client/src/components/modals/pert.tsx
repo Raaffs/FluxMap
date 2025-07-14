@@ -7,16 +7,7 @@ import {
   TextField,
   MenuItem,
 } from "@mui/material";
-
-
-interface PertRows {
-  parentTaskID: number; // Also update this field to match
-  predecessorTaskId?: number | string| null;
-  optimistic: number;
-  pessimistic: number;
-  mostLikely: number;
-  taskName?: string;
-}
+import { PertRows } from "../pert";
 
 interface AddPertTaskModalProps {
   open: boolean;
@@ -24,10 +15,9 @@ interface AddPertTaskModalProps {
   onAddTask: (task: PertRows) => void;
   pertAddableTasks: PertRows[];
   pertTasks: PertRows[];
+  newTask:PertRows;
+  setNewTask:React.Dispatch<React.SetStateAction<PertRows>>
 }
-
-
-  
 
 const AddPertTaskModal: React.FC<AddPertTaskModalProps> = ({
   open,
@@ -35,16 +25,10 @@ const AddPertTaskModal: React.FC<AddPertTaskModalProps> = ({
   onAddTask,
   pertAddableTasks,
   pertTasks,
+  newTask,
+  setNewTask
 }) => {
-  const [newTask, setNewTask] = useState<PertRows>({
-    parentTaskID: 0,
-    predecessorTaskId: null,
-    optimistic: 0,
-    pessimistic: 0,
-    mostLikely: 0,
-    taskName: "",
-  });
-
+  
   const [errors, setErrors] = useState({
     optimistic: "",
     mostLikely: "",

@@ -26,7 +26,7 @@ func (t *TaskModel)Create(ctx context.Context, task Task)error{
 	return nil
 }
 
-func (t *TaskModel) UpdateTask(ctx context.Context, projectID int, taskID int, status string) (string, error) {
+func (t *TaskModel)UpdateStatus(ctx context.Context, projectID int, taskID int, status string) (string, error) {
 	query := `
 		UPDATE tasks 
 		SET 
@@ -34,23 +34,23 @@ func (t *TaskModel) UpdateTask(ctx context.Context, projectID int, taskID int, s
 			taskCompletedDate = NOW()
 			WHERE taskID = $2
 			AND	  parentProjectID=$3
-			RETURNING taskName
+			RETURNING createdby
 	`
 
-	var updatedTaskName string
-	err := t.DB.QueryRow(ctx, query, status, taskID).Scan(
-		&updatedTaskName,
+	var createBy string
+	err := t.DB.QueryRow(ctx, query, status, taskID, projectID).Scan(
+		&createBy,
 	)
 	if err != nil {
 		t.Errorlog.Println(err)
 		return "", err
 	}
 
-	return updatedTaskName, nil
+	return createBy, nil
 }
 
 
-func (t *TaskModel)UpdateManagerTask(ctx context.Context,projectID int,task Task)error{
+func (t *TaskModel)ManagerAuthorizedUpdate(ctx context.Context,projectID int,task Task)error{
 	query:=`
 	UPDATE tasks 
 	SET taskname=$1, taskDescription=$2, taskStatus=$3, taskStartDate=$4, taskDueDate=$5, AssignedUsername=$6, Approved=$7, taskApprovedDate=$8
@@ -63,7 +63,7 @@ func (t *TaskModel)UpdateManagerTask(ctx context.Context,projectID int,task Task
 	return nil
 }
 
-func(t *TaskModel)GetTasks(ctx context.Context,projectID int)([]*Task,error){
+func(t *TaskModel)Get(ctx context.Context,projectID int)([]*Task,error){
 	var tasks []*Task
 	query:=`
 		SELECT taskID, taskName, taskDescription, taskStatus, taskStartDate, taskDueDate, parentProjectID, assignedUsername, Approved, taskCompletedDate, taskApprovedDate
@@ -92,7 +92,7 @@ func(t *TaskModel)GetTasks(ctx context.Context,projectID int)([]*Task,error){
 	return tasks,err
 }
 
-func(t *TaskModel)GetUserTasks(ctx context.Context,projectID int,username string)([]*Task,error){
+func(t *TaskModel)GetAssignedToUser(ctx context.Context,projectID int,username string)([]*Task,error){
 	var tasks []*Task
 	query:=`
 		SELECT taskID, taskName, taskDescription, taskStatus, taskStartDate, taskDueDate, parentProjectID, assignedUsername, Approved, taskCompletedDate, taskApprovedDate
@@ -123,7 +123,7 @@ func(t *TaskModel)GetUserTasks(ctx context.Context,projectID int,username string
 }
 
 
-func(t *TaskModel)GetTaskByID(ctx context.Context,taskID int)(Task,error){
+func(t *TaskModel)GetByID(ctx context.Context,taskID int)(Task,error){
 	var task Task
 	query:=`
 		SELECT * FROM tasks
@@ -142,6 +142,7 @@ func(t *TaskModel)GetTaskByID(ctx context.Context,taskID int)(Task,error){
 		&task.TaskCompletedDate,
 		&task.TaskApprovedDate,
 		&task.Createdby,
+		&task.Archieved,
 	);err!=nil{
 		return Task{},err
 	}
@@ -161,7 +162,7 @@ func(t *TaskModel)Archieve(ctx context.Context,projectID int, taskID int)error{
 	return nil
 }
 
-func(t *TaskModel)TransferUserTask(ctx context.Context, projectID int, removedUser, fallBackUser string)error{
+func(t *TaskModel)ReallocateUser(ctx context.Context, projectID int, removedUser, fallBackUser string)error{
 	query:=`
 		UPDATE tasks
 		SET username=$1

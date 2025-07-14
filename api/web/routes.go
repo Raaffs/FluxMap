@@ -78,7 +78,7 @@ func (app *Application)RegisterRoutes(e *echo.Echo){
 	e.GET("/api/project/:id/tasks", app.GetTasks, IsAuthorizedUser,app.HasProjectAccess)
 	e.POST("/api/project/:id/task", app.CreateTask, app.ManagerLevelAccess)
 	e.GET("/api/project/:id/task/:taskID", app.GetTaskByID, IsAuthorizedUser)
-	e.DELETE("/api/project/:id/task/:taskID",app.RemoveTasks,app.ManagerLevelAccess)
+	e.DELETE("/api/project/:id/task/:taskID",app.RemoveTask,app.ManagerLevelAccess)
 	e.PUT("/api/project/:id/task/:taskID/manager", app.ManagerRestrictedTask, app.ManagerLevelAccess)
 
 	e.PUT("/api/project/:id/task/:taskID", app.UpdateUserTask, IsAuthorizedUser)

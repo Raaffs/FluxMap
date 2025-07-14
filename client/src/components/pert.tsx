@@ -10,13 +10,14 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import { TextField, Button, Box } from "@mui/material";
+import { TextField, Button, Box, LinearProgress } from "@mui/material";
 import { erf } from "mathjs";
 import { ApiResponse, PertData, tasks } from "../hooks/types";
 import AddPertTaskModal from "./modals/pert";
 import { useParams } from "react-router-dom";
 import { useAddPert } from "../hooks/pert";
 import PopUp from "../scenes/global/Popup";
+import EditIcon from "@mui/icons-material/Edit";
 ChartJS.register(
   LineElement,
   CategoryScale,
@@ -26,9 +27,9 @@ ChartJS.register(
   Legend
 );
 
-interface PertRows {
-  id: number; // Update this to number
-  parentTaskID: number; // Also update this field to match
+export interface PertRows {
+  id: number;
+  parentTaskID: number;
   predecessorTaskId?: number | string | null;
   optimistic: number;
   pessimistic: number;
@@ -43,18 +44,52 @@ export const PertTable: React.FC<{
 }> = ({ pertTasks, tasks, setPertFetchTrigger }) => {
   const { id } = useParams();
   const [open, setOpen] = useState(false);
-
   const [pertData, setPertData] = useState<PertData[]>(pertTasks || []);
-
+  const [pertAddableTasksState, setPertAddableTasksState]=useState<PertRows[]>()
+  const [newTask, setNewTask] = useState<PertRows>({
+      id: 0,
+      parentTaskID: 0,
+      predecessorTaskId: null,
+      optimistic: 0,
+      pessimistic: 0,
+      mostLikely: 0,
+      taskName: "",
+    });
+  
   const { addPert, pertloading, perterror, pertsuccess } = useAddPert(
     String(id)
   );
+
+  useEffect(()=>{
+    
+  })
 
   const handleAddTask = (newTask: PertData) => {
     setPertData([...pertData, newTask]);
     addPert(newTask);
     setPertFetchTrigger(true);
   };
+
+  if (pertloading) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "50vh",
+        }}
+      >
+      <LinearProgress
+          color="success"
+          sx={{
+            width: "50%",
+            height: "5px",
+          }}
+        />
+      </Box>
+    );
+  }
 
   if (pertTasks === undefined || pertTasks === null) {
     let PertAddableTask: PertRows[] = [];
@@ -69,11 +104,12 @@ export const PertTable: React.FC<{
         taskName: task.taskName,
       });
     }
+
     return (
       <Box>
         <Box sx={{ padding: 1, display: "flex", justifyContent: "flex-end" }}>
           <Button
-            onClick={() => setOpen(true)} // Opens the modal
+            onClick={() => setOpen(true)}
             variant="contained"
             color="primary"
             sx={{ marginBottom: 2, backgroundColor: "royalblue" }}
@@ -88,6 +124,8 @@ export const PertTable: React.FC<{
           onAddTask={handleAddTask}
           pertAddableTasks={PertAddableTask}
           pertTasks={[]}
+          newTask={newTask}
+          setNewTask={setNewTask}
         />
       </Box>
     );
@@ -160,7 +198,22 @@ export const PertTable: React.FC<{
     { field: "optimistic", headerName: "Optimistic", width: 150 },
     { field: "pessimistic", headerName: "Pessimistic", width: 150 },
     { field: "mostLikely", headerName: "Most Likely", width: 150 },
-    { field: "edit", headerName: "Edit", width: 150 },
+    { 
+      field: "action", 
+      headerName: "Action",
+      renderCell: (params) => {
+        return(
+          <Box>
+            <EditIcon
+              onClick={() => {
+                setNewTask(params.row)
+                setOpen(true);
+              }}
+            />
+          </Box>
+        )
+      }
+    },
   ];
   return (
     <Box>
@@ -180,6 +233,8 @@ export const PertTable: React.FC<{
         onAddTask={handleAddTask}
         pertAddableTasks={PertAddableTask}
         pertTasks={rows}
+        newTask={newTask}
+        setNewTask={setNewTask}
       />
       <DataGrid rows={rows} columns={columns} />
       {/* Modal */}

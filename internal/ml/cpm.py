@@ -50,7 +50,6 @@ def calculateCpm(tasks):
 
     projectFinishTime = max(task["earliestFinish"] for task in tasks)
 
-    # Backward pass function
     def backward(task):
         valid_succs = [succ for succ in task.get("successors", []) if succ in taskDict]
         if not valid_succs:
@@ -59,7 +58,6 @@ def calculateCpm(tasks):
             task["latestFinish"] = min(taskDict[succ]["latestStart"] for succ in valid_succs)
         task["latestStart"] = task["latestFinish"] - task["duration"]
 
-    # Run backward pass until stable
     changed = True
     while changed:
         changed = False

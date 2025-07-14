@@ -44,7 +44,6 @@ const addCPM= async (CPM:CpmApiResponse)=>{
     setLoading(true);
     setError(null);
     setSuccess(false);
-    console.log("new : ",id)
     try{
       const res=await fetch(`http://localhost:4000/api/project/${id}/cpm`,{
         method:"POST",

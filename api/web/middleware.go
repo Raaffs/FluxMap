@@ -46,7 +46,7 @@ func (app *Application)HasProjectAccess(next echo.HandlerFunc)echo.HandlerFunc{
 		}
 
 		switch status:=app.EnsureExists(c,func(ctx context.Context) (bool, error) {
-		return app.models.Invitation.HasAcceptedInvitation(ctx,projectID,username)
+		return app.models.Invitation.AcceptedByUser(ctx,projectID,username)
 		});status{
 		case ErrorCheckingExistStatus:
 		// error response already sent by EnsureExists, just exit

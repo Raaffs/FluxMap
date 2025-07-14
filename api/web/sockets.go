@@ -24,7 +24,6 @@ type MessageJob struct {
 
 type ConnectionManager struct{
 	Upgrader websocket.Upgrader
-	//conn=>username 
 	Clients  	map[*websocket.Conn]*WSUser
 	mutex 	 	sync.Mutex
 }
@@ -52,26 +51,26 @@ func NewConnectionManager()*ConnectionManager{
 	return cm
 }
 
-func (ws *ConnectionManager)AddClient(user *WSUser){
-	ws.mutex.Lock()
-	ws.Clients[user.Websocket]=user
-	ws.mutex.Unlock()
+func (cm *ConnectionManager)AddClient(user *WSUser){
+	cm.mutex.Lock()
+	cm.Clients[user.Websocket]=user
+	cm.mutex.Unlock()
 }
 
-func (ws *ConnectionManager)RemoveClient(conn *websocket.Conn){
-	ws.mutex.Lock()
-	delete(ws.Clients,conn)
-	ws.mutex.Unlock()
+func (cm *ConnectionManager)RemoveClient(conn *websocket.Conn){
+	cm.mutex.Lock()
+	delete(cm.Clients,conn)
+	cm.mutex.Unlock()
 }
 
-func (ws *ConnectionManager) CloseAllClients() {
-    ws.mutex.Lock()
-    defer ws.mutex.Unlock()
+func (cm *ConnectionManager) CloseAllClients() {
+    cm.mutex.Lock()
+    defer cm.mutex.Unlock()
 
-    for client := range ws.Clients {
+    for client := range cm.Clients {
         client.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "Server shutdown"))
         client.Close()
-        delete(ws.Clients, client)
+        delete(cm.Clients, client)
     }
 }
 

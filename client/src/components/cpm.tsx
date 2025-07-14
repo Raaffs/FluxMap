@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { Box, Button } from "@mui/material";
 import { CpmApiResponse, CpmResult, tasks } from "../hooks/types";
@@ -10,16 +10,26 @@ const CpmTable: React.FC<{
   data: CpmResult | null;
   tasks: tasks[];
 }> = ({ data, tasks }) => {
-  const {id}=useParams()
-  console.log("id of project",id)
+  const { id } = useParams();
   const [open, setOpen] = useState<boolean>(false);
   const [CPMData, setCPMData] = useState<CpmApiResponse[]>(data?.Result || []);
-  const {addCPM,cpmloading,cpmerror,cpmsuccess}=usePostCpmData(Number(id))
-  
+  const [CPMAddableTasksState, setCPMAddableTasksState] = useState<
+    CpmApiResponse[]
+  >([]);
+  const { addCPM, cpmloading, cpmerror, cpmsuccess } = usePostCpmData(
+    Number(id)
+  );
+  const [newCPMTask, setNewCPMTask] = useState<CpmApiResponse>(
+    {} as CpmApiResponse
+  );
+  useEffect(() => {
+    const CPMAddableTasks = getCPMAddableTask(tasks, data?.Result || []);
+    setCPMAddableTasksState(CPMAddableTasks);
+  }, [tasks, data]);
+
   const handleAddCPMTask = (newCPMTask: CpmApiResponse) => {
     setCPMData([...CPMData, newCPMTask]);
-    console.log("new cpm task in component: ",newCPMTask)
-    addCPM(newCPMTask)
+    addCPM(newCPMTask);
   };
   const columns: GridColDef[] = [
     { field: "taskId", headerName: "Task ID", flex: 1 },
@@ -33,28 +43,36 @@ const CpmTable: React.FC<{
     { field: "freeFloat", headerName: "Free Float", flex: 1 },
     { field: "independentFloat", headerName: "Independent Float", flex: 1 },
     {
-      field:"action",
-      flex:1,
-      headerName:"Actions",
-      renderCell:(params)=>{
-        return(
+      field: "action",
+      flex: 1,
+      headerName: "Actions",
+      renderCell: (params) => {
+        return (
           <Box>
-            <EditIcon/>
+            <EditIcon
+              onClick={() => {
+                const currentTask = params.row;
+                setNewCPMTask(currentTask);
+
+                setCPMAddableTasksState((prev) => [...prev, currentTask]);
+
+                setOpen(true);
+              }}
+            />
           </Box>
-        )
-      }
-    }
+        );
+      },
+    },
   ];
   let CPMAddableTasks: CpmApiResponse[] = [];
   CPMAddableTasks = getCPMAddableTask(tasks, data?.Result || []);
-  let formattedCPMData = setTaskNames(CPMData,tasks);
-  getDependenciesName(formattedCPMData)
-  console.log("formatted cpm",formattedCPMData)
+  let formattedCPMData = setTaskNames(CPMData, tasks);
+  getDependenciesName(formattedCPMData);
   // Prepare rows for the DataGrid
   const rows = formattedCPMData.map((task) => ({
     id: task.taskId,
     taskId: task.taskId,
-    dependenciesName: task.dependenciesName, 
+    dependenciesName: task.dependenciesName,
     duration: task.duration,
     earliestStart: task.earliestStart,
     earliestFinish: task.earliestFinish,
@@ -79,10 +97,14 @@ const CpmTable: React.FC<{
       </Box>
       <AddCPMTaskModal
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={() => {setOpen(false)
+          setNewCPMTask({} as CpmApiResponse);
+        }}
         onAddTask={handleAddCPMTask}
-        CPMAddableTasks={CPMAddableTasks || []}
+        CPMAddableTasks={CPMAddableTasksState || []}
         CPMTasks={formattedCPMData || []}
+        newCPMTask={newCPMTask}
+        setNewCPMTask={setNewCPMTask}
       />
 
       <DataGrid rows={rows} columns={columns} />
@@ -98,7 +120,6 @@ function getDependenciesName(CPMTasks: CpmApiResponse[]) {
     CPMTaskMap.set(CPMTask.taskId, CPMTask.taskName);
   }
   for (let i = 0; i < CPMTasks.length; i++) {
-    console.log("cpmtasks1",CPMTasks[i])
     if (
       CPMTasks[i].dependencies === undefined ||
       CPMTasks[i].dependencies === null ||
@@ -144,6 +165,7 @@ function getCPMAddableTask(
       });
     }
   }
+
   CPMTasks.forEach((t) => CPMTaskMap.set(t.taskId, true));
   for (const t of task) {
     if (!CPMTaskMap.has(t.taskID)) {
@@ -168,7 +190,10 @@ function getCPMAddableTask(
   return CPMAddableTasks;
 }
 
-function setTaskNames(CPMTasks: CpmApiResponse[], task: tasks[]):CpmApiResponse[] {
+function setTaskNames(
+  CPMTasks: CpmApiResponse[],
+  task: tasks[]
+): CpmApiResponse[] {
   const CPMTaskMap = new Map<number, CpmApiResponse>();
   let formattedCPMData: CpmApiResponse[] = [];
   CPMTasks.forEach((ct) => CPMTaskMap.set(ct.taskId, ct));
@@ -177,22 +202,22 @@ function setTaskNames(CPMTasks: CpmApiResponse[], task: tasks[]):CpmApiResponse[
       formattedCPMData.push({
         taskId: t.taskID,
         taskName: t.taskName,
-        parentProjectID: CPMTaskMap.get(t.taskID)?.parentProjectID||0,
-        dependencies: CPMTaskMap.get(t.taskID)?.dependencies||[],
+        parentProjectID: CPMTaskMap.get(t.taskID)?.parentProjectID || 0,
+        dependencies: CPMTaskMap.get(t.taskID)?.dependencies || [],
         dependenciesName: [],
-        duration: CPMTaskMap.get(t.taskID)?.duration||0,
-        earliestStart: CPMTaskMap.get(t.taskID)?.earliestStart||0,
-        earliestFinish: CPMTaskMap.get(t.taskID)?.earliestFinish||0,
-        latestStart: CPMTaskMap.get(t.taskID)?.latestStart||0,
-        latestFinish: CPMTaskMap.get(t.taskID)?.latestFinish||0,
-        totalFloat: CPMTaskMap.get(t.taskID)?.totalFloat||0,
-        freeFloat: CPMTaskMap.get(t.taskID)?.freeFloat||0,
-        independentFloat: CPMTaskMap.get(t.taskID)?.independentFloat||0,
-        isCriticalPath: CPMTaskMap.get(t.taskID)?.isCriticalPath||false,
+        duration: CPMTaskMap.get(t.taskID)?.duration || 0,
+        earliestStart: CPMTaskMap.get(t.taskID)?.earliestStart || 0,
+        earliestFinish: CPMTaskMap.get(t.taskID)?.earliestFinish || 0,
+        latestStart: CPMTaskMap.get(t.taskID)?.latestStart || 0,
+        latestFinish: CPMTaskMap.get(t.taskID)?.latestFinish || 0,
+        totalFloat: CPMTaskMap.get(t.taskID)?.totalFloat || 0,
+        freeFloat: CPMTaskMap.get(t.taskID)?.freeFloat || 0,
+        independentFloat: CPMTaskMap.get(t.taskID)?.independentFloat || 0,
+        isCriticalPath: CPMTaskMap.get(t.taskID)?.isCriticalPath || false,
       });
     }
   }
-  return formattedCPMData
+  return formattedCPMData;
 }
 
 export default CpmTable;

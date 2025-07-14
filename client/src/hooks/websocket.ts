@@ -13,11 +13,13 @@ export function useWebSocket(
     };
 
     socket.onmessage = (event) => {
-      console.log("📨 Message from server:", event.data);
       try {
         const data = JSON.parse(event.data);
-        setUpdateCount(data.updateNotification);
-        setInvitationtCount(data.invitationNotification);
+        setUpdateCount(() => {
+          console.log("Updated count to: ",data.updateNotification)
+          return data.updateNotification
+        });
+        setInvitationtCount(() => data.invitateNotification);
       } catch (error) {
         console.error("Error parsing WebSocket message:", error);
       }

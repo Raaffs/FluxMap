@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { Projects } from "./types";
-export const useRetrieveProjectsFrom = (link: string) => {
+import { Projects, UserRole } from "./types";
+export const useRetrieveProjectsFrom = (
+  link: string,
+) => {
   const [projects, setProjects] = useState<Projects[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState(null);
@@ -40,7 +42,9 @@ export const useRetrieveProjectsFrom = (link: string) => {
   return { projects, loading, error };
 };
 
-export const usePostProject = () => {
+export const usePostProject = (  
+  setUserProjectRoleMap: React.Dispatch<React.SetStateAction<Record<number,UserRole>>>
+) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<boolean>(false);
@@ -49,7 +53,6 @@ export const usePostProject = () => {
     setLoading(true);
     setError(null);
     setSuccess(false);
-    console.log("heelo",JSON.stringify(newProject), newProject)
     try {
       const response = await fetch("http://localhost:4000/api/projects", {
         method: "POST",
@@ -73,7 +76,9 @@ export const usePostProject = () => {
         setError(errors)
         return
       }
-
+      const data=await response.json()
+      setUserProjectRoleMap(data.roles)
+      console.log("roles set in project: ",data.roles)
       setSuccess(true);
     } catch (err) {
       console.error("Error posting project:", err);

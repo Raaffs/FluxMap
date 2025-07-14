@@ -61,11 +61,7 @@ func FormatDate(t time.Time)string{
 	return t.Format("dd-mm-yyyy")
 }
 
-func SetNotifyContext(c echo.Context, msg,targetType,targetUsername string){
-	c.Set(NOTIFY_MSG,msg)
-	c.Set(NOTIFY_TARGET_TYPE,targetType)
-	c.Set(NOTIFY_TARGET_USERNAME,targetUsername)
-}
+
 
 func AppendToSessionArray(session *sessions.Session, key string, value int) error {
 	// Check if value exists and is of correct type
@@ -164,6 +160,7 @@ func (app *Application) getUserRole(ctx context.Context, username, resourceID st
 	if err != nil {
 		return "", err
 	}
+
 	if isManager {
 		return ManagerRole, nil
 	}
@@ -290,7 +287,7 @@ func (app *Application)CheckInvitationStatus(c echo.Context,t models.Task, proje
 	}
 
 	switch status := app.EnsureExists(c, func(ctx context.Context) (bool, error) {
-		return app.models.Invitation.HasAcceptedInvitation(ctx,projectID,t.AssignedUsername.String)
+		return app.models.Invitation.AcceptedByUser(ctx,projectID,t.AssignedUsername.String)
 	}); status {
 	case ErrorCheckingExistStatus:
 	// error response already sent by EnsureExists, just exit
@@ -301,14 +298,13 @@ func (app *Application)CheckInvitationStatus(c echo.Context,t models.Task, proje
 		return false
 	case Exists:
 		return true 
-	default:
-		return false
 	}
+	return false
 }
 
 func (app *Application) GenerateUpdateMessage(ctx context.Context, updatedTask models.Task) (string, error) {
 	// Get the old task from DB
-	oldTask, err := app.models.Task.GetTaskByID(ctx, updatedTask.TaskID)
+	oldTask, err := app.models.Task.GetByID(ctx, updatedTask.TaskID)
 	if err != nil {
 		return "", err
 	}
@@ -468,7 +464,7 @@ func (app *Application)UserTasks(c echo.Context)error{
         log.Println("not found tasks",id)
         return c.JSON(http.StatusNotFound,map[string]string{"error":"invalid project id"})
     }
-    tasks,err:=app.models.Task.GetUserTasks(c.Request().Context(),id,username)
+    tasks,err:=app.models.Task.GetAssignedToUser(c.Request().Context(),id,username)
     if err!=nil{
         return c.JSON(http.StatusInternalServerError,map[string]string{"error":"internal server error"})
     }
@@ -480,7 +476,7 @@ func (app *Application)ManagerTasks(c echo.Context)error{
         log.Println("not found tasks manager",id)
         return c.JSON(http.StatusNotFound,map[string]string{"error":"invalid project id"})
     }
-    tasks,err:=app.models.Task.GetTasks(c.Request().Context(),id)
+    tasks,err:=app.models.Task.Get(c.Request().Context(),id)
     if err!=nil{
         return c.JSON(http.StatusInternalServerError,map[string]string{"error":"internal server error"})
     }
@@ -547,8 +543,8 @@ func StoreResult[U models.Analytic, T models.ReadDatabase[U]](t T,ctx context.Co
 	return nil
 }
 
-func Calculate[U models.Analytic,T models.ReadDatabase[U]](v T,ctx context.Context, id int)(error){
-	data,err:=v.GetData(ctx,id);if err!=nil{
+func Calculate[U models.Analytic,T models.ReadDatabase[U]](v T,ctx context.Context, projectID int)(error){
+	data,err:=v.GetData(ctx,projectID);if err!=nil{
 		return err 
 	}
 	if data==nil{
@@ -560,7 +556,7 @@ func Calculate[U models.Analytic,T models.ReadDatabase[U]](v T,ctx context.Conte
 		return ErrFetchingResult
 	}
 
-	if err:=StoreResult(v,ctx,id,result);err!=nil{
+	if err:=StoreResult(v,ctx,projectID,result);err!=nil{
 		return err
 	}
 	return nil

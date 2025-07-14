@@ -10,10 +10,13 @@ import {
   Autocomplete,
   FormControlLabel,
   Button,
+  FormControl,
+  Select,
+  InputLabel,
 } from "@mui/material";
 import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { CpmApiResponse } from "../../hooks/types";
 import { tokens } from "../../theme";
 
@@ -23,6 +26,8 @@ interface AddCPMTaskModalProps {
   onAddTask: (newCPMTask: CpmApiResponse) => void;
   CPMAddableTasks: CpmApiResponse[];
   CPMTasks: CpmApiResponse[];
+  newCPMTask: CpmApiResponse;
+  setNewCPMTask: React.Dispatch<React.SetStateAction<CpmApiResponse>>;
 }
 export const AddCPMTaskModal: React.FC<AddCPMTaskModalProps> = ({
   open,
@@ -30,32 +35,30 @@ export const AddCPMTaskModal: React.FC<AddCPMTaskModalProps> = ({
   onAddTask,
   CPMAddableTasks,
   CPMTasks,
+  newCPMTask,
+  setNewCPMTask,
 }) => {
-  const [personName, setPersonName] = React.useState<string[]>([]);
-  const [newCPMTask, setNewCPMTask] = useState<CpmApiResponse>(
-    {} as CpmApiResponse
-  );
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   const icon = <CheckBoxOutlineBlankIcon fontSize="small" />;
   const checkedIcon = <CheckBoxIcon fontSize="small" />;
+  const [CPMAddableTasksState, setCPMAddableTasksState] = useState<CpmApiResponse[]>(CPMTasks);
   const [errors, setErrors] = useState({
     duration: "",
   });
-  const handleChanger = (event: SelectChangeEvent<typeof personName>) => {
-    const {
-      target: { value },
-    } = event;
-    setPersonName(
-      // On autofill we get a stringified value.
-      typeof value === "string" ? value.split(",") : value
-    );
-  };
+  useEffect(() => {
+  if (
+    newCPMTask.taskId &&
+    !CPMAddableTasksState.some((task) => task.taskId === newCPMTask.taskId)
+  ) {
+    setCPMAddableTasksState((prev) => [...prev, newCPMTask]);
+  }
+}, [newCPMTask]);
 
+    console.log("CPMAddableTasksState", CPMAddableTasksState, "new task ",newCPMTask);    
+  
   const handleChange = (field: keyof CpmApiResponse, value: number | null) => {
     setNewCPMTask((prev) => ({ ...prev, [field]: value }));
-
-    // Validation logic
     if (field === "duration") {
       if (
         value === null ||
@@ -79,7 +82,6 @@ export const AddCPMTaskModal: React.FC<AddCPMTaskModalProps> = ({
       alert("Please select a task.");
       return;
     }
-    // Check for validation errors
     if (Object.values(errors).some((error) => error)) {
       alert("Please fix input errors before submitting.");
       return;
@@ -108,24 +110,21 @@ export const AddCPMTaskModal: React.FC<AddCPMTaskModalProps> = ({
         <Typography variant="h6" gutterBottom>
           Add New CPM Task
         </Typography>
-        <TextField
-          select
-          fullWidth
-          label="Select Task"
-          value={newCPMTask.taskId}
-          onChange={
-            (e) => {
-               handleChange("taskId", Number(e.target.value))
-            }
-          }
-          sx={{ mb: 2 }}
-        >
-          {CPMAddableTasks.map((CPMTask) => (
-            <MenuItem key={CPMTask.taskId} value={CPMTask.taskId}>
-              Task {CPMTask.taskName}
-            </MenuItem>
-          ))}
-        </TextField>
+        <FormControl fullWidth sx={{ mb: 2 }}>
+          <InputLabel id="task-select-label">Select Task</InputLabel>
+          <Select
+            labelId="task-select-label"
+            value={newCPMTask.taskId ?? ""}
+            label="Select Task"
+            onChange={(e) => handleChange("taskId", Number(e.target.value))}
+          >
+            {CPMAddableTasksState.map((CPMTask) => (
+              <MenuItem key={CPMTask.taskId} value={CPMTask.taskId}>
+                {CPMTask.taskName}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
         <TextField
           fullWidth
           label="Duration"
@@ -141,7 +140,6 @@ export const AddCPMTaskModal: React.FC<AddCPMTaskModalProps> = ({
           id="checkboxes-tags-demo"
           options={CPMTasks}
           disableCloseOnSelect
-    
           getOptionLabel={(option: CpmApiResponse) => option.taskName}
           isOptionEqualToValue={(
             option: CpmApiResponse,
@@ -173,16 +171,19 @@ export const AddCPMTaskModal: React.FC<AddCPMTaskModalProps> = ({
             newValue: CpmApiResponse[]
           ) => {
             const selectedIds = newValue.map((task) => task.taskId);
-            setNewCPMTask((prev)=>({...prev,"dependencies":selectedIds}))
-            // do your backend thing here
-          }}
+            setNewCPMTask((prev) => ({ ...prev, dependencies: selectedIds }));          }}
         />
         <FormControlLabel
-          control={<Checkbox 
-              onChange={()=>{
-                setNewCPMTask(prev=>({...prev,"isCriticalPath":!newCPMTask.isCriticalPath}))
+          control={
+            <Checkbox
+              onChange={() => {
+                setNewCPMTask((prev) => ({
+                  ...prev,
+                  isCriticalPath: !newCPMTask.isCriticalPath,
+                }));
               }}
-            />}
+            />
+          }
           label="is critical?"
           sx={{
             marginLeft: 0,
@@ -194,11 +195,7 @@ export const AddCPMTaskModal: React.FC<AddCPMTaskModalProps> = ({
             },
           }}
         />
-        <Button
-          onClick={handleSubmit}
-        >
-          Add CPM task
-        </Button>
+        <Button onClick={handleSubmit}>Add CPM task</Button>
       </Box>
     </Modal>
   );

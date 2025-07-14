@@ -11,7 +11,7 @@ cors = CORS(app, resources={r"/api/*": {"origins": "http://localhost:4000"}})
 def handle_cpm():
     data = request.json  # Expect a JSON payload
     if not data:
-        return jsonify({'error': 'Invalid data'}), 400  # Return an error if no data is received
+        return jsonify({'error': 'Invalid data'}), 400
 
     print("Data received in Python: ", data)
 

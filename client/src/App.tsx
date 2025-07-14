@@ -57,9 +57,9 @@ function App() {
 
                 {/* Protected Routes */}
                 <Route element={<ProtectedRoute />}>
-                  <Route path="/projects/admin" element={<AdminProjects />} />
-                  <Route path="/projects/manager" element={<ManagerProjects />} />
-                  <Route path="/projects/allocated" element={<AllocatedProjects />} />
+                  <Route path="/projects/admin" element={<AdminProjects  setUserProjectRoleMap={setUserProjectRoleMap} />} />
+                  <Route path="/projects/manager" element={<ManagerProjects setUserProjectRoleMap={setUserProjectRoleMap} />} />
+                  <Route path="/projects/allocated" element={<AllocatedProjects setUserProjectRoleMap={setUserProjectRoleMap} />} />
                   <Route path="/project/:id" element={<ProjectOverview userProjectRoleMap={userProjectRoleMap}/>} />
                   <Route path="/" element={<Graphs />} />
                   <Route path="/invitations" element={<Invitation />} />

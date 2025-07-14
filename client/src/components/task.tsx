@@ -70,8 +70,7 @@ export const ProjectTaskDetailPage = ({
   const handleOpenNewTaskModal = () => setOpenNewTaskModal(true);
   const handleCloseNewTaskModal = () => {
     setOpenNewTaskModal(false);
-    // setIsEditTask(false)
-    setError(null); // Reset errors when closing modal
+    setError(null); 
   };
 
   const handleCreateNewTask = async () => {
@@ -450,7 +449,6 @@ export const ProjectTaskDetailPage = ({
             <EditIcon
               sx={{ color: colors.blueAccent[400], borderRadius: "1px" }}
               onClick={() => {
-                setIsEditTask(true);
                 setOpenNewTaskModal(true);
                 setNewTask(params.row);
               }}
@@ -460,7 +458,7 @@ export const ProjectTaskDetailPage = ({
             <VisibilityIcon
               sx={{ color: colors.greenAccent[400], borderRadius: "1px" }}
               onClick={() => {
-                setIsEditTask(true);
+                // setIsEditTask(true);
                 setOpenViewTaskModal(true);
                 setNewTask(params.row);
               }}
@@ -498,7 +496,9 @@ export const ProjectTaskDetailPage = ({
       {error && (
         <PopUp Error={error} Message="" onClose={() => setError(null)} />
       )}
-      <Box sx={{ padding: 1, display: "flex", justifyContent: "flex-end" }}>
+      <Box 
+      sx={{ padding: 1, display: "flex", justifyContent: "flex-end" }}
+      >
         <Button
           onClick={handleOpenNewTaskModal} // Opens the modal
           variant="contained"
