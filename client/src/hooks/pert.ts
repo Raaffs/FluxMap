@@ -38,7 +38,7 @@ export const useFetchPertData = (
     };
 
     fetchData();
-  }, [id,fetchPertTrigger]); // Re-run the effect when `id` changes
+  }, [id,fetchPertTrigger]); 
 
   return [apiResponse, loading, error];
 };
