@@ -65,7 +65,7 @@ export const ProjectTaskDetailPage = ({
   };
 
   useEffect(() => {
-    setAllowedActions(PERMISSIONS[role]);
+    setAllowedActions(PERMISSIONS[role]||"user");
   }, []);
   const handleOpenNewTaskModal = () => setOpenNewTaskModal(true);
   const handleCloseNewTaskModal = () => {
@@ -118,6 +118,7 @@ export const ProjectTaskDetailPage = ({
         handleCloseNewTaskModal();
         setFetchTrigger(true);
       }
+      console.log(response.json());
     } catch (err) {
       console.error("Failed to create task", err);
     } finally {

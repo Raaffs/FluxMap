@@ -51,11 +51,9 @@ function App() {
             <main className="content">
               <Topbar updateCount={updateCount} invitationCount={invitationCount}/>
               <Routes>
-                {/* Public Routes */}
                 <Route path="/login" element={<LoginUser startWebSocket={startWebSocket} setUserProjectRoleMap={setUserProjectRoleMap} />} />
                 <Route path="/register" element={<SignUpUser />} />
 
-                {/* Protected Routes */}
                 <Route element={<ProtectedRoute />}>
                   <Route path="/projects/admin" element={<AdminProjects  setUserProjectRoleMap={setUserProjectRoleMap} />} />
                   <Route path="/projects/manager" element={<ManagerProjects setUserProjectRoleMap={setUserProjectRoleMap} />} />

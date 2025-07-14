@@ -64,7 +64,6 @@ const AddPertTaskModal: React.FC<AddPertTaskModalProps> = ({
       alert("Please fix input errors before submitting.");
       return;
     }
-    console.log("edited pert task:",newTask)
     onAddTask(newTask);
     onClose();
   };

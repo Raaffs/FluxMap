@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Projects, UserRole } from "./types";
+import { normalize } from "path";
+import { normalizeAccessMap } from "../helpers/filter";
 export const useRetrieveProjectsFrom = (
   link: string,
 ) => {
@@ -77,8 +79,10 @@ export const usePostProject = (
         return
       }
       const data=await response.json()
-      setUserProjectRoleMap(data.roles)
-      console.log("roles set in project: ",data.roles)
+      let noramlizedRoleMap=normalizeAccessMap(data.roles as Record<UserRole, number[] | null>)
+      setUserProjectRoleMap(noramlizedRoleMap)
+      localStorage.setItem("userProjectRoleMap", JSON.stringify(noramlizedRoleMap));
+      console.log("roles set in project: ",noramlizedRoleMap)
       setSuccess(true);
     } catch (err) {
       console.error("Error posting project:", err);

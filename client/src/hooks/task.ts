@@ -10,7 +10,6 @@ const useFetchTaskData = (
   const [tasks, setTasks] = useState<tasks[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  console.log("id; ", projectId);
   useEffect(() => {
     const fetchTasks = async () => {
       try {

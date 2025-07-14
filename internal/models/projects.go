@@ -5,7 +5,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"log"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -23,7 +22,6 @@ func (p *ProjectModel)Create(ctx context.Context, project Project)error{
 		p.Errorlog.Println("Error creating project:",err)
 		return err
 	}
-	fmt.Println("here project")
 
 	return nil
 }
