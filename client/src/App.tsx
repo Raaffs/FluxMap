@@ -9,7 +9,6 @@ import LoginUser from "./scenes/auth/login";
 import SignUpUser from "./scenes/auth/signup";
 import { ProjectOverview } from "./scenes/projects/overview";
 import Graphs from "./components/graphs/LineGraphs";
-import VoiceRecorder from "./components/voiceRecorder";
 import { Invitation } from "./scenes/invitation";
 import Updates from "./scenes/notification";
 import {
@@ -61,7 +60,6 @@ function App() {
                   <Route path="/project/:id" element={<ProjectOverview userProjectRoleMap={userProjectRoleMap}/>} />
                   <Route path="/" element={<Graphs />} />
                   <Route path="/invitations" element={<Invitation />} />
-                  <Route path="/voice" element={<VoiceRecorder />} />
                   <Route path="/updates" element={<Updates/>}/>
                 </Route>
               </Routes>

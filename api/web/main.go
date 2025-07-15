@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/Raaffs/FluxMap/internal/env"
+	"github.com/Raaffs/FluxMap/internal/graphs"
 	"github.com/Raaffs/FluxMap/internal/models"
 	"github.com/labstack/echo/v4"
 
@@ -16,6 +17,7 @@ import (
 type Application struct{
 	env 			map[string]string
 	models			models.Models 
+	graphs 			graphs.GraphModel
 	websocket		*ConnectionManager
 	logger 			echo.Logger
 }
@@ -36,6 +38,7 @@ func main(){
 	app:=&Application{
 		env:	envMap,
 		models: models.NewModels(conn),
+		graphs: graphs.NewGraphs(conn),
 		websocket: NewConnectionManager(),
 		logger: echo.New().Logger,
 	}
