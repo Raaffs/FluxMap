@@ -9,6 +9,7 @@ import {
   Title,
   Tooltip,
   Legend,
+  Filler
 } from "chart.js";
 import { ChartOptions } from "chart.js";
 import { Box, Typography } from "@mui/material";
@@ -24,7 +25,8 @@ ChartJS.register(
   PointElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  Filler // <--- register this
 );
 
 // Define Props Type
@@ -158,55 +160,32 @@ const Graphs: React.FC = () => {
   );
   // Prepare graph data
   const taskStatusData = {
-    labels: Array.from(
-      new Set(
-        [...weeklyApprovedTasks, ...weeklyCompletedTasks].map((w) => w.period)
-      )
-    ),
-    datasets: [
-      {
-        label: "Tasks Approved",
-        data: weeklyApprovedTasks.map((w) => w.count),
-        borderColor: "rgba(75, 192, 192, 1)",
-        backgroundColor: "rgba(75, 192, 192, 0.2)",
-        tension: 0.3,
-      },
-      {
-        label: "Tasks Completed",
-        data: weeklyCompletedTasks.map((w) => w.count),
-        borderColor: "rgba(153, 102, 255, 1)",
-        backgroundColor: "rgba(153, 102, 255, 0.2)",
-        tension: 0.3,
-      },
-    ],
-  };
-  // Sample data for ContributorGraph
-  const contributorData = {
-    labels: completedDateData,
-    datasets: [
-      {
-        label: "Contributor A",
-        data: [3, 5, 4, 6, 8, 10],
-        borderColor: "rgba(255, 99, 132, 1)",
-        backgroundColor: "rgba(255, 99, 132, 0.2)",
-        tension: 0.3,
-      },
-      {
-        label: "Contributor B",
-        data: [4, 3, 5, 7, 9, 11],
-        borderColor: "rgba(54, 162, 235, 1)",
-        backgroundColor: "rgba(54, 162, 235, 0.2)",
-        tension: 0.3,
-      },
-      {
-        label: "Contributor C",
-        data: [2, 4, 3, 5, 7, 8],
-        borderColor: "rgba(255, 206, 86, 1)",
-        backgroundColor: "rgba(255, 206, 86, 0.2)",
-        tension: 0.3,
-      },
-    ],
-  };
+  labels: Array.from(
+    new Set(
+      [...weeklyApprovedTasks, ...weeklyCompletedTasks].map((w) => w.period)
+    )
+  ),
+  datasets: [
+    {
+      label: "Tasks Approved",
+      data: weeklyApprovedTasks.map((w) => w.count),
+      borderColor: "rgba(75, 192, 192, 1)",
+      backgroundColor: "rgba(75, 192, 192, 0.2)",
+      tension: 0.3,
+      fill: true, 
+    },
+    {
+      label: "Tasks Completed",
+      data: weeklyCompletedTasks.map((w) => w.count),
+      borderColor: "rgba(153, 102, 255, 1)",
+      backgroundColor: "rgba(153, 102, 255, 0.2)",
+      tension: 0.3,
+      fill: true, 
+    },
+  ],
+};
+
+
 
   return (
     <Box

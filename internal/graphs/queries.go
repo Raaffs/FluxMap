@@ -42,7 +42,6 @@ func (g *GraphModel)TaskApprovedByDate(ctx context.Context)(Graphs,error){
 	var gs Graphs
 	query := `
 	SELECT 
-	SELECT 
     DATE(taskapproveddate) AS approved_date
     COUNT(*) 
 	FROM tasks 

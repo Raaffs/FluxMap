@@ -20,6 +20,7 @@ import { AuthProvider } from "./context/authContext";
 import ProtectedRoute from "./context/protected"; 
 import { useWebSocket } from "./hooks/websocket";
 import { UserRole } from "./hooks/types";
+import Dashboard from "./scenes/dashboard";
 
 function App() {
   const [theme, colorMode] = useMode();
@@ -58,7 +59,7 @@ function App() {
                   <Route path="/projects/manager" element={<ManagerProjects setUserProjectRoleMap={setUserProjectRoleMap} />} />
                   <Route path="/projects/allocated" element={<AllocatedProjects setUserProjectRoleMap={setUserProjectRoleMap} />} />
                   <Route path="/project/:id" element={<ProjectOverview userProjectRoleMap={userProjectRoleMap}/>} />
-                  <Route path="/" element={<Graphs />} />
+                  <Route path="/" element={<Dashboard />} />
                   <Route path="/invitations" element={<Invitation />} />
                   <Route path="/updates" element={<Updates/>}/>
                 </Route>

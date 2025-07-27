@@ -40,9 +40,10 @@ const NormalDistributionChart: React.FC<NormalDistributionChartProps> = ({ pertR
         label: `Task ${taskId}`,
         data: xValues.map((x, index) => ({ x, y: yValues[index] })),
         borderColor: `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255}, 0.7)`,
-        backgroundColor: "rgba(0,0,0,0)",
+        backgroundColor: "rgba(226, 11, 11, 0)",
         borderWidth: 2,
         tension: 0.3,
+        fill:true
       };
     });
 

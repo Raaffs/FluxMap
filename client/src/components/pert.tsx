@@ -9,6 +9,7 @@ import {
   PointElement,
   Tooltip,
   Legend,
+  Filler,
 } from "chart.js";
 import { TextField, Button, Box, LinearProgress } from "@mui/material";
 import { erf } from "mathjs";
@@ -24,7 +25,8 @@ ChartJS.register(
   LinearScale,
   PointElement,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 );
 
 export interface PertRows {
@@ -45,25 +47,26 @@ export const PertTable: React.FC<{
   const { id } = useParams();
   const [open, setOpen] = useState(false);
   const [pertData, setPertData] = useState<PertData[]>(pertTasks || []);
-  const [pertAddableTasksState, setPertAddableTasksState]=useState<PertRows[]>()
+  const [pertAddableTasksState, setPertAddableTasksState] =
+    useState<PertRows[]>();
   const [newTask, setNewTask] = useState<PertRows>({
-      id: 0,
-      parentTaskID: 0,
-      predecessorTaskId: null,
-      optimistic: 0,
-      pessimistic: 0,
-      mostLikely: 0,
-      taskName: "",
-    });
-  
+    id: 0,
+    parentTaskID: 0,
+    predecessorTaskId: null,
+    optimistic: 0,
+    pessimistic: 0,
+    mostLikely: 0,
+    taskName: "",
+  });
+
   const { addPert, pertloading, perterror, pertsuccess } = useAddPert(
     String(id)
   );
 
-  useEffect(()=>{
+  useEffect(() => {
     const PertAddableTasks = getPertAddableTask(tasks, pertTasks || []);
     setPertAddableTasksState(PertAddableTasks);
-  },[tasks, pertTasks])
+  }, [tasks, pertTasks]);
 
   const handleAddTask = (newTask: PertData) => {
     setPertData([...pertData, newTask]);
@@ -81,7 +84,7 @@ export const PertTable: React.FC<{
           minHeight: "50vh",
         }}
       >
-      <LinearProgress
+        <LinearProgress
           color="success"
           sx={{
             width: "50%",
@@ -169,26 +172,29 @@ export const PertTable: React.FC<{
     { field: "optimistic", headerName: "Optimistic", width: 150 },
     { field: "pessimistic", headerName: "Pessimistic", width: 150 },
     { field: "mostLikely", headerName: "Most Likely", width: 150 },
-    { 
-      field: "action", 
+    {
+      field: "action",
       headerName: "Action",
       renderCell: (params) => {
-        return(
+        return (
           <Box>
             <EditIcon
               onClick={() => {
                 const currentTask = params.row;
                 setNewTask(currentTask);
-                setPertAddableTasksState((prev) => [...(prev ?? []), currentTask]);
+                setPertAddableTasksState((prev) => [
+                  ...(prev ?? []),
+                  currentTask,
+                ]);
                 setOpen(true);
               }}
             />
           </Box>
-        )
-      }
+        );
+      },
     },
   ];
-  
+
   return (
     <Box>
       <Box sx={{ padding: 1, display: "flex", justifyContent: "flex-end" }}>
@@ -215,12 +221,16 @@ export const PertTable: React.FC<{
   );
 };
 
-
-function getPertAddableTask(taskList: tasks[], pertTaskList: PertData[]):PertRows[] {
+function getPertAddableTask(
+  taskList: tasks[],
+  pertTaskList: PertData[]
+): PertRows[] {
   const tasksMap = new Map<number, boolean>();
   const pertTaskMap = new Map<number, boolean>();
   taskList.forEach((task) => tasksMap.set(task.taskID, true));
-  pertTaskList.forEach((pertTask) => pertTaskMap.set(pertTask.parentTaskID, true));
+  pertTaskList.forEach((pertTask) =>
+    pertTaskMap.set(pertTask.parentTaskID, true)
+  );
   let PertAddableTask: PertRows[] = [];
   for (const task of taskList) {
     if (!pertTaskMap.has(task.taskID)) {
@@ -276,11 +286,16 @@ const PertNormalDistributionChart: React.FC<{
           parseFloat(normalDistribution(parseFloat(x)).toFixed(2))
         );
 
+        const hue = Math.random() * 360;
+        const color = `hsl(${hue}, 70%, 50%)`; // solid line color
+        const backgroundColor = `hsla(${hue}, 70%, 50%, 0.4)`; // transparent fill
+
         return {
           label: `Task ${taskId}`,
           data,
-          borderColor: `hsl(${Math.random() * 360}, 70%, 50%)`,
-          fill: false,
+          borderColor: color,
+          backgroundColor: backgroundColor,
+          fill: true,
         };
       }
     );

@@ -66,6 +66,66 @@ func(u *UpdateModel)GetProjectUpdates(ctx context.Context, projectID int, userna
 	return updates, nil
 }
 
+func (u *UpdateModel)GetRecent(ctx context.Context,username string)([]*Update,error){
+		var updates []*Update
+	query := `
+	SELECT 
+	    updates.id, 
+	    updates.projectid, 
+	    updates.msg, 
+	    updates.createdat, 
+	    updates.createdby, 
+	    updates.targettype, 
+	    updates.targetusername,
+	    projects.projectName, 
+	    projects.projectDescription
+	FROM 
+	    updates
+	JOIN 
+	    projects ON updates.projectid = projects.projectid
+	WHERE 
+	    targettype='all' OR targetusername=$1
+	ORDER BY 
+	    createdat DESC;	
+	LIMIT 7	
+	`
+		
+	rows,err:=u.DB.Query(
+		ctx,
+		query,
+		username,
+	)
+	
+	if err!=nil{
+		return []*Update{},err
+	}
+
+	defer rows.Close()
+	for rows.Next(){
+		var upd Update
+		err=rows.Scan(
+			&upd.ID,
+			&upd.ProjectID,
+			&upd.Msg,
+			&upd.CreatedAt,
+			&upd.CreatedBy,
+			&upd.TargetType,
+			&upd.TargetUsername,
+			&upd.ProjectName,
+			&upd.ProjectDescription,
+		)
+		if err!=nil{
+			return []*Update{},err
+		}
+		updates=append(updates,&upd)
+	}
+	if rows.Err()!=nil{
+		return []*Update{},rows.Err()
+	}
+	return updates,nil
+
+}
+
 func (u *UpdateModel)GetAllUpdates(ctx context.Context, username string)([]*Update,error){
 	var updates []*Update
 	query := `

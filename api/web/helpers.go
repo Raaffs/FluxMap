@@ -12,6 +12,8 @@ import (
 	"sync"
 	"time"
 
+	"slices"
+
 	"github.com/Raaffs/FluxMap/api/external"
 	"github.com/Raaffs/FluxMap/internal/models"
 	sessionvar "github.com/Raaffs/FluxMap/internal/sessionVar"
@@ -21,7 +23,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/sync/errgroup"
-	"slices"
 )
 
 type UserRole string
@@ -35,14 +36,14 @@ const (
 type ExistenceStatus int
 
 const (
-    Exists ExistenceStatus = iota
-    NotExists
-    ErrorCheckingExistStatus
+	Exists ExistenceStatus = iota
+	NotExists
+	ErrorCheckingExistStatus
 )
 
-var NOTIFY_MSG="msg"
-var NOTIFY_TARGET_USERNAME="targetUsername"
-var NOTIFY_TARGET_TYPE="targetType"
+var NOTIFY_MSG = "msg"
+var NOTIFY_TARGET_USERNAME = "targetUsername"
+var NOTIFY_TARGET_TYPE = "targetType"
 
 type ProjectResult struct {
 	AdminProjects    []*models.Project
@@ -51,17 +52,14 @@ type ProjectResult struct {
 	Err              error
 }
 
-
-var(
-    ErrInvalidJson=errors.New("Invalid JSON")
-    ErrFetchingResult=errors.New("Error getting analytics")
+var (
+	ErrInvalidJson    = errors.New("Invalid JSON")
+	ErrFetchingResult = errors.New("Error getting analytics")
 )
 
-func FormatDate(t time.Time)string{
+func FormatDate(t time.Time) string {
 	return t.Format("dd-mm-yyyy")
 }
-
-
 
 func AppendToSessionArray(session *sessions.Session, key string, value int) error {
 	// Check if value exists and is of correct type
@@ -74,22 +72,22 @@ func AppendToSessionArray(session *sessions.Session, key string, value int) erro
 	return nil
 }
 
-func (app *Application) CacheUserProjectsToSession(c echo.Context) (map[string]any,  error) {
+func (app *Application) CacheUserProjectsToSession(c echo.Context) (map[string]any, error) {
 	projectschan := make(chan ProjectResult)
 
 	sess, err := session.Get(sessionvar.SESSION_NAME, c)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 
 	username, ok := sess.Values[sessionvar.USERNAME].(string)
 	if !ok {
-		return nil,c.JSON(http.StatusUnauthorized, "Unauthorized")
+		return nil, c.JSON(http.StatusUnauthorized, "Unauthorized")
 	}
-	ctx,cancel:=context.WithTimeout(c.Request().Context(),10*time.Second)
+	ctx, cancel := context.WithTimeout(c.Request().Context(), 10*time.Second)
 	defer cancel()
 
-	go app.FetchProjects(ctx,username, projectschan)
+	go app.FetchProjects(ctx, username, projectschan)
 	projects := <-projectschan
 
 	if projects.Err != nil {
@@ -99,7 +97,7 @@ func (app *Application) CacheUserProjectsToSession(c echo.Context) (map[string]a
 	projectRoleMap := map[string][]*models.Project{
 		string(AdminRole):   projects.AdminProjects,
 		string(ManagerRole): projects.ManagerProjects,
-		string(UserRoleVal):    projects.AssignedProjects,
+		string(UserRoleVal): projects.AssignedProjects,
 	}
 
 	for role, projectList := range projectRoleMap {
@@ -110,41 +108,39 @@ func (app *Application) CacheUserProjectsToSession(c echo.Context) (map[string]a
 			}
 		}
 	}
-	
-	roleToProjectMap:=make(map[string]any)
-	roleToProjectMap[string(AdminRole)]=sess.Values[string(AdminRole)]
-	roleToProjectMap[string(ManagerRole)]=sess.Values[string(ManagerRole)]
-	roleToProjectMap[string(UserRoleVal)]=sess.Values[string(UserRoleVal)]
 
-	return roleToProjectMap,err
+	roleToProjectMap := make(map[string]any)
+	roleToProjectMap[string(AdminRole)] = sess.Values[string(AdminRole)]
+	roleToProjectMap[string(ManagerRole)] = sess.Values[string(ManagerRole)]
+	roleToProjectMap[string(UserRoleVal)] = sess.Values[string(UserRoleVal)]
+
+	return roleToProjectMap, err
 }
-
 
 func (app *Application) EnsureExists(c echo.Context, checkFunc func(context.Context) (bool, error)) ExistenceStatus {
-    ctx := c.Request().Context()
-    exist, err := checkFunc(ctx)
-    if err != nil {
-		if 	errors.Is(err,sql.ErrNoRows){
-			exist=false
-		}else{
+	ctx := c.Request().Context()
+	exist, err := checkFunc(ctx)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			exist = false
+		} else {
 			c.Logger().Errorf("Failed checking existence: %v", err)
-        	c.JSON(http.StatusInternalServerError, map[string]string{"error": "internal server error"})
-        	return ErrorCheckingExistStatus
+			c.JSON(http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+			return ErrorCheckingExistStatus
 		}
-    }
-    if !exist {
-        return NotExists
-    }
-    return Exists
+	}
+	if !exist {
+		return NotExists
+	}
+	return Exists
 }
 
-
-func HashPassword(password string)(string,error){
+func HashPassword(password string) (string, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-    if err != nil {
-       return "", err
-    }
-    return string(hashedPassword), nil
+	if err != nil {
+		return "", err
+	}
+	return string(hashedPassword), nil
 }
 
 func (app *Application) getUserRole(ctx context.Context, username, resourceID string) (UserRole, error) {
@@ -168,44 +164,43 @@ func (app *Application) getUserRole(ctx context.Context, username, resourceID st
 }
 
 func (app *Application) GetTaskBasedOnAccess(managerFunc echo.HandlerFunc, userFunc echo.HandlerFunc) echo.HandlerFunc {
-    return func(c echo.Context) error {
-		username:=c.Get(sessionvar.USERNAME).(string);
-        // Get the user's role
-		projectID:=c.Param("id")
-		if _,err:=strconv.Atoi(projectID);err!=nil{
+	return func(c echo.Context) error {
+		username := c.Get(sessionvar.USERNAME).(string)
+		// Get the user's role
+		projectID := c.Param("id")
+		if _, err := strconv.Atoi(projectID); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid projectID"})
 		}
-        role, err := app.getUserRole(c.Request().Context(), username, projectID)
-        if err != nil {
-            c.Logger().Error("error getting user role: ", err)
-            return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
-        }
-        // Execute based on role
-        if role == AdminRole || role == ManagerRole {
-            return managerFunc(c)
-        }
-        return userFunc(c)
-    }
+		role, err := app.getUserRole(c.Request().Context(), username, projectID)
+		if err != nil {
+			c.Logger().Error("error getting user role: ", err)
+			return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+		}
+		// Execute based on role
+		if role == AdminRole || role == ManagerRole {
+			return managerFunc(c)
+		}
+		return userFunc(c)
+	}
 }
-
 
 func GetUsernameFromSession(c echo.Context) (string, error) {
-    sess, err := session.Get(sessionvar.SESSION_NAME, c)
-    if err != nil {
-        return "", err
-    }
-    username, ok := sess.Values[sessionvar.USERNAME].(string)
-    if !ok {
-        return "", errors.New("username not found in session")
-    }
-    return username, nil
+	sess, err := session.Get(sessionvar.SESSION_NAME, c)
+	if err != nil {
+		return "", err
+	}
+	username, ok := sess.Values[sessionvar.USERNAME].(string)
+	if !ok {
+		return "", errors.New("username not found in session")
+	}
+	return username, nil
 }
 
-func ValidateManagerUpdate(t models.Task)(*validator.Validator){
-	v:=validator.New()
-	
+func ValidateManagerUpdate(t models.Task) *validator.Validator {
+	v := validator.New()
+
 	v.Check(
-		t.AssignedUsername.Valid && t.AssignedUsername.String!="",
+		t.AssignedUsername.Valid && t.AssignedUsername.String != "",
 		"user",
 		"no valid user",
 	)
@@ -241,15 +236,15 @@ func ValidateManagerUpdate(t models.Task)(*validator.Validator){
 	)
 
 	v.Check(
-		t.TaskStatus.Valid && (t.TaskStatus.String=="pending" || t.TaskStatus.String=="completed"),	
+		t.TaskStatus.Valid && (t.TaskStatus.String == "pending" || t.TaskStatus.String == "completed"),
 		"status",
 		"invalid status 2",
 	)
 	return v
 }
 
-func ValidateTask(t models.Task)(*validator.Validator){
-	v:=validator.New()
+func ValidateTask(t models.Task) *validator.Validator {
+	v := validator.New()
 	v.Check(
 		validator.MinNameLength(t.TaskName),
 		validator.ErrNameTooShort.Key,
@@ -271,33 +266,34 @@ func ValidateTask(t models.Task)(*validator.Validator){
 	return v
 }
 
-func (app *Application)CheckInvitationStatus(c echo.Context,t models.Task, projectID int, username string)(bool){
+func (app *Application) CheckInvitationStatus(c echo.Context, t models.Task, projectID int, username string) bool {
 	//gonna use this hack for now, will think of a better way later
-	isAdmin,err:=app.models.Users.IsAdmin(c.Request().Context(),username,c.Param("id"));if err!=nil{
-		if !errors.Is(err,sql.ErrNoRows){
-			c.Logger().Error("error getting access level: ",err)
+	isAdmin, err := app.models.Users.IsAdmin(c.Request().Context(), username, c.Param("id"))
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			c.Logger().Error("error getting access level: ", err)
 			c.JSON(http.StatusNotFound, map[string]string{"error": "internal server error"})
 			return false
 		}
-		isAdmin=false
+		isAdmin = false
 	}
 	//check if a	dmin is assigning task to themselves
-	if isAdmin && t.AssignedUsername.String==username{
+	if isAdmin && t.AssignedUsername.String == username {
 		return true
 	}
 
 	switch status := app.EnsureExists(c, func(ctx context.Context) (bool, error) {
-		return app.models.Invitation.AcceptedByUser(ctx,projectID,t.AssignedUsername.String)
+		return app.models.Invitation.AcceptedByUser(ctx, projectID, t.AssignedUsername.String)
 	}); status {
 	case ErrorCheckingExistStatus:
-	// error response already sent by EnsureExists, just exit
-		return false	
+		// error response already sent by EnsureExists, just exit
+		return false
 	case NotExists:
 		c.Logger().Error("user has not accepted invitation or does not exist in this project")
 		c.JSON(http.StatusNotFound, map[string]string{"error": "User isn't part of the project or hasn't accepted the invitation yet"})
 		return false
 	case Exists:
-		return true 
+		return true
 	}
 	return false
 }
@@ -316,41 +312,40 @@ func (app *Application) GenerateUpdateMessage(ctx context.Context, updatedTask m
 	}
 
 	if updatedTask.TaskDescription != oldTask.TaskDescription {
-		messages = append(messages, fmt.Sprintf("Task description for task %s was updated.",updatedTask.TaskName))
+		messages = append(messages, fmt.Sprintf("Task description for task %s was updated.", updatedTask.TaskName))
 	}
 
 	if updatedTask.AssignedUsername.Valid && updatedTask.AssignedUsername.String != oldTask.AssignedUsername.String {
-		messages = append(messages, fmt.Sprintf("Assigned user for task %s changed from %s to %s.",updatedTask.TaskName, oldTask.AssignedUsername.String, updatedTask.AssignedUsername.String))
+		messages = append(messages, fmt.Sprintf("Assigned user for task %s changed from %s to %s.", updatedTask.TaskName, oldTask.AssignedUsername.String, updatedTask.AssignedUsername.String))
 	}
 
 	if updatedTask.TaskDueDate.Valid && !updatedTask.TaskDueDate.Time.Equal(oldTask.TaskDueDate.Time) {
 		messages = append(messages, fmt.Sprintf("Due date for task %s changed from %s to %s.",
 			updatedTask.TaskName,
-			oldTask.TaskDueDate.Time.Format("2006-01-02"), 
+			oldTask.TaskDueDate.Time.Format("2006-01-02"),
 			updatedTask.TaskDueDate.Time.Format("2006-01-02")))
 	}
 
 	if updatedTask.Approved.Valid && updatedTask.Approved.Bool != oldTask.Approved.Bool {
 		status := map[bool]string{true: "approved", false: "disapproved"}
-		messages = append(messages, fmt.Sprintf("Task %s was %s.", updatedTask.TaskName,status[updatedTask.Approved.Bool]))
+		messages = append(messages, fmt.Sprintf("Task %s was %s.", updatedTask.TaskName, status[updatedTask.Approved.Bool]))
 	}
 
 	if len(messages) == 0 {
 		return "No changes detected.", nil
 	}
-
 	return strings.Join(messages, "\n"), nil
 }
 
 func (app *Application) FetchProjects(ctx context.Context, username string, resultChan chan<- ProjectResult) {
 	var wg sync.WaitGroup
 	wg.Add(3)
-	
+
 	adminChan := make(chan []*models.Project, 1)
 	managerChan := make(chan []*models.Project, 1)
 	assignedChan := make(chan []*models.Project, 1)
 	errorChan := make(chan error, 3) // buffered so goroutines don’t block
-	done:=make(chan struct{})
+	done := make(chan struct{})
 	go func() {
 		defer wg.Done()
 		projects, err := app.models.Projects.RetrieveAdminProjects(ctx, username)
@@ -420,7 +415,7 @@ func (app *Application) FetchProjects(ctx context.Context, username string, resu
 	}
 }
 
-//todo: test this function and replace it with the original fetchprojects function
+// todo: test this function and replace it with the original fetchprojects function
 func (app *Application) FetchProjects2(ctx context.Context, username string, resultChan chan<- ProjectResult) {
 	var res ProjectResult
 	g, ctx := errgroup.WithContext(ctx)
@@ -432,6 +427,7 @@ func (app *Application) FetchProjects2(ctx context.Context, username string, res
 		}
 		return err
 	})
+
 	g.Go(func() error {
 		projects, err := app.models.Projects.RetrieveManagerProjects(ctx, username)
 		if err == nil {
@@ -439,6 +435,7 @@ func (app *Application) FetchProjects2(ctx context.Context, username string, res
 		}
 		return err
 	})
+
 	g.Go(func() error {
 		projects, err := app.models.Projects.RetrieveAssginedProjects(ctx, username)
 		if err == nil {
@@ -452,35 +449,38 @@ func (app *Application) FetchProjects2(ctx context.Context, username string, res
 	resultChan <- res
 }
 
-
-func (app *Application)UserTasks(c echo.Context)error{
-    sess,err:=session.Get(sessionvar.SESSION_NAME,c);if err!=nil{
-        return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
-    }
-    username,ok:=sess.Values[sessionvar.USERNAME].(string);if !ok{
-        return c.JSON(http.StatusUnauthorized,map[string]string{"error":"you're not authorized"})
-    }
-    id,err:=strconv.Atoi(c.Param("id"));if err!=nil{
-        log.Println("not found tasks",id)
-        return c.JSON(http.StatusNotFound,map[string]string{"error":"invalid project id"})
-    }
-    tasks,err:=app.models.Task.GetAssignedToUser(c.Request().Context(),id,username)
-    if err!=nil{
-        return c.JSON(http.StatusInternalServerError,map[string]string{"error":"internal server error"})
-    }
-    return c.JSON(http.StatusOK, tasks)
+func (app *Application) UserTasks(c echo.Context) error {
+	sess, err := session.Get(sessionvar.SESSION_NAME, c)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+	}
+	username, ok := sess.Values[sessionvar.USERNAME].(string)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "you're not authorized"})
+	}
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		log.Println("not found tasks", id)
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "invalid project id"})
+	}
+	tasks, err := app.models.Task.GetAssignedToUser(c.Request().Context(), id, username)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+	}
+	return c.JSON(http.StatusOK, tasks)
 }
 
-func (app *Application)ManagerTasks(c echo.Context)error{
-    id,err:=strconv.Atoi(c.Param("id"));if err!=nil{
-        log.Println("not found tasks manager",id)
-        return c.JSON(http.StatusNotFound,map[string]string{"error":"invalid project id"})
-    }
-    tasks,err:=app.models.Task.Get(c.Request().Context(),id)
-    if err!=nil{
-        return c.JSON(http.StatusInternalServerError,map[string]string{"error":"internal server error"})
-    }
-    return c.JSON(http.StatusOK, tasks)
+func (app *Application) ManagerTasks(c echo.Context) error {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		log.Println("not found tasks manager", id)
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "invalid project id"})
+	}
+	tasks, err := app.models.Task.Get(c.Request().Context(), id)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+	}
+	return c.JSON(http.StatusOK, tasks)
 }
 
 func detectCycle(graph map[int][]int) error {
@@ -498,7 +498,7 @@ func detectCycle(graph map[int][]int) error {
 		visited[node] = true
 		onStack[node] = true
 		if slices.ContainsFunc(graph[node], dfs) {
-				return true
+			return true
 		}
 		onStack[node] = false
 		return false
@@ -535,48 +535,50 @@ func DetectCyclePert(tasks []models.Pert) error {
 	return detectCycle(graph)
 }
 
-
-func StoreResult[U models.Analytic, T models.ReadDatabase[U]](t T,ctx context.Context,id int, result models.Result)error{
-	if err:=t.InsertResult(ctx,id,result);err!=nil{
+func StoreResult[U models.Analytic, T models.ReadDatabase[U]](t T, ctx context.Context, id int, result models.Result) error {
+	if err := t.InsertResult(ctx, id, result); err != nil {
 		return err
 	}
 	return nil
 }
 
-func Calculate[U models.Analytic,T models.ReadDatabase[U]](v T,ctx context.Context, projectID int)(error){
-	data,err:=v.GetData(ctx,projectID);if err!=nil{
-		return err 
+func Calculate[U models.Analytic, T models.ReadDatabase[U]](v T, ctx context.Context, projectID int) error {
+	data, err := v.GetData(ctx, projectID)
+	if err != nil {
+		return err
 	}
-	if data==nil{
+	if data == nil {
 		return models.ErrRecordNotFound
 	}
 
-	result,err:=external.RequestAndCalculatePERTCPM(data); if err!=nil{
-		log.Println("Error fetching result: ",err)
+	result, err := external.RequestAndCalculatePERTCPM(data)
+	if err != nil {
+		log.Println("Error fetching result: ", err)
 		return ErrFetchingResult
 	}
 
-	if err:=StoreResult(v,ctx,projectID,result);err!=nil{
+	if err := StoreResult(v, ctx, projectID, result); err != nil {
 		return err
 	}
 	return nil
 }
 
-func GetAnalytics[U models.Analytic,T models.ReadDatabase[U]](v T,ctx context.Context, id int)([]*U,models.Result,error){
-	data,err:=v.GetData(ctx,id);if err!=nil{
-		return nil,models.Result{},err 
+func GetAnalytics[U models.Analytic, T models.ReadDatabase[U]](v T, ctx context.Context, id int) ([]*U, models.Result, error) {
+	data, err := v.GetData(ctx, id)
+	if err != nil {
+		return nil, models.Result{}, err
 	}
 
-	if data==nil{
-		return nil,models.Result{},models.ErrRecordNotFound
+	if data == nil {
+		return nil, models.Result{}, models.ErrRecordNotFound
 	}
 
-	result,err:=v.GetResult(ctx,id); if err!=nil{
-		if !errors.Is(err, models.ErrRecordNotFound){
-			return data,models.Result{},ErrFetchingResult
+	result, err := v.GetResult(ctx, id)
+	if err != nil {
+		if !errors.Is(err, models.ErrRecordNotFound) {
+			return data, models.Result{}, ErrFetchingResult
 		}
 	}
-	
-	return data,result,nil
-}
 
+	return data, result, nil
+}
