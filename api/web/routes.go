@@ -28,7 +28,6 @@ func (app *Application) LoadMiddleware(e *echo.Echo){
 	gob.Register(map[string][]int{})
 	gob.Register(map[string]string{})
 
-	// Rate limiter configuration
 	config := middleware.RateLimiterConfig{
 		Skipper: middleware.DefaultSkipper,
 		Store: middleware.NewRateLimiterMemoryStoreWithConfig(
@@ -68,6 +67,7 @@ func (app *Application)RegisterRoutes(e *echo.Echo){
 	e.GET("/api/projects/admin", app.GetAdminProjects, IsAuthorizedUser)
 	e.GET("/api/projects/manager", app.GetManagerProjects, IsAuthorizedUser)
 	e.GET("/api/projects/assigned", app.GetAssignedProjects, IsAuthorizedUser)
+
 	// Invitation routes
 	e.POST("/api/project/:id/invite", app.Invite,IsAuthorizedUser)
 	e.GET("/api/invitation", app.GetInvitations,IsAuthorizedUser)

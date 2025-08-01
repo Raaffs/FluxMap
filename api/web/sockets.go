@@ -123,7 +123,7 @@ func(client *WSUser)WriteMessage(job MessageJob,ok bool){
 
 // PushToClients broadcasts a message to matching clients.
 // It returns a channel of errors from failed client sends.
-// IMPORTANT: The caller **must** read from the returned channel to avoid goroutine leaks!
+// IMPORTANT: The caller **must** read from the returned channel to avoid goroutine leaks
 func (cm *ConnectionManager) PushToClients(msg []byte, filter func(WSUser) bool)<-chan error{
 	errchan:=make(chan error)
 	go func() {

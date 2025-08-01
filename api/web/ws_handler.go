@@ -63,6 +63,7 @@ func(app *Application)SendUpdateNotification(ctx context.Context, username strin
 
 func (app *Application)SendInviteNotification(ctx context.Context, username string){
 	count,err:=app.models.Invitation.GetTotalUnreadInvitation(ctx,username);if err!=nil{
+		app.logger.Error("Error getting invite count: ",err)
 		return 
 	}
 

@@ -1,7 +1,6 @@
 import { Box, useTheme } from "@mui/material";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import ManageAccountsOutlinedIcon from "@mui/icons-material/ManageAccountsOutlined";
-import TimerOutlinedIcon from "@mui/icons-material/TimerOutlined";
 import PermIdentityOutlinedIcon from "@mui/icons-material/PermIdentityOutlined";
 import { tokens } from "../../theme";
 import StatCard from "../../components/cards/statcard";
@@ -9,7 +8,17 @@ const Dashboard = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   return (
-    <Box m="30px">
+    <Box m="30px"
+        sx={{
+            backgroundColor:
+            theme.palette.mode === "dark" ? colors.primary[500] : "white",
+                    maxHeight: "100%",
+        height: "100%",
+        overflowY: "auto",
+            padding: "25px",
+            borderRadius: "16px",
+        }}
+    >
       <Box
         display="grid"
         gridTemplateColumns="repeat(12, 1fr)"
@@ -23,7 +32,7 @@ const Dashboard = () => {
             backgroundColor:
               theme.palette.mode === "dark"
                 ? colors.primary[600]
-                : colors.grey[900],
+                : "rgba(0, 200, 150, 0.3)",
           }}
           justifyContent="center"
           alignItems="center"
@@ -31,11 +40,11 @@ const Dashboard = () => {
           <StatCard
             title="4"
             subtitle="Your Projects"
-            fontColor={colors.greenAccent[500]}
+            fontColor={colors.greenAccent[200]}
             icon={
               <AdminPanelSettingsOutlinedIcon
                 sx={{
-                  color: colors.greenAccent[500],
+                  color: colors.greenAccent[200],
                   fontSize: "26px",
                   margin: "5px",
                 }}
@@ -53,17 +62,17 @@ const Dashboard = () => {
             backgroundColor:
               theme.palette.mode === "dark"
                 ? colors.primary[600]
-                : colors.grey[900],
+                : "rgba(104, 112, 250, 0.4)",
           }}
         >
           <StatCard
             title="4"
             subtitle="Managed Projects"
-            fontColor={colors.blueAccent[500]}
+            fontColor={colors.blueAccent[400]}
             icon={
               <ManageAccountsOutlinedIcon
                 sx={{
-                  color: colors.blueAccent[500],
+                  color: colors.blueAccent[400],
                   fontSize: "26px",
                   margin: "5px",
                 }}
@@ -81,17 +90,17 @@ const Dashboard = () => {
             backgroundColor:
               theme.palette.mode === "dark"
                 ? colors.primary[600]
-                : colors.grey[900],
+                : "rgba(162, 89, 255, 0.3)",
           }}
         >
           <StatCard
             title="2"
             subtitle="Allocated Projects"
-            fontColor={colors.redAccent[500]}
+            fontColor="#a259ff"
             icon={
               <PermIdentityOutlinedIcon
                 sx={{
-                  color: colors.redAccent[500],
+                  color: "#a259ff"
                 }}
               />
             }

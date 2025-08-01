@@ -344,8 +344,7 @@ func (app *Application) GetInvitations(c echo.Context) error {
 	if err:=app.models.Invitation.SetRead(c.Request().Context(),username);err!=nil{
 		c.Logger().Error("Error updating status of hasread column: ",err)
 	}
-	
-	return c.JSON(http.StatusOK, invitations)
+	return c.JSON(http.StatusOK, map[string]any{"invitations":invitations})
 }
 
 func (app *Application) ConfirmInvitation(c echo.Context) error {

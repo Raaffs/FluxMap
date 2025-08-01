@@ -13,16 +13,13 @@ def handle_cpm():
     if not data:
         return jsonify({'error': 'Invalid data'}), 400
 
-    print("Data received in Python: ", data)
-
     try:
         result=calculateCpm(data)
         resp={
             'Result':result
         }
-        print("Result is: ", resp)
 
-        return jsonify(resp)  # Return the result as JSON
+        return jsonify(resp)  
     except Exception as e:
         print("Error processing request: ", e)
         return jsonify({'error': 'An error occurred during processing'}), 500
@@ -30,7 +27,6 @@ def handle_cpm():
 @app.route("/api/pert",methods=['POST'])
 def handle_pert():
     data=request.json
-    print("Data received in Python: ", data)
 
     if not data:
         return jsonify({'error':'invalid data'}),400
@@ -40,7 +36,6 @@ def handle_pert():
         for task_info in task_distributions:
             task_map[task_info['taskId']] = task_info
 
-        # Build graph and calculate critical path
         graph, in_degree = build_graph(task_map)
         critical_path = find_critical_path(graph, in_degree, task_map)
         task_results = [

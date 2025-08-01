@@ -19,9 +19,10 @@ export const useFetchInvitations = (
                     method: 'GET',
                     credentials:'include'
                 })
+                console.log("here")
                 const data = await response.json();
+                console.log(data, "here")
                 setData(data);
-  
             }catch(err: any){
                 console.error(err)
                 setError(err)
