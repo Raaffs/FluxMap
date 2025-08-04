@@ -22,9 +22,9 @@ func (g *GraphModel)TaskCompletedByDate(ctx context.Context, assignedUsername st
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var date string
 		var count int
-		if err := rows.Scan(&date,&count); err != nil {
+		var date any
+		if err := rows.Scan(&count,&date); err != nil {
 			g.Errorlog.Printf("An error occurred while scanning task completed by date: %v\n", err)
 			return Graphs{},err
 		}
@@ -59,9 +59,9 @@ func (g *GraphModel)TaskApprovedByDate(ctx context.Context, assginedUsername str
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var date string
+		var date any
 		var count int
-		if err := rows.Scan(&date,&count); err != nil {
+		if err := rows.Scan(&count,&date); err != nil {
 			g.Errorlog.Printf("An error occurred while scanning task completed by date: %v\n", err)
 			return Graphs{},err
 		}
