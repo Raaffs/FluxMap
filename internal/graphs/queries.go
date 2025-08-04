@@ -2,20 +2,21 @@ package graphs
 
 import "context"
 
-func (g *GraphModel)TaskCompletedByDate(ctx context.Context)(Graphs,error){
+func (g *GraphModel)TaskCompletedByDate(ctx context.Context, assignedUsername string)(Graphs,error){
 	var gs Graphs
 	query := `
 	SELECT 
-	DATE(taskcompleted) AS completed_date
-	FROM tasks
-	WHERE taskcompleted IS NOT NULL
-	GROUP BY completed_date
-	HAVING COUNT(*) > 0
-	ORDER BY completed_date
-	LIMIT 7
+		COUNT(*) AS task_count, 
+       	DATE(taskcompleteddate) AS completed_date
+		FROM tasks
+		WHERE assignedUsername = $1
+		AND taskcompleteddate IS NOT NULL
+		AND taskcompleteddate >= CURRENT_DATE - INTERVAL '7 days'
+		GROUP BY completed_date
+		ORDER BY completed_date;
 	`
 
-	rows,err:=g.DB.Query(ctx,query);if err != nil {
+	rows,err:=g.DB.Query(ctx,query,assignedUsername);if err != nil {
 		g.Errorlog.Printf("An error occurred while getting task completed by date: %v\n", err)
 		return Graphs{},err
 	}
@@ -38,20 +39,21 @@ func (g *GraphModel)TaskCompletedByDate(ctx context.Context)(Graphs,error){
 	return gs,nil
 }
 
-func (g *GraphModel)TaskApprovedByDate(ctx context.Context)(Graphs,error){
+func (g *GraphModel)TaskApprovedByDate(ctx context.Context, assginedUsername string)(Graphs,error){
 	var gs Graphs
 	query := `
-	SELECT 
-    DATE(taskapproveddate) AS approved_date
-    COUNT(*) 
-	FROM tasks 
-	WHERE taskcompleteddate IS NOT NULL
-	GROUP BY DATE(taskapproveddate)
-	ORDER BY approved_date;
-	LIMIT 7
+	SELECT     
+		COUNT(*) AS task_count,
+    	DATE(taskapproveddate) AS approved_date
+		FROM tasks 
+		WHERE assignedUsername= $1 
+		AND taskapproveddate IS NOT NULL
+		AND taskapproveddate >= CURRENT_DATE - INTERVAL '7 days'
+		GROUP BY approved_date
+		ORDER BY approved_date
 	`
 
-	rows,err:=g.DB.Query(ctx,query);if err != nil {
+	rows,err:=g.DB.Query(ctx,query,assginedUsername);if err != nil {
 		g.Errorlog.Printf("An error occurred while getting task completed by date: %v\n", err)
 		return Graphs{},err
 	}
