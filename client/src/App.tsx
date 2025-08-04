@@ -21,6 +21,7 @@ import ProtectedRoute from "./context/protected";
 import { useWebSocket } from "./hooks/websocket";
 import { UserRole } from "./hooks/types";
 import Dashboard from "./scenes/dashboard";
+import NotFound from "./scenes/404/NotFound";
 
 function App() {
   const [theme, colorMode] = useMode();
@@ -63,6 +64,7 @@ function App() {
                   <Route path="/invitations" element={<Invitation />} />
                   <Route path="/updates" element={<Updates/>}/>
                 </Route>
+                <Route path="*" element={<NotFound/>} />
               </Routes>
             </main>
           </div>

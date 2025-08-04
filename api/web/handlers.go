@@ -332,9 +332,6 @@ func (app *Application) Invite(c echo.Context) error {
 
 func (app *Application) GetInvitations(c echo.Context) error {
 	username := c.Get(sessionvar.USERNAME).(string)
-	_,err:=strconv.Atoi(c.Param("id"));if err!=nil{
-		c.JSON(http.StatusBadRequest,map[string]string{"error":"invalid projectID" })
-	}
 	invitations, err := app.models.Invitation.GetPendingInvitations(c.Request().Context(), username)
 	if err != nil {
 
@@ -344,7 +341,7 @@ func (app *Application) GetInvitations(c echo.Context) error {
 	if err:=app.models.Invitation.SetRead(c.Request().Context(),username);err!=nil{
 		c.Logger().Error("Error updating status of hasread column: ",err)
 	}
-	return c.JSON(http.StatusOK, map[string]any{"invitations":invitations})
+	return c.JSON(http.StatusOK, invitations)
 }
 
 func (app *Application) ConfirmInvitation(c echo.Context) error {

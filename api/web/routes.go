@@ -97,5 +97,9 @@ func (app *Application)RegisterRoutes(e *echo.Echo){
 	e.GET("/api/updates",app.GetAllUpdates,IsAuthorizedUser)
 
 	e.GET("/api/ws",app.HandlWS,IsAuthorizedUser)
+
+	//graphs 
+	e.GET("/api/graph/completed",app.GetTaskCompletedGraph,IsAuthorizedUser)
+	e.GET("/api/graph/approved",app.GetTaskApprovedGraph,IsAuthorizedUser)
 }
 
