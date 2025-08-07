@@ -11,7 +11,7 @@ func (g *GraphModel)TaskCompletedByDate(ctx context.Context, assignedUsername st
 		FROM tasks
 		WHERE assignedUsername = $1
 		AND taskcompleteddate IS NOT NULL
-		AND taskcompleteddate >= CURRENT_DATE - INTERVAL '7 days'
+		AND taskcompleteddate >= CURRENT_DATE - INTERVAL '100 days'
 		GROUP BY completed_date
 		ORDER BY completed_date;
 	`
@@ -48,7 +48,7 @@ func (g *GraphModel)TaskApprovedByDate(ctx context.Context, assginedUsername str
 		FROM tasks 
 		WHERE assignedUsername= $1 
 		AND taskapproveddate IS NOT NULL
-		AND taskapproveddate >= CURRENT_DATE - INTERVAL '7 days'
+		AND taskapproveddate >= CURRENT_DATE - INTERVAL '100 days'
 		GROUP BY approved_date
 		ORDER BY approved_date
 	`

@@ -9,7 +9,7 @@ import {
   Title,
   Tooltip,
   Legend,
-  Filler
+  Filler,
 } from "chart.js";
 import { ChartOptions } from "chart.js";
 import { Box, Typography } from "@mui/material";
@@ -41,32 +41,42 @@ interface GraphProps {
       tension: number;
     }[];
   };
+  title: string;
+  xLabel: string;
+  yLabel: string;
+  maintainRatio: boolean;
 }
 
-// TaskStatusGraph Component
-const TaskStatusGraph: React.FC<GraphProps> = ({ data }) => {
+export const TaskStatusGraph: React.FC<GraphProps> = ({
+  data,
+  title,
+  xLabel,
+  yLabel,
+  maintainRatio
+}) => {
   const options: ChartOptions<"line"> = {
     responsive: true,
+    maintainAspectRatio:maintainRatio,
     plugins: {
       legend: {
-        position: "top", // Correctly typed position
+        position: "top",
       },
       title: {
         display: true,
-        text: "Tasks Approved and Completed Over Time",
+        text: title,
       },
     },
     scales: {
       x: {
         title: {
           display: true,
-          text: "Date",
+          text: xLabel,
         },
       },
       y: {
         title: {
           display: true,
-          text: "Number of Tasks",
+          text: yLabel,
         },
         beginAtZero: true,
       },
@@ -74,16 +84,17 @@ const TaskStatusGraph: React.FC<GraphProps> = ({ data }) => {
   };
 
   return (
-    <Box mb={4}>
+    <Box sx={{ width: "100%", height: "100%" }}>
       <Typography variant="h6" gutterBottom>
         Tasks Approved and Completed
       </Typography>
-      <Line data={data} options={options} />
+      <Box sx={{ width: "100%", height: "calc(100% - 32px)" }}>
+        <Line data={data} options={options} />
+      </Box>
     </Box>
   );
 };
 
-// ContributorGraph Component
 export const ContributorGraph: React.FC<GraphProps> = ({ data }) => {
   const options: ChartOptions<"line"> = {
     responsive: true,
@@ -126,22 +137,10 @@ export const ContributorGraph: React.FC<GraphProps> = ({ data }) => {
 // Main App Component with Data
 const Graphs: React.FC = () => {
   const { id } = useParams();
-  const [fetch,fetchTrigger]=useState<boolean>(false)
-  const [tasks, loading, error] = useFetchTaskData(id, fetch,fetchTrigger);
+  const [fetch, fetchTrigger] = useState<boolean>(false);
+  const [tasks, loading, error] = useFetchTaskData(id, fetch, fetchTrigger);
   console.log("tasks: ", tasks);
   const safeTasks = tasks || [];
-  const completedDateData = safeTasks
-    .map((task) => task.taskCompletedDate) // Extract the dates
-    .filter((date): date is string => typeof date === "string" && date !== "0") // Narrow to valid strings
-    .sort((a, b) => new Date(a).getTime() - new Date(b).getTime()) // Sort by date
-    .map((date) => new Date(date).toISOString().split("T")[0]); // Format to 'YYYY-MM-DD'
-
-  const approvedDateData = safeTasks
-    .map((task) => task.taskApprovedDate) // Extract approval dates
-    .filter((date): date is string => typeof date === "string" && date !== "0") // Ensure only valid strings
-    .sort((a, b) => new Date(a).getTime() - new Date(b).getTime()) // Sort by timestamp
-    .map((date) => new Date(date).toISOString().split("T")[0]); // Format to 'YYYY-MM-DD'
-
   const weeklyApprovedTasks = groupTasksByPeriod(
     safeTasks,
     "taskApprovedDate",
@@ -153,39 +152,32 @@ const Graphs: React.FC = () => {
     "week"
   );
 
-  const contributerTasks = groupTasksWithMap(
-    safeTasks,
-    "taskCompletedDate",
-    "taskCompletedDate"
-  );
   // Prepare graph data
   const taskStatusData = {
-  labels: Array.from(
-    new Set(
-      [...weeklyApprovedTasks, ...weeklyCompletedTasks].map((w) => w.period)
-    )
-  ),
-  datasets: [
-    {
-      label: "Tasks Approved",
-      data: weeklyApprovedTasks.map((w) => w.count),
-      borderColor: "rgba(75, 192, 192, 1)",
-      backgroundColor: "rgba(75, 192, 192, 0.2)",
-      tension: 0.3,
-      fill: true, 
-    },
-    {
-      label: "Tasks Completed",
-      data: weeklyCompletedTasks.map((w) => w.count),
-      borderColor: "rgba(153, 102, 255, 1)",
-      backgroundColor: "rgba(153, 102, 255, 0.2)",
-      tension: 0.3,
-      fill: true, 
-    },
-  ],
-};
-
-
+    labels: Array.from(
+      new Set(
+        [...weeklyApprovedTasks, ...weeklyCompletedTasks].map((w) => w.period)
+      )
+    ),
+    datasets: [
+      {
+        label: "Tasks Approved",
+        data: weeklyApprovedTasks.map((w) => w.count),
+        borderColor: "rgba(75, 192, 192, 1)",
+        backgroundColor: "rgba(75, 192, 192, 0.2)",
+        tension: 0.3,
+        fill: true,
+      },
+      {
+        label: "Tasks Completed",
+        data: weeklyCompletedTasks.map((w) => w.count),
+        borderColor: "rgba(153, 102, 255, 1)",
+        backgroundColor: "rgba(153, 102, 255, 0.2)",
+        tension: 0.3,
+        fill: true,
+      },
+    ],
+  };
 
   return (
     <Box
@@ -194,7 +186,13 @@ const Graphs: React.FC = () => {
       width="99%"
       overflow="auto" // Ensures scrolling is enabled for overflowing content
     >
-      <TaskStatusGraph data={taskStatusData} />
+      <TaskStatusGraph
+        data={taskStatusData}
+        title="Tasks Approved and Completed Over Time"
+        xLabel="Date"
+        yLabel="Number of Tasks"
+        maintainRatio={true}
+      />
     </Box>
   );
 };

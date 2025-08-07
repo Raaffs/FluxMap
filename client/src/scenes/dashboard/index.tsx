@@ -4,20 +4,53 @@ import ManageAccountsOutlinedIcon from "@mui/icons-material/ManageAccountsOutlin
 import PermIdentityOutlinedIcon from "@mui/icons-material/PermIdentityOutlined";
 import { tokens } from "../../theme";
 import StatCard from "../../components/cards/statcard";
+import { TaskStatusGraph } from "../../components/graphs/LineGraphs";
+import {
+  useRetrieveTaskApprovedGraph,
+  useRetrieveTaskCompletedGraph,
+} from "../../hooks/graphs";
+import { number } from "mathjs";
 const Dashboard = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
+  const { completedGraph, loading, error } = useRetrieveTaskCompletedGraph();
+  const { approvedGraph, approvedLoading, approvedError } =
+    useRetrieveTaskApprovedGraph();
+  const taskStatusData = {
+    labels:
+      completedGraph?.XAxis?.map((x) => new Date(x).toLocaleDateString()) || [],
+    datasets: [
+      {
+        label: "Tasks Completed",
+        data: completedGraph?.YAxis?.map((x) => Number(x)) || [],
+        borderColor: "rgba(0, 123, 255, 1)", // Bright blue for white mode
+        backgroundColor: "rgba(0, 123, 255, 0.15)", // Soft blue fill
+        tension: 0.3,
+        fill: true,
+      },
+      {
+        label: "Tasks Approved",
+        data: approvedGraph?.YAxis?.map((x) => Number(x)) || [],
+        borderColor: "rgba(40, 167, 69, 1)", // Clean green for white mode
+        backgroundColor: "rgba(40, 167, 69, 0.15)", // Soft green fill
+        tension: 0.3,
+        fill: true,
+      },
+    ],
+  };
+
   return (
-    <Box m="30px"
-        sx={{
-            backgroundColor:
-            theme.palette.mode === "dark" ? colors.primary[500] : "white",
-                    maxHeight: "100%",
+    <Box
+      m="30px"
+      sx={{
+        backgroundColor:
+          theme.palette.mode === "dark" ? colors.primary[500] : "white",
+        maxHeight: "100%",
         height: "100%",
         overflowY: "auto",
-            padding: "25px",
-            borderRadius: "16px",
-        }}
+        padding: "25px",
+        borderRadius: "16px",
+      }}
     >
       <Box
         display="grid"
@@ -33,6 +66,7 @@ const Dashboard = () => {
               theme.palette.mode === "dark"
                 ? colors.primary[600]
                 : "rgba(0, 200, 150, 0.3)",
+            borderRadius: "16px",
           }}
           justifyContent="center"
           alignItems="center"
@@ -63,6 +97,7 @@ const Dashboard = () => {
               theme.palette.mode === "dark"
                 ? colors.primary[600]
                 : "rgba(104, 112, 250, 0.4)",
+            borderRadius: "16px",
           }}
         >
           <StatCard
@@ -91,6 +126,7 @@ const Dashboard = () => {
               theme.palette.mode === "dark"
                 ? colors.primary[600]
                 : "rgba(162, 89, 255, 0.3)",
+            borderRadius: "16px",
           }}
         >
           <StatCard
@@ -100,12 +136,68 @@ const Dashboard = () => {
             icon={
               <PermIdentityOutlinedIcon
                 sx={{
-                  color: "#a259ff"
+                  color: "#a259ff",
                 }}
               />
             }
             path="/projects/allocated"
           />
+        </Box>
+        <Box
+          gridColumn="span 3"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          sx={{
+            backgroundColor:
+              theme.palette.mode === "dark"
+                ? colors.primary[600]
+                : "rgba(162, 89, 255, 0.3)",
+            borderRadius: "16px",
+          }}
+        >
+          <StatCard
+            title="2"
+            subtitle="Allocated Projects"
+            fontColor="#a259ff"
+            icon={
+              <PermIdentityOutlinedIcon
+                sx={{
+                  color: "#a259ff",
+                }}
+              />
+            }
+            path="/projects/allocated"
+          />
+        </Box>
+        <Box
+          gridColumn="span 8"
+          gridRow="span 3"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          sx={{
+            background:
+              theme.palette.mode === "dark"
+      ? "#0d141f" : "linear-gradient(135deg, #f0fffc, #f3fff0)",
+            width: "100%",
+            height: "100%",
+            borderRadius: "16px",
+            boxShadow:
+              theme.palette.mode === "dark"
+                ? "none"
+                : "0 6px 24px rgba(0, 0, 0, 0.1)", // Softer floating shadow
+          }}
+        >
+          <Box flex={1} width="100%" height="100%">
+            <TaskStatusGraph
+              data={taskStatusData}
+              title="Tasks Approved and Completed Over Time"
+              xLabel="last 7 days"
+              yLabel="Number of Tasks"
+              maintainRatio={false}
+            />
+          </Box>
         </Box>
       </Box>
     </Box>

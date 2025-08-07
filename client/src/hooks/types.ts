@@ -95,4 +95,9 @@ export interface Update {
   projectDescription: string;
 }
 
+export interface Graphs {
+	XAxis: any[]
+	YAxis: number[]
+}
+
 export type UserRole = "user" | "manager" | "admin";
