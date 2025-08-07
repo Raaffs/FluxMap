@@ -95,11 +95,13 @@ func (app *Application)RegisterRoutes(e *echo.Echo){
 
 	e.GET("/api/project/:id/update",app.GetProjectUpdates,IsAuthorizedUser,app.HasProjectAccess)
 	e.GET("/api/updates",app.GetAllUpdates,IsAuthorizedUser)
+	e.GET("/api/updates/recent",app.GetRecentUpdates,IsAuthorizedUser)
 
 	e.GET("/api/ws",app.HandlWS,IsAuthorizedUser)
 
 	//graphs 
-	e.GET("/api/graph/completed",app.GetTaskCompletedGraph,IsAuthorizedUser)
-	e.GET("/api/graph/approved",app.GetTaskApprovedGraph,IsAuthorizedUser)
+	e.GET("/api/graph/tasks/completed",app.GetTaskCompletedGraph,IsAuthorizedUser)
+	e.GET("/api/graph/tasks/approved",app.GetTaskApprovedGraph,IsAuthorizedUser)
+	e.GET("/api/graph/tasks/breakdown",app.GetTaskBreakdown,IsAuthorizedUser)
 }
 

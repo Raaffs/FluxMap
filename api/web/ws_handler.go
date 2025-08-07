@@ -35,7 +35,7 @@ func (app *Application)HandlWS(c echo.Context)error{
 func (app *Application)UpdateCountAndNotify(c echo.Context,projectID int, msg, targetUsername string)error{
 	username:=c.Get(sessionvar.USERNAME).(string)
 	log.Println("Target user name in notify: ",targetUsername)
-	if err:=app.models.Update.CreateUpdate(c.Request().Context(),projectID,msg,username,"user",&targetUsername);err!=nil{
+	if err:=app.models.Update.Create(c.Request().Context(),projectID,msg,username,"user",&targetUsername);err!=nil{
 			c.Logger().Error("Error updating updates: ",err)
 			return err
 	}
@@ -45,7 +45,7 @@ func (app *Application)UpdateCountAndNotify(c echo.Context,projectID int, msg, t
 
 func(app *Application)SendUpdateNotification(ctx context.Context, username string){
 
-	count,err:=app.models.Update.GetTotalUnreadUpdates(ctx,username);if err!=nil{
+	count,err:=app.models.Update.GetTotalUnread(ctx,username);if err!=nil{
 		app.logger.Error("Error getting total updates: ",err)
 	}
 	m:=map[NotificationType]int{UpdateNotification:count}

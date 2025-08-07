@@ -86,10 +86,9 @@ func (u *UpdateModel)GetRecent(ctx context.Context,username string)([]*Update,er
 	WHERE 
 	    targettype='all' OR targetusername=$1
 	ORDER BY 
-	    createdat DESC;	
-	LIMIT 7	
+	    createdat DESC
+	LIMIT 7;
 	`
-		
 	rows,err:=u.DB.Query(
 		ctx,
 		query,
@@ -126,7 +125,7 @@ func (u *UpdateModel)GetRecent(ctx context.Context,username string)([]*Update,er
 
 }
 
-func (u *UpdateModel)GetAllUpdates(ctx context.Context, username string)([]*Update,error){
+func (u *UpdateModel)GetAll(ctx context.Context, username string)([]*Update,error){
 	var updates []*Update
 	query := `
 	SELECT 
@@ -183,7 +182,7 @@ func (u *UpdateModel)GetAllUpdates(ctx context.Context, username string)([]*Upda
 	return updates,nil
 }
 
-func (r *UpdateModel) CreateUpdate(ctx context.Context, projectID int, msg string, createdBy string, targetType string, targetUsername *string) ( error) {
+func (r *UpdateModel) Create(ctx context.Context, projectID int, msg string, createdBy string, targetType string, targetUsername *string) ( error) {
 	query := `
 		INSERT INTO updates (projectid, msg, createdat, createdby, targettype, targetusername)
 		VALUES ($1, $2, NOW(), $3, $4, $5)
@@ -198,7 +197,7 @@ func (r *UpdateModel) CreateUpdate(ctx context.Context, projectID int, msg strin
 	return err
 }
 
-func (r *UpdateModel)GetTotalUnreadUpdates(ctx context.Context,username string)(int,error){
+func (r *UpdateModel)GetTotalUnread(ctx context.Context,username string)(int,error){
 	
 	query:=`	
 		SELECT COUNT(*)

@@ -757,7 +757,7 @@ func (app *Application) CreateCpm(c echo.Context) error {
 
 func (app *Application) GetAllUpdates(c echo.Context) error {
 	username := c.Get(sessionvar.USERNAME).(string)
-	updates, err := app.models.Update.GetAllUpdates(c.Request().Context(), username)
+	updates, err := app.models.Update.GetAll(c.Request().Context(), username)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			c.Logger().Warn("not updates : ", err)
@@ -769,7 +769,7 @@ func (app *Application) GetAllUpdates(c echo.Context) error {
 	if err:=app.models.Update.SetRead(c.Request().Context(),username);err!=nil{
 		c.Logger().Error("Error updating status of hasread column: ",err)
 	}
-	count,err:=app.models.Update.GetTotalUnreadUpdates(c.Request().Context(),username);if err!=nil{
+	count,err:=app.models.Update.GetTotalUnread(c.Request().Context(),username);if err!=nil{
 		c.Logger().Error("Error getting total updates: ",err)
 	}
 
@@ -781,6 +781,21 @@ func (app *Application) GetAllUpdates(c echo.Context) error {
 	app.CheckChannelError(errchan)
 	return c.JSON(http.StatusOK, updates)
 }
+
+func (app *Application) GetRecentUpdates(c echo.Context) error {
+	username := c.Get(sessionvar.USERNAME).(string)
+	updates, err := app.models.Update.GetRecent(c.Request().Context(), username)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			c.Logger().Warn("not updates : ", err)
+			return c.JSON(http.StatusNotFound, map[string]string{"error": "No updates found"})
+		}
+		c.Logger().Error("error getting updates : ", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+	}
+	return c.JSON(http.StatusOK, updates)
+}
+
 
 func (app *Application)RemoveTask(c echo.Context)error{
 	taskID,err:=strconv.Atoi(c.Param("taskID"));if err!=nil{
@@ -821,7 +836,7 @@ func (app *Application) GetProjectUpdates(c echo.Context) error {
 		c.Logger().Error("Error updating status of hasread column: ",err)
 	}
 
-	count,err:=app.models.Update.GetTotalUnreadUpdates(c.Request().Context(),username);if err!=nil{
+	count,err:=app.models.Update.GetTotalUnread(c.Request().Context(),username);if err!=nil{
 		c.Logger().Error("Error getting total updates: ",err)
 	}
 

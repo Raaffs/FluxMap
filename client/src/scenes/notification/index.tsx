@@ -19,7 +19,6 @@ const Updates = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
 
-  console.log("updates: ", updates);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(
     null
   );
@@ -29,7 +28,6 @@ const Updates = () => {
   };
 
   if (updates === null || updates === undefined ||updates.length===0) {
-    console.log('nothing update')
     return <NoUpdates
         title="You're All Caught Up"
         description="There are currently no updates requiring your attention."
@@ -57,8 +55,6 @@ const Updates = () => {
       (updatesPerProject.get(update.projectID) ?? []).concat(update)
     );
   }
-  console.log("mapppp", updatesPerProject);
-
   return (
     <Box
       sx={{
@@ -117,16 +113,16 @@ const Updates = () => {
               variant="outlined"
               fullWidth
               sx={{
-                borderRadius: 30, // More rounded button
+                borderRadius: 30, 
                 padding: "12px 24px",
                 textTransform: "none",
                 fontWeight: 600,
                 backgroundColor: "white",
-                color: "#1d72b8", // Subtle modern blue
+                color: "#1d72b8", 
                 border: "1px solid #1d72b8",
                 transition: "all 0.3s ease-in-out",
                 "&:hover": {
-                  backgroundColor: "#e6f7ff", // Lighter blue on hover
+                  backgroundColor: "#e6f7ff", 
                   borderColor: "#1d72b8",
                 },
                 "&:focus": {

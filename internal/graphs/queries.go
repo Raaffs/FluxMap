@@ -39,6 +39,44 @@ func (g *GraphModel)TaskCompletedByDate(ctx context.Context, assignedUsername st
 	return gs,nil
 }
 
+func (g *GraphModel)TaskStatusBreakdown(ctx context.Context, username string)([3]int,error){
+	breakdown:=[3]int{}
+	query:=`
+	WITH 
+		totalCompleted(completed) AS (
+		    SELECT COUNT(*) 
+		    FROM tasks 
+		    WHERE taskstatus = 'completed'
+		),
+		totalOverdue(overdue) AS (
+		    SELECT COUNT(*) 
+		    FROM tasks 
+		    WHERE taskstatus = 'pending' 
+		      AND taskduedate < NOW()
+		),
+		totalActivePending(pending) AS (
+		    SELECT COUNT(*) 
+		    FROM tasks 
+		    WHERE taskstatus = 'pending' 
+		      AND (taskduedate IS NULL OR taskduedate >= NOW())
+		)
+	SELECT * 
+		FROM totalCompleted, totalActivePending, totalOverdue;
+	`
+
+	err:=g.DB.
+			QueryRow(ctx,query).
+			Scan(
+				&breakdown[0],
+				&breakdown[1],
+				&breakdown[2],
+			)
+	if err!=nil{
+		return breakdown,err
+	}
+	return breakdown,nil
+}
+
 func (g *GraphModel)TaskApprovedByDate(ctx context.Context, assginedUsername string)(Graphs,error){
 	var gs Graphs
 	query := `

@@ -32,3 +32,15 @@ func (app *Application)GetTaskApprovedGraph(c echo.Context)error{
 	}
 	return c.JSON(http.StatusOK,map[string]any{"graph":graph})
 }
+
+func (app *Application)GetTaskBreakdown(c echo.Context)error{
+	username:=c.Get(sessionvar.USERNAME).(string)
+	breakdown,err:=app.graphs.TaskStatusBreakdown(c.Request().Context(),username); if err!=nil{
+		if errors.Is(err,sql.ErrNoRows){
+			return c.JSON(http.StatusOK,[3]int{0,0,0})
+		}
+		app.logger.Error("Error getting status breakdown graph: ",err)
+		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"internal server error"})
+	}
+	return c.JSON(http.StatusOK,breakdown)
+}

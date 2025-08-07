@@ -10,12 +10,19 @@ import {
   useRetrieveTaskCompletedGraph,
 } from "../../hooks/graphs";
 import { number } from "mathjs";
+import { useFetchRecentUpdates, useFetchUpdates } from "../../hooks/updates";
+import { UpdateCard } from "../../components/cards/updates";
 const Dashboard = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
-  const { completedGraph, loading, error } = useRetrieveTaskCompletedGraph();
+  const {
+    completedGraph,
+    loading: completedGraphLoading,
+    error: completedGraphError,
+  } = useRetrieveTaskCompletedGraph();
   const { approvedGraph, approvedLoading, approvedError } =
     useRetrieveTaskApprovedGraph();
+  const { updates, loading, error } = useFetchRecentUpdates();
   const taskStatusData = {
     labels:
       completedGraph?.XAxis?.map((x) => new Date(x).toLocaleDateString()) || [],
@@ -67,6 +74,7 @@ const Dashboard = () => {
                 ? colors.primary[600]
                 : "rgba(0, 200, 150, 0.3)",
             borderRadius: "16px",
+            boxShadow: "0 6px 24px rgba(0, 0, 0, 0.15)",
           }}
           justifyContent="center"
           alignItems="center"
@@ -98,6 +106,7 @@ const Dashboard = () => {
                 ? colors.primary[600]
                 : "rgba(104, 112, 250, 0.4)",
             borderRadius: "16px",
+            boxShadow: "0 6px 24px rgba(0, 0, 0, 0.15)",
           }}
         >
           <StatCard
@@ -127,6 +136,7 @@ const Dashboard = () => {
                 ? colors.primary[600]
                 : "rgba(162, 89, 255, 0.3)",
             borderRadius: "16px",
+            boxShadow: "0 6px 24px rgba(0, 0, 0, 0.15)",
           }}
         >
           <StatCard
@@ -154,6 +164,7 @@ const Dashboard = () => {
                 ? colors.primary[600]
                 : "rgba(162, 89, 255, 0.3)",
             borderRadius: "16px",
+            boxShadow: "0 6px 24px rgba(0, 0, 0, 0.15)",
           }}
         >
           <StatCard
@@ -179,14 +190,12 @@ const Dashboard = () => {
           sx={{
             background:
               theme.palette.mode === "dark"
-      ? "#0d141f" : "linear-gradient(135deg, #f0fffc, #f3fff0)",
+                ? "#0d141f"
+                : "linear-gradient(135deg, #f0fffc, #f3fff0)",
             width: "100%",
             height: "100%",
             borderRadius: "16px",
-            boxShadow:
-              theme.palette.mode === "dark"
-                ? "none"
-                : "0 6px 24px rgba(0, 0, 0, 0.1)", // Softer floating shadow
+            boxShadow: "0 6px 24px rgba(0, 0, 0, 0.15)",
           }}
         >
           <Box flex={1} width="100%" height="100%">
@@ -197,6 +206,66 @@ const Dashboard = () => {
               yLabel="Number of Tasks"
               maintainRatio={false}
             />
+          </Box>
+        </Box>
+        <Box
+          gridColumn="span 4"
+          gridRow="span 3"
+          display="flex"
+          flexDirection="column"
+          alignItems="flex-start"
+          justifyContent="flex-start"
+          width="100%"
+          gap={2}
+          sx={{
+            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
+            backgroundColor:
+              theme.palette.mode === "dark" ? colors.primary[600] : "#ffffff",
+            borderRadius: "16px",
+            padding: 2,
+            overflow: "hidden",
+          }}
+        >
+          <Box
+            display="flex"
+            flexDirection="column"
+            gap={2}
+            width="100%"
+            sx={{
+              overflowY: "auto",
+              paddingRight: 1,
+              maxHeight: "100%", // or a fixed height like "500px" if needed
+              "&::-webkit-scrollbar": {
+                width: "6px",
+              },
+              "&::-webkit-scrollbar-thumb": {
+                backgroundColor: "rgba(0, 0, 0, 0.15)",
+                borderRadius: "4px",
+              },
+            }}
+          >
+            {updates?.map((update, index) => (
+              <Box
+                key={update.id || index}
+                width="100%"
+                borderRadius="8px"
+                sx={{
+                  backgroundColor:
+                    theme.palette.mode === "dark"
+                      ? colors.primary[500]
+                      : "white",
+                  transition: "background-color 0.2s ease",
+                  "&:hover": {
+                    backgroundColor:
+                      theme.palette.mode === "dark"
+                        ? colors.primary[400]
+                        : "#eeeeee",
+                  },
+                }}
+              >
+                <UpdateCard update={update} />
+              </Box>
+            ))}
           </Box>
         </Box>
       </Box>
