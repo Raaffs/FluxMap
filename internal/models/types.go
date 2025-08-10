@@ -74,7 +74,6 @@ type Manager struct {
     ProjectID int    `json:"projectId"`  // Foreign Key (Project.ProjectID)
 }
 
-// Task represents a task in the database
 type Task struct {
     TaskID              int            `json:"taskID,omitempty"`               // Primary Key
     TaskName            string         `json:"taskName" validate:"required"`
@@ -82,7 +81,7 @@ type Task struct {
     TaskStatus          null.String    `json:"taskStatus"`
     TaskStartDate       null.Time      `json:"taskStartDate,omitempty"`
     TaskDueDate         null.Time      `json:"taskDueDate,omitempty"`
-    ParentProjectID     int            `json:"parentProjectId"`      // Foreign Key (Project.ProjectID)
+    ParentProjectID     int            `json:"parentProjectID"`      // Foreign Key (Project.ProjectID)
     AssignedUsername    null.String    `json:"assignedUsername" validate:"required"` // Foreign Key (User.Username)
     Approved            null.Bool      `json:"approved"`
     TaskCompletedDate   null.Time      `json:"taskCompletedDate"`
@@ -91,7 +90,6 @@ type Task struct {
     Archieved           bool           `json:"archieved"`
 }
 
-// Pert represents a PERT record in the database
 type Pert struct {
     ParentTaskID         int                `json:"parentTaskID"`         // Primary Key, Foreign Key (Task.TaskID)
     PredecessorTaskID    null.Int64         `json:"predecessorTaskId,omitempty"` // Foreign Key (Task.TaskID)

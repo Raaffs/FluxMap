@@ -162,6 +162,44 @@ func(t *TaskModel)Archieve(ctx context.Context,projectID int, taskID int)error{
 	return nil
 }
 
+func (t *TaskModel)GetOverdue(ctx context.Context, assignedUsername string)([]*Task,error){
+	tasks:=[]*Task{}
+		query:=`
+		SELECT 
+		taskID, 
+		taskName, 
+		taskStatus, 
+		taskDueDate,
+		parentProjectID
+		FROM tasks 
+		WHERE assignedUsername = $1
+			AND ARCHIEVED = FALSE
+			AND taskstatus='pending'
+			AND taskduedate < NOW()
+		ORDER BY taskID
+		`
+	rows,err:=t.DB.Query(ctx,query,assignedUsername);if err!=nil{
+		return nil,err
+	}
+	defer rows.Close()
+	for rows.Next(){
+		var t Task
+		if err=rows.Scan(
+			&t.TaskID,
+			&t.TaskName,
+			&t.TaskStatus,
+			&t.TaskDueDate,
+			&t.ParentProjectID,
+		);err!=nil{return nil,err}
+
+		tasks=append(tasks, &t)
+	}
+	if err!=nil{
+		return nil,err
+	}
+	return tasks,nil
+}
+
 func(t *TaskModel)ReallocateUser(ctx context.Context, projectID int, removedUser, fallBackUser string)error{
 	query:=`
 		UPDATE tasks

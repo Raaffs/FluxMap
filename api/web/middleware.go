@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -18,7 +17,6 @@ func IsAuthorizedUser(next echo.HandlerFunc)echo.HandlerFunc{
             c.Logger().Warn("error getting session:", err)
             return c.JSON(http.StatusUnauthorized, map[string]string{"error":"unauthorized"})
         }
-        log.Println("username : ",username,c.Path())
         c.Set(sessionvar.USERNAME,username)
 		return next(c)
 	}
@@ -92,7 +90,8 @@ func (app *Application)AdminLevelAccess(next echo.HandlerFunc)echo.HandlerFunc{
 	return IsAuthorizedUser(func(c echo.Context) error {
         username:=c.Get(sessionvar.USERNAME).(string)
 		isAdmin,err:=app.models.Users.IsAdmin(c.Request().Context(),username,c.Param("id"));if err!=nil{
-			return c.JSON(http.StatusInternalServerError,map[string]string{"message":err.Error()})
+			c.Logger().Error("error getting access level: ",err)
+			return c.JSON(http.StatusInternalServerError,map[string]string{"message":"internal server error"})
 		}
 		if !isAdmin{
 		return c.JSON(http.StatusForbidden,map[string]string{"message":"You are not an admin"})

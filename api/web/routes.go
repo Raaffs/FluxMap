@@ -103,5 +103,6 @@ func (app *Application)RegisterRoutes(e *echo.Echo){
 	e.GET("/api/graph/tasks/completed",app.GetTaskCompletedGraph,IsAuthorizedUser)
 	e.GET("/api/graph/tasks/approved",app.GetTaskApprovedGraph,IsAuthorizedUser)
 	e.GET("/api/graph/tasks/breakdown",app.GetTaskBreakdown,IsAuthorizedUser)
+	e.GET("/api/graph/tasks/overdue",app.GetOverDueTasks,IsAuthorizedUser)
 }
 

@@ -477,6 +477,19 @@ func (app *Application) GetTaskByID(c echo.Context) error {
 	return c.JSON(http.StatusOK, task)
 }
 
+func (app *Application)GetOverDueTasks(c echo.Context)error{
+	username:=c.Get(sessionvar.USERNAME).(string)
+	tasks,err:=app.models.Task.GetOverdue(c.Request().Context(),username);if err!=nil{
+		if errors.Is(err,sql.ErrNoRows){
+			return c.JSON(http.StatusNotFound,map[string]string{"message":"no overdue tasks found"})
+		}
+		c.Logger().Error("Error retrieving overdue tasks: ",err)
+		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"internal server error"})
+	}
+	log.Println("tasks: ",tasks)
+	return c.JSON(http.StatusOK,map[string]any{"overdue":tasks})
+}
+
 func (app *Application) GetConfirmedUsers(c echo.Context) error {
 	username := c.Get(sessionvar.USERNAME).(string)
 	projectID, err := strconv.Atoi(c.Param("id"))

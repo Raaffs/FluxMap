@@ -12,17 +12,17 @@ import {
 import { number } from "mathjs";
 import { useFetchRecentUpdates, useFetchUpdates } from "../../hooks/updates";
 import { UpdateCard } from "../../components/cards/updates";
+import { TaskStatusDonutChart } from "../../components/graphs/Donut";
+import { useFetchOverdueTasks } from "../../hooks/task";
+import OverdueTasks from "../../components/cards/overdue";
 const Dashboard = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   const {
-    completedGraph,
-    loading: completedGraphLoading,
-    error: completedGraphError,
-  } = useRetrieveTaskCompletedGraph();
-  const { approvedGraph, approvedLoading, approvedError } =
-    useRetrieveTaskApprovedGraph();
+    completedGraph,loading: completedGraphLoading, error: completedGraphError} = useRetrieveTaskCompletedGraph();
+  const { approvedGraph, approvedLoading, approvedError } = useRetrieveTaskApprovedGraph();
   const { updates, loading, error } = useFetchRecentUpdates();
+  const {tasks: overdueTasks, loading: overdueLoading, error: overdueError} = useFetchOverdueTasks();
   const taskStatusData = {
     labels:
       completedGraph?.XAxis?.map((x) => new Date(x).toLocaleDateString()) || [],
@@ -42,6 +42,19 @@ const Dashboard = () => {
         backgroundColor: "rgba(40, 167, 69, 0.15)", // Soft green fill
         tension: 0.3,
         fill: true,
+      },
+    ],
+  };
+  const donutData = {
+    labels: ["Completed", "Active Pending", "Overdue"],
+    datasets: [
+      {
+        label: "Tasks",
+        data: [10, 5, 2],
+        backgroundColor: ["#7CD1B8", "#FFE182", "#FF9AA2"],
+
+        borderColor: ["#4FB59C", "#FFD447", "#FF6B81"],
+        borderWidth: 1,
       },
     ],
   };
@@ -267,6 +280,49 @@ const Dashboard = () => {
               </Box>
             ))}
           </Box>
+        </Box>
+        <Box
+          gridColumn="span 3"
+          gridRow="span 3"
+          display="flex"
+          flexDirection="column"
+          alignItems="flex-start"
+          justifyContent="flex-start"
+          width="100%"
+          gap={2}
+          sx={{
+            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
+            backgroundColor:
+              theme.palette.mode === "dark" ? colors.primary[600] : "#ffffff",
+            borderRadius: "16px",
+            padding: 2,
+            overflow: "hidden",
+          }}
+        >
+          <OverdueTasks
+            tasks={overdueTasks}
+          />
+        </Box>
+
+        <Box
+          gridColumn="span 3"
+          gridRow="span 3"
+          display="flex"
+          flexDirection="column"
+          alignItems="flex-start"
+          justifyContent="flex-start"
+          width="100%"
+          gap={2}
+          sx={{
+            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
+            backgroundColor:
+              theme.palette.mode === "dark" ? colors.primary[600] : "#ffffff",
+            borderRadius: "16px",
+            padding: 2,
+            overflow: "hidden",
+          }}
+        >
+          <TaskStatusDonutChart data={donutData} title="Task Status Overview" />
         </Box>
       </Box>
     </Box>

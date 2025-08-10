@@ -9,7 +9,7 @@ export const useRetrieveTaskCompletedGraph = () => {
   useEffect(() => {
     const fetchCompletedGraph = async () => {
       try {
-        const response = await fetch('http://localhost:4000/api/graph/completed', {
+        const response = await fetch('http://localhost:4000/api/graph/tasks/completed', {
           method: "GET",
           credentials: "include",
           headers: {
@@ -46,7 +46,7 @@ export const useRetrieveTaskApprovedGraph = () => {
   useEffect(() => {
     const fetchApprovedGraph = async () => {
       try {
-        const response = await fetch('http://localhost:4000/api/graph/approved', {
+        const response = await fetch('http://localhost:4000/api/graph/tasks/approved', {
           method: "GET",
           credentials: "include",
           headers: {
@@ -72,4 +72,40 @@ export const useRetrieveTaskApprovedGraph = () => {
   }, []);
 
   return { approvedGraph, approvedLoading, approvedError };
+};
+
+
+export const useRetrieveTaskStatusBreakdown = () => {
+  const [breakdownGraph, setbreakdownGraph] = useState<Graphs>();
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    const fetchbreakdownGraph = async () => {
+      try {
+        const response = await fetch('http://localhost:4000/api/graph/tasks/breakdown', {
+          method: "GET",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json"
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        const data = await response.json();
+        setbreakdownGraph(data.graph);
+      } catch (err: any) {
+        console.error("Error fetching completed graph:", err);
+        setError(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchbreakdownGraph(); 
+  }, []);
+
+  return { breakdownGraph, loading, error };
 };
