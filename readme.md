@@ -45,7 +45,7 @@ c. Frontend
 cd client
 npm install
 npm start
-# Open http://localhost:3000
+# Open http://localhost:8000
 ```
 
 Environment variables
