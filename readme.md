@@ -1,4 +1,3 @@
-// ...existing code...
 # FluxMap
 FluxMap is a task and project management application with a Go backend and a React frontend. It includes PERT/CPM analytics, project invitations/roles, and notification/update support.
 
