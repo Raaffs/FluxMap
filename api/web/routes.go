@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Raaffs/FluxMap/internal/env"
+	sessionvar "github.com/Raaffs/FluxMap/internal/sessionVar"
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
@@ -100,6 +101,26 @@ func (app *Application)RegisterRoutes(e *echo.Echo){
 	e.GET("/api/ws",app.HandlWS,IsAuthorizedUser)
 
 	//graphs 
+	e.GET("/api/project/breakdown",func(c echo.Context) error {
+sess, err := session.Get(sessionvar.SESSION_NAME, c)
+if err != nil {
+    return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to get session"})
+}
+
+// helper to safely get the length of a slice in session
+getRoleCount := func(key string) int {
+    if val, ok := sess.Values[key].([]int); ok {
+        return len(val)
+    }
+    	return 0
+	}
+	roles := []string{string(AdminRole), string(ManagerRole), string(UserRoleVal)}
+	total := 0
+		for _, role := range roles {
+		    total += getRoleCount(role)
+		}
+	return c.JSON(http.StatusOK, map[string]int{"breakdown": total})	
+})
 	e.GET("/api/graph/tasks/completed",app.GetTaskCompletedGraph,IsAuthorizedUser)
 	e.GET("/api/graph/tasks/approved",app.GetTaskApprovedGraph,IsAuthorizedUser)
 	e.GET("/api/graph/tasks/breakdown",app.GetTaskBreakdown,IsAuthorizedUser)

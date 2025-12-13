@@ -76,7 +76,7 @@ export const useRetrieveTaskApprovedGraph = () => {
 
 
 export const useRetrieveTaskStatusBreakdown = () => {
-  const [breakdownGraph, setbreakdownGraph] = useState<Graphs>();
+  const [breakdownGraph, setbreakdownGraph] = useState<number[]>();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -97,7 +97,7 @@ export const useRetrieveTaskStatusBreakdown = () => {
         const data = await response.json();
         setbreakdownGraph(data.graph);
       } catch (err: any) {
-        console.error("Error fetching completed graph:", err);
+        console.error("Error fetching graph breakdown data:", err);
         setError(err);
       } finally {
         setLoading(false);

@@ -1,0 +1,49 @@
+version: "3.9"
+
+services:
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: maria
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: mapmyprojectv2
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # optional: auto-run schema.sql
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    env_file:
+      - .env
+    environment:
+      API_PORT: 4000
+      DB_URL: postgres://maria:root@db:5432/mapmyprojectv2
+      PY_SERVICE: http://analytics:5000
+    depends_on:
+      - db
+      - analytics
+    ports:
+      - "4000:4000"
+
+  analytics:
+    build:
+      context: .
+      dockerfile: docker/analytics.Dockerfile
+    ports:
+      - "5000:5000"
+
+  client:
+    build:
+      context: .
+      dockerfile: docker/client.Dockerfile
+    ports:
+      - "8000:80"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:

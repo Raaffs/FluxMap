@@ -6,18 +6,14 @@ import {
   CardContent,
   Typography,
   Box,
-  useTheme,
   Divider,
 } from "@mui/material";
 import { CheckCircleOutline } from "@mui/icons-material";
 import {
-  Timeline,
-  TimelineItem,
-  TimelineSeparator,
-  TimelineConnector,
-  TimelineContent,
-  TimelineDot,
-} from "@mui/lab";
+  VerticalTimeline,
+  VerticalTimelineElement,
+} from "react-vertical-timeline-component";
+import "react-vertical-timeline-component/style.min.css";
 
 interface Task {
   taskID: number;
@@ -32,35 +28,21 @@ interface OverdueTasksProps {
 
 const OverdueTasks: React.FC<OverdueTasksProps> = ({ tasks }) => {
   const navigate = useNavigate();
-  const theme = useTheme();
-  console.log("Overdue Tasks:", tasks);
+
   const formatDate = (dateString?: string | null) => {
     if (!dateString) return "";
     return new Date(dateString).toLocaleDateString(undefined, {
       year: "numeric",
-      month: "long",
+      month: "short",
       day: "numeric",
     });
   };
 
   return (
-    <Card
-      sx={{
-        height: "100%",
-        width: "100%",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
+    <Card sx={{ height: "100%", width: "100%", display: "flex", flexDirection: "column" }}>
       <CardHeader
         title={
-          <Box
-            display="flex"
-            alignItems="center"
-            justifyContent="space-between"
-            px={2}
-            pb={1}
-          >
+          <Box display="flex" alignItems="center" justifyContent="space-between" px={2} pb={1}>
             <Typography variant="h6" fontWeight="bold" color="text.primary">
               Overdue Tasks
             </Typography>
@@ -79,9 +61,9 @@ const OverdueTasks: React.FC<OverdueTasksProps> = ({ tasks }) => {
       />
       <Divider />
 
-      <CardContent sx={{ pt: 0, px: 2, flexGrow: 1 }}>
+      <CardContent sx={{ flexGrow: 1, overflowY: "auto", pt: 1 }}>
         {tasks.length === 0 ? (
-                    <Box
+          <Box
             flex={1}
             display="flex"
             flexDirection="column"
@@ -97,58 +79,56 @@ const OverdueTasks: React.FC<OverdueTasksProps> = ({ tasks }) => {
             </Typography>
           </Box>
         ) : (
-          <Timeline sx={{ p: 0, mt: 1 }} position="alternate">
+          <VerticalTimeline layout="2-columns" lineColor="#f44336">
             {tasks.map((task, index) => (
-              <TimelineItem
+              <Box
                 key={task.taskID}
                 sx={{
+                  width: "100%",
                   cursor: "pointer",
-                  "&:hover": {
-                    backgroundColor: theme.palette.action.hover,
-                    borderRadius: 1,
-                  },
-                  px: 1,
-                  mb: 1.5,
+                  "&:hover": { backgroundColor: "rgba(244, 67, 54, 0.08)" },
+                  transition: "background-color 0.2s ease",
                 }}
                 onClick={() => navigate(`/project/${task.parentProjectID}`)}
               >
-                <TimelineSeparator>
-                  <TimelineDot
-                    color="error"
-                    sx={{
-                      width: 14,
-                      height: 14,
-                      boxShadow: `0 0 8px ${theme.palette.error.main}`,
-                    }}
-                  />
-                  {index !== tasks.length - 1 && (
-                    <TimelineConnector sx={{ bgcolor: "error.main" }} />
-                  )}
-                </TimelineSeparator>
-                <TimelineContent sx={{ pb: 1 }}>
+                <VerticalTimelineElement
+                  position={index % 2 === 0 ? "left" : "right"}
+                  contentStyle={{
+                    background: "transparent",
+                    color: "#000",
+                    boxShadow: "none",
+                    padding: "0.8rem 1rem",
+                    marginBottom: "0.75rem",
+                    borderRadius: "6px",
+                  }}
+                  contentArrowStyle={{ display: "none" }}
+                  iconStyle={{
+                    background: "#f44336",
+                    boxShadow: "0 0 6px #f44336",
+                    width: "14px",
+                    height: "14px",
+                    marginLeft: "-7px",
+                  }}
+                  style={{ padding: "0", minHeight: "48px" }}
+                >
                   <Typography
                     variant="subtitle1"
                     fontWeight="600"
-                    sx={{
-                      "&:hover": { color: "error.main" },
-                      transition: "color 0.3s ease",
-                      userSelect: "none",
-                    }}
+                    sx={{ userSelect: "none" }}
                   >
                     {task.taskName}
                   </Typography>
                   <Typography
-                    variant="body2"
-                    color="error.light"
+                    variant="subtitle2"
+                    color="error.main"
                     fontWeight="500"
-                    mt={0.3}
                   >
                     {formatDate(task.taskDueDate)}
                   </Typography>
-                </TimelineContent>
-              </TimelineItem>
+                </VerticalTimelineElement>
+              </Box>
             ))}
-          </Timeline>
+          </VerticalTimeline>
         )}
       </CardContent>
     </Card>

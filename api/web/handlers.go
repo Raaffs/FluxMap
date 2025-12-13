@@ -106,7 +106,7 @@ func (app *Application) Register(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(echo.ErrInternalServerError.Code, "error creating user")
 	}
-
+	log.Println("hashed password: ", hash)
 	u.Created = time.Now().Format("2006-01-02")
 	u.HashedPassword = hash
 	if err := app.models.Users.Create(context.Background(), u); err != nil {
@@ -475,6 +475,18 @@ func (app *Application) GetTaskByID(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, task)
+}
+
+func (app *Application)GetUpcomingTask(c echo.Context)error{
+	username:=c.Get(sessionvar.USERNAME).(string)
+	tasks,err:=app.models.Task.GetUpcoming(c.Request().Context(),username);if err!=nil{
+		if errors.Is(err,sql.ErrNoRows){
+			return c.JSON(http.StatusNotFound,map[string]string{"message":"no upcoming tasks found"})
+		}
+		c.Logger().Error("Error retrieving upcoming tasks: ",err)
+		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"internal server error"})
+	}
+	return c.JSON(http.StatusOK,map[string]any{"upcoming":tasks})
 }
 
 func (app *Application)GetOverDueTasks(c echo.Context)error{

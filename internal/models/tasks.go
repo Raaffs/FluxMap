@@ -200,6 +200,34 @@ func (t *TaskModel)GetOverdue(ctx context.Context, assignedUsername string)([]*T
 	return tasks,nil
 }
 
+func(t *TaskModel)GetUpcoming(ctx context.Context, assignedUsername string)([]string,error){
+	tasks:=[]string{}
+	query:=`
+	SELECT 
+		taskDueDate,
+	FROM tasks 
+	WHERE assignedUsername = $1
+		AND ARCHIEVED = FALSE
+		AND taskstatus='pending'
+		AND taskduedate >= NOW()
+	ORDER BY taskduedate
+	LIMIT 5
+	`
+	rows,err:=t.DB.Query(ctx,query,assignedUsername);if err!=nil{
+		return nil,err
+	}
+	defer rows.Close()
+	for rows.Next(){
+		var t string
+		if err=rows.Scan(&t); err!=nil{return nil,err}
+		tasks=append(tasks, t)
+	}
+	if err!=nil{
+		return nil,err
+	}
+	return tasks,nil
+}
+
 func(t *TaskModel)ReallocateUser(ctx context.Context, projectID int, removedUser, fallBackUser string)error{
 	query:=`
 		UPDATE tasks

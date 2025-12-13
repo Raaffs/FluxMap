@@ -8,21 +8,40 @@ import { TaskStatusGraph } from "../../components/graphs/LineGraphs";
 import {
   useRetrieveTaskApprovedGraph,
   useRetrieveTaskCompletedGraph,
+  useRetrieveTaskStatusBreakdown,
 } from "../../hooks/graphs";
-import { number } from "mathjs";
 import { useFetchRecentUpdates, useFetchUpdates } from "../../hooks/updates";
 import { UpdateCard } from "../../components/cards/updates";
 import { TaskStatusDonutChart } from "../../components/graphs/Donut";
-import { useFetchOverdueTasks } from "../../hooks/task";
+import useFetchTaskData, { useFetchOverdueTasks } from "../../hooks/task";
 import OverdueTasks from "../../components/cards/overdue";
+import { UpcomingDeadlines } from "../../components/cards/deadlines";
+import { LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 const Dashboard = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   const {
-    completedGraph,loading: completedGraphLoading, error: completedGraphError} = useRetrieveTaskCompletedGraph();
-  const { approvedGraph, approvedLoading, approvedError } = useRetrieveTaskApprovedGraph();
+    completedGraph,
+    loading: completedGraphLoading,
+    error: completedGraphError,
+  } = useRetrieveTaskCompletedGraph();
+  const { approvedGraph, approvedLoading, approvedError } =
+    useRetrieveTaskApprovedGraph();
   const { updates, loading, error } = useFetchRecentUpdates();
-  const {tasks: overdueTasks, loading: overdueLoading, error: overdueError} = useFetchOverdueTasks();
+
+  const {
+    tasks: overdueTasks,
+    loading: overdueLoading,
+    error: overdueError,
+  } = useFetchOverdueTasks();
+
+  const {
+    breakdownGraph: breakdownGraph,
+    loading: breakdownLoading,
+    error: breakdownError,
+  } = useRetrieveTaskStatusBreakdown();
+
   const taskStatusData = {
     labels:
       completedGraph?.XAxis?.map((x) => new Date(x).toLocaleDateString()) || [],
@@ -45,12 +64,13 @@ const Dashboard = () => {
       },
     ],
   };
+
   const donutData = {
     labels: ["Completed", "Active Pending", "Overdue"],
     datasets: [
       {
         label: "Tasks",
-        data: [10, 5, 2],
+        data: [breakdownGraph ? breakdownGraph[0]:0,breakdownGraph? breakdownGraph[1]:0, breakdownGraph? breakdownGraph[2]:0],
         backgroundColor: ["#7CD1B8", "#FFE182", "#FF9AA2"],
 
         borderColor: ["#4FB59C", "#FFD447", "#FF6B81"],
@@ -58,6 +78,14 @@ const Dashboard = () => {
       },
     ],
   };
+
+  const deadlines: string[] = [
+    "2025-08-12T15:30:00Z",
+    "2025-08-14T09:00:00Z",
+    "2025-08-18T12:00:00Z",
+    "2025-08-22T17:00:00Z",
+    "2025-09-17T10:00:00Z",
+  ];
 
   return (
     <Box
@@ -299,9 +327,7 @@ const Dashboard = () => {
             overflow: "hidden",
           }}
         >
-          <OverdueTasks
-            tasks={overdueTasks}
-          />
+          <OverdueTasks tasks={overdueTasks} />
         </Box>
 
         <Box
@@ -323,6 +349,28 @@ const Dashboard = () => {
           }}
         >
           <TaskStatusDonutChart data={donutData} title="Task Status Overview" />
+        </Box>
+        <Box
+          gridColumn="span 6"
+          gridRow="span 3"
+          display="flex"
+          flexDirection="column"
+          alignItems="flex-start"
+          justifyContent="flex-start"
+          width="100%"
+          gap={2}
+          sx={{
+            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
+            backgroundColor:
+              theme.palette.mode === "dark" ? colors.primary[600] : "#ffffff",
+            borderRadius: "16px",
+            padding: 2,
+            overflow: "hidden",
+          }}
+        >
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <UpcomingDeadlines deadlines={deadlines} />
+          </LocalizationProvider>{" "}
         </Box>
       </Box>
     </Box>
