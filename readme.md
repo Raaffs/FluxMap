@@ -93,13 +93,4 @@ For handler details and business logic, see:
 - api/web/ws_handler.go
 - api/web/sockets.go
 
-Contributing
-- Follow existing patterns: add new handlers under api/web, repository implementations under internal/repository, and model logic under internal/models.
-- Keep schema changes in schema.sql or use a migration strategy if you add a migration system.
-- Add tests when feasible and document new endpoints by updating api/web/routes.go and related handler comments.
-
-License
-Add an appropriate LICENSE file to the repository.
-
-Contact / support
-Open issues or pull requests in this repository for bugs, feature requests, or deployment help.
+g
