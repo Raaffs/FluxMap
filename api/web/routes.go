@@ -14,12 +14,15 @@ import (
 	"golang.org/x/time/rate"
 )
 func (app *Application) LoadMiddleware(e *echo.Echo){
-
-	// Middleware setup
 	e.Use(middleware.Logger())
+
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowOrigins:     []string{
+			"http://localhost:3000",
+			"http://localhost:8000",
+			"http://localhost:5000",
+		},
 		AllowCredentials: true,
 		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
@@ -102,10 +105,10 @@ func (app *Application)RegisterRoutes(e *echo.Echo){
 
 	//graphs 
 	e.GET("/api/project/breakdown",func(c echo.Context) error {
-sess, err := session.Get(sessionvar.SESSION_NAME, c)
-if err != nil {
-    return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to get session"})
-}
+	sess, err := session.Get(sessionvar.SESSION_NAME, c)
+	if err != nil {
+	    return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to get session"})
+	}
 
 // helper to safely get the length of a slice in session
 getRoleCount := func(key string) int {

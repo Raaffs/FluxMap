@@ -28,7 +28,7 @@ const AddPertTaskModal: React.FC<AddPertTaskModalProps> = ({
   newTask,
   setNewTask
 }) => {
-  
+  console.log("opened this trap")
   const [errors, setErrors] = useState({
     optimistic: "",
     mostLikely: "",
@@ -37,6 +37,7 @@ const AddPertTaskModal: React.FC<AddPertTaskModalProps> = ({
 
   const handleChange = (field: keyof PertRows, value: number | null) => {
     setNewTask((prev) => ({ ...prev, [field]: value }));
+  console.log("handleChange: ", field, value)
 
     // Validation logic
     if (
@@ -64,6 +65,7 @@ const AddPertTaskModal: React.FC<AddPertTaskModalProps> = ({
       alert("Please fix input errors before submitting.");
       return;
     }
+    console.log("Submitting new PERT task: ", newTask)
     onAddTask(newTask);
     onClose();
   };

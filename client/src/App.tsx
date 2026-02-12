@@ -29,7 +29,7 @@ function App() {
   const [updateCount, setUpdateCount]=useState(0)
   const [invitationCount, setInvitationcount]=useState(0)
   const [userProjectRoleMap,setUserProjectRoleMap]=useState<Record<number, UserRole>>({})
-  const [startWebSocket]=useWebSocket("ws://api:4000/api/ws",setUpdateCount,setInvitationcount)
+  const [startWebSocket]=useWebSocket("ws://localhost:4000/api/ws",setUpdateCount,setInvitationcount)
   useEffect(() => {
   startWebSocket()
   const cachedMap = localStorage.getItem("userProjectRoleMap");

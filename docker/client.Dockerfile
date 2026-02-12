@@ -1,19 +1,14 @@
-FROM node:20 AS builder
+FROM node:20
 
 WORKDIR /app
 
-# copy only package files first for caching
+# Install dependencies first for better caching
 COPY client/package*.json ./
 RUN npm install
 
-# now copy the rest WITHOUT node_modules
-COPY client/ .
-
-RUN npm run build
-
-FROM nginx:alpine
-
-COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=builder /app/build /usr/share/nginx/html
+# We do NOT copy the source code here; 
+# the volume in docker-compose will handle it.
 
 EXPOSE 8000
+# Force the dev server to run on port 8000
+CMD ["npm", "start", "--", "--port", "8000"]

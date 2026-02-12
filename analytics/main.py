@@ -27,7 +27,7 @@ def handle_cpm():
 @app.route("/api/pert",methods=['POST'])
 def handle_pert():
     data=request.json
-
+    print("Received PERT data: ",data)
     if not data:
         return jsonify({'error':'invalid data'}),400
     try:
@@ -60,5 +60,5 @@ def handle_pert():
         return jsonify({'error':'an error occurred during processing'}),500
 
 if __name__ == "__main__":
-    app.run()
+    app.run(host='0.0.0.0', port=5000)
 

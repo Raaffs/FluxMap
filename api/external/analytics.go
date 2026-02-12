@@ -38,7 +38,7 @@ func RequestAndCalculatePERTCPM[T models.Analytic](a []*T) (models.Result, error
 }
 
 func GenerateAnalyticUrl[T models.Analytic](a []*T)(string,error){
-	url:="http://localhost:5000/api/%s"
+	url:="http://analytics:5000/api/%s"
 		switch any(*a[0]).(type) {
     case models.Cpm:
 		url=fmt.Sprintf(url,"cpm")

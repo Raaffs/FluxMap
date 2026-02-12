@@ -10,7 +10,6 @@ services:
       POSTGRES_DB: mapmyprojectv2
     volumes:
       - pgdata:/var/lib/postgresql/data
-      # optional: auto-run schema.sql
       - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
 
   api:
@@ -23,9 +22,6 @@ services:
       API_PORT: 4000
       DB_URL: postgres://maria:root@db:5432/mapmyprojectv2
       PY_SERVICE: http://analytics:5000
-    depends_on:
-      - db
-      - analytics
     ports:
       - "4000:4000"
 
@@ -41,7 +37,13 @@ services:
       context: .
       dockerfile: docker/client.Dockerfile
     ports:
-      - "8000:80"
+      - "8000:8000"  # Kept your requested port
+    volumes:
+      - ./client:/app          # Maps your local code to the container
+      - /app/node_modules      # Keeps container modules separate from local
+    environment:
+      - CHOKIDAR_USEPOLLING=true # Essential for detecting changes on Windows/WSL
+      - PORT=8000                # Ensures React respects the port
     depends_on:
       - api
 

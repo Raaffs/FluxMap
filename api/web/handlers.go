@@ -21,15 +21,18 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func (app *Application) Login(c echo.Context) error {
+func (app *Application)Login(c echo.Context) error {
 	var u models.User
 	err := c.Bind(&u)
 	if err != nil {
 		c.Logger().Error("error binding json : ", err)
 		return echo.NewHTTPError(http.StatusBadRequest, map[string]string{"error": "Invalid credentials"})
 	}
+
 	u.Username = strings.TrimSpace(u.Username)
 	if err := app.models.Users.Login(c.Request().Context(), u.Username, u.Password); err != nil {
+			log.Println("damn :(",err)
+
 		if errors.Is(err, models.ErrInvalidCredential) {
 			c.Logger().Warn("invalid auth")
 			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Invalid credentials"})
@@ -61,6 +64,7 @@ func (app *Application) Login(c echo.Context) error {
 		c.Logger().Error("Error caching projects : ",err)
 		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"interval server error"})
 	}
+	log.Println("done :)")
 	app.SendUpdateNotification(c.Request().Context(),u.Username)
 	return c.JSON(http.StatusOK, map[string]any{"roles":roleToProjectMap})
 }
@@ -106,7 +110,6 @@ func (app *Application) Register(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(echo.ErrInternalServerError.Code, "error creating user")
 	}
-	log.Println("hashed password: ", hash)
 	u.Created = time.Now().Format("2006-01-02")
 	u.HashedPassword = hash
 	if err := app.models.Users.Create(context.Background(), u); err != nil {
@@ -185,7 +188,6 @@ func (app *Application) CreateProject(c echo.Context) error {
 
 	// If validation fails, return detailed validation errors
 	if !v.Valid() {
-		log.Println("project errors: ",v.Errors)
 		return c.JSON(http.StatusBadRequest, v)
 	}
 
@@ -581,7 +583,7 @@ func (app *Application)ApproveTask(c echo.Context) error {
 		return c.JSON(http.StatusNotFound, "Invalid task ID")
 	}
 	if err := c.Bind(&t); err != nil {
-		c.Logger().Warn("Error reading json: ", err)
+		app.logger.Error("error binding json: ",err)
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request"})
 	}
 
@@ -706,13 +708,17 @@ func (app *Application) CreatePert(c echo.Context) error {
 	}
 	
 	id := c.Param("id")
+	log.Println("hererererere")
 	projectID, err := strconv.Atoi(id)
 	if err != nil {
 		return c.JSON(http.StatusNotFound, "Invalid project ID")
 	}
+		log.Println("hererererere2")
+
 	if len(pert) == 0 {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "no pert data provided"})
 	}
+	log.Println("hererererere3")
 
 	pert[0].ParentProjectID = projectID
 
@@ -724,6 +730,8 @@ func (app *Application) CreatePert(c echo.Context) error {
 		c.Logger().Error("Error calculating pert : ", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"Error": "Failed to calculate values"})
 	}
+		log.Println("doneeeee")
+
 	return c.JSON(http.StatusOK, map[string]string{"PERT": "data and result inserted successfully"})
 }
 

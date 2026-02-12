@@ -100,7 +100,7 @@ func(t *TaskModel)GetAssignedToUser(ctx context.Context,projectID int,username s
 		WHERE parentProjectID=$1
 		AND assignedUsername=$2
 		AND archieved=false
-		ORDER BY taskIDp
+		ORDER BY taskID
 	`
 	rows,err:=t.DB.Query(ctx,query,projectID,username);if err!=nil{
 		if errors.Is(err,sql.ErrNoRows){

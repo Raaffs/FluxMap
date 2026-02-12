@@ -67,12 +67,13 @@ export const PertTable: React.FC<{
     const PertAddableTasks = getPertAddableTask(tasks, pertTasks || []);
     setPertAddableTasksState(PertAddableTasks);
   }, [tasks, pertTasks]);
-
   const handleAddTask = (newTask: PertData) => {
     setPertData([...pertData, newTask]);
+    console.log("newTask: ", newTask)
     addPert(newTask);
     setPertFetchTrigger(true);
   };
+  console.log("hereree: 2")
 
   if (pertloading) {
     return (
@@ -125,7 +126,7 @@ export const PertTable: React.FC<{
         <AddPertTaskModal
           open={open}
           onClose={() => setOpen(false)}
-          onAddTask={handleAddTask}
+          onAddTask={addPert}
           pertAddableTasks={PertAddableTask}
           pertTasks={[]}
           newTask={newTask}
@@ -144,10 +145,10 @@ export const PertTable: React.FC<{
   let rows: PertRows[] = [];
   //for some reason even though PertData has field ParentTaskID
   //here we've to use parentTaskId instead for tasks to render correctly
-  //I've no clue why. It might be because of how backend is send data but not gonna
+  //I've no clue why. It might be because of how backend is sending data but not gonna
   //mess with it for now
 
-  //20/30/25: solved, it was indeed the problem with wrong json format in backend
+  //20/3/25: solved, it was indeed the problem with wrong json format in backend
   //I don't understand why ts doesn't throw an error when it gets wrong json
   for (const pertTask of pertTasks) {
     rows.push({

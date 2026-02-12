@@ -28,7 +28,7 @@ const SignUpUser: React.FC = () => {
   const [error, setError] = useState<string | null>(null); // State for error message
 
   const handleClick = () => {
-    fetch('http://api:4000/api/register',{
+    fetch('http://localhost:4000/api/register',{
         method:'POST',
         headers:{
           "Content-Type": "application/json",
