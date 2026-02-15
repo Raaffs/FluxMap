@@ -41,9 +41,13 @@ const (
 	ErrorCheckingExistStatus
 )
 
-var NOTIFY_MSG = "msg"
-var NOTIFY_TARGET_USERNAME = "targetUsername"
-var NOTIFY_TARGET_TYPE = "targetType"
+var (
+	NOTIFY_MSG = "msg"
+ 	NOTIFY_TARGET_USERNAME = "targetUsername"
+ 	NOTIFY_TARGET_TYPE = "targetType"
+
+	oAuthGoogle="https://www.googleapis.com/oauth2/v2/userinfo"
+)
 
 type ProjectResult struct {
 	AdminProjects    []*models.Project
@@ -182,6 +186,27 @@ func (app *Application) GetTaskBasedOnAccess(managerFunc echo.HandlerFunc, userF
 		}
 		return userFunc(c)
 	}
+}
+
+func SetSession(c echo.Context) (*sessions.Session,error) {
+	sess, err := session.Get(sessionvar.SESSION_NAME, c);if err!=nil{
+		return nil,err
+	}
+
+	sess.Options = &sessions.Options{
+		Path:     "/",
+		MaxAge:   86400 * 7,
+		HttpOnly: true,
+	}
+
+	return sess, nil
+}
+
+func SaveSession(c echo.Context, sess *sessions.Session, values map[string]any) error {
+	for key, value := range values {
+		sess.Values[key] = value
+	}
+	return sess.Save(c.Request(), c.Response())
 }
 
 func GetUsernameFromSession(c echo.Context) (string, error) {

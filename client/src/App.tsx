@@ -8,9 +8,9 @@ import SidebarEx from "./scenes/global/Sidebar";
 import LoginUser from "./scenes/auth/login";
 import SignUpUser from "./scenes/auth/signup";
 import { ProjectOverview } from "./scenes/projects/overview";
-import Graphs from "./components/graphs/LineGraphs";
 import { Invitation } from "./scenes/invitation";
 import Updates from "./scenes/notification";
+import ChooseUsername from "./scenes/choose-username/chooseUsername";
 import {
   AdminProjects,
   ManagerProjects,
@@ -54,6 +54,7 @@ function App() {
               <Routes>
                 <Route path="/login" element={<LoginUser startWebSocket={startWebSocket} setUserProjectRoleMap={setUserProjectRoleMap} />} />
                 <Route path="/register" element={<SignUpUser />} />
+                <Route path="/choose-username" element={<ChooseUsername />} />
 
                 <Route element={<ProtectedRoute />}>
                   <Route path="/projects/admin" element={<AdminProjects  setUserProjectRoleMap={setUserProjectRoleMap} />} />

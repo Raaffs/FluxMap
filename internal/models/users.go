@@ -24,12 +24,14 @@ func (u *UserModel) Create(ctx context.Context, user User) error {
     }
 
     if exist {
-        return ErrAlreadyExist // Return if user exists
+        return ErrAlreadyExist
     }
-    insert := `INSERT INTO users (username, email, hashedPassword) VALUES ($1, $2, $3)`
-    _, err = u.DB.Exec(ctx, insert, user.Username, user.Email, user.HashedPassword)
+    query := `
+			INSERT INTO users (username, email, provider_id, provider) 
+        	VALUES ($1, $2, $3, $4)
+		`
+    _, err = u.DB.Exec(ctx, query, user.Username, user.Email, user.ProviderID, user.ProviderName)
     if err != nil {
-        u.Errorlog.Println("error inserting user", err)
         return err
     }
     return nil
@@ -63,6 +65,19 @@ func (u *UserModel) Exist(ctx context.Context, username string) (bool, error) {
 		return false, err
 	}	
 	return exists, nil
+}
+
+func (u *UserModel) GetNameFromProvider(ctx context.Context, providerID string) (string, error) {
+	query := `SELECT username FROM users WHERE provider_id=$1`
+	var username string
+	err := u.DB.QueryRow(ctx, query, providerID).Scan(&username)
+	if err != nil {
+		if errors.Is(err,sql.ErrNoRows){
+			return "",ErrRecordNotFound
+		}
+		return "", err
+	}	
+	return username, nil
 }
 
 func(u *UserModel)IsManager(ctx context.Context,username string, projectID string)(bool,error){

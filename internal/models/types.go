@@ -18,19 +18,18 @@ type Analytic interface{
     Cpm|Pert
 }
 
-// User represents a user in the database
 type User struct {
-    Username       string    `json:"username"`       // Primary Key
+    Username       string    `json:"username"`       
     Email          string    `json:"email" validate:"required,email"`
-    Password       string    `json:"password" validate:"required,min=8"`
-    HashedPassword string    `json:"hashedPassword,omitempty"`
+    ProviderID     string    `json:"providerID"`
+    ProviderName   string    `json:"providerName"`
     Created        string    `json:"created,omitempty"`
 }
 
 type Invitation struct{
     ID                  string         `json:"id"`
     Username            string         `json:"username"`       
-    ProjectID           int            `json:"projectID,omitempty"`           // Primary Key
+    ProjectID           int            `json:"projectID,omitempty"`
     Status              string         `json:"status"`
     Role                string         `json:"role"`
 }
