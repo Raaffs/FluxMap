@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log"
@@ -145,6 +147,14 @@ func HashPassword(password string) (string, error) {
 		return "", err
 	}
 	return string(hashedPassword), nil
+}
+
+func GenerateSalt(n int) (string, error) {
+	data := make([]byte, n)
+	if _, err := rand.Read(data); err != nil {
+		return "", err
+	}
+	return base64.URLEncoding.EncodeToString(data), nil
 }
 
 func (app *Application) getUserRole(ctx context.Context, username, resourceID string) (UserRole, error) {

@@ -16,6 +16,7 @@ services:
     build:
       context: .
       dockerfile: docker/api.Dockerfile
+    command: ["-env=dev"]
     env_file:
       - .env
     environment:

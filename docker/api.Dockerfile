@@ -1,21 +1,21 @@
 # ---- Build stage ----
-FROM golang:1.24.0 AS builder
+FROM golang:1.24.0-alpine AS builder
+RUN apk add --no-cache ca-certificates
 WORKDIR /app
-COPY go.mod go.sum ./
+
+COPY server/ ./server/
+
+WORKDIR /app/server
 RUN go mod download
-COPY . .
-RUN go build -o server ./api/web
 
-# ---- Final runtime image ----
-FROM debian:bookworm-slim
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o server ./api/web
 
-# Use 'apt-get' because this is Debian, not Alpine
-RUN apt-get update && apt-get install -y \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+FROM scratch
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+WORKDIR /
 
-WORKDIR /app
-COPY --from=builder /app/server .
+COPY --from=builder /app/server/server /server
+COPY --from=builder /app/server/config.json /config.json
 
 EXPOSE 4000
-CMD ["./server"]
+ENTRYPOINT ["/server"]

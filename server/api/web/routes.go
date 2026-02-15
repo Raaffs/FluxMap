@@ -19,11 +19,7 @@ func (app *Application) LoadMiddleware(e *echo.Echo) {
 
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{
-			"http://localhost:3000",
-			"http://localhost:8000",
-			"http://localhost:5000",
-		},
+		AllowOrigins: app.config.TrustedOrigins,
 		AllowCredentials: true,
 		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
@@ -54,7 +50,7 @@ func (app *Application) LoadMiddleware(e *echo.Echo) {
 
 func (app *Application) RegisterRoutes(e *echo.Echo) {
 	// Auth routes
-	e.GET("/api/auth/google", app.GoogleLogin)
+	e.GET("/api/auth/google", app.RequestAuthorization)
 	e.GET("/api/auth/google/callback", app.GoogleCallback)
 	e.POST("/api/auth/register", app.FinalizeRegistration)
 	e.GET("/api/auth/session", app.SessionCheck)

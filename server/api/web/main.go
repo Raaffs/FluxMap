@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -16,8 +18,39 @@ import (
 	"golang.org/x/oauth2/google"
 )	
 
+type Config struct {
+	Port  int `json:"port"`
+	OAuth struct {
+		OAuthRedirectUri   		string   `json:"oAuthRedirectUri"`
+		NewAccountRedirectUri  	string   `json:"newAccountRedirectUri"`
+		SuccessRedirectUri 		string   `json:"successRedirectUri"`
+		Scopes             		[]string `json:"scopes"`
+	} `json:"oAuth"`
+	TrustedOrigins []string `json:"trustedOrigins"`
+}
+
+func LoadConfig(path string, env string) (*Config, error) {
+	file, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var allConfigs map[string]Config
+	if err := json.Unmarshal(file, &allConfigs); err != nil {
+		return nil, err
+	}
+
+	config, ok := allConfigs[env]
+	if !ok {
+		return nil, fmt.Errorf("environment '%s' not found in config", env)
+	}
+
+	return &config, nil
+}
+
 type Application struct {
 	env       	 map[string]string
+	config   	 *Config
 	models    	 models.Models
 	graphs    	 graphs.GraphModel
 	websocket 	*ConnectionManager
@@ -53,7 +86,14 @@ func connectWithRetry(ctx context.Context, dbURL string) (*pgxpool.Pool, error) 
 }
 
 func main() {
-
+	c := flag.String("env", "dev", "target environment")
+	
+	flag.Parse()
+	cfg, err := LoadConfig("config.json", *c)
+	if err != nil {
+		log.Printf("Error: %v\n", err)
+	}
+	log.Printf("Loaded config for environment: %s\n", cfg)
 	envMap := map[string]string{
 		env.API_PORT:      	os.Getenv(env.API_PORT),
 		env.DB_URL:        	os.Getenv(env.DB_URL),
@@ -62,27 +102,28 @@ func main() {
 		env.GOOGLE_OAUTH_CLIENT_ID: os.Getenv(env.GOOGLE_OAUTH_CLIENT_ID),
 		env.GOOGLE_OAUTH_SECRET: os.Getenv(env.GOOGLE_OAUTH_SECRET),
 	}
-
-	oauthConfig := &oauth2.Config{
-		ClientID:     envMap[env.GOOGLE_OAUTH_CLIENT_ID],
-		ClientSecret: envMap[env.GOOGLE_OAUTH_SECRET],
-		RedirectURL:  "http://localhost:4000/api/auth/google/callback",
-		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"},
-		Endpoint: google.Endpoint,
-	}
-	log.Println(oauthConfig.ClientID,oauthConfig.ClientSecret)
 	if envMap[env.DB_URL] == "" {
 		log.Fatal("DB_URL is missing")
 	}
 
+	oauthConfig := &oauth2.Config{
+		ClientID:     envMap[env.GOOGLE_OAUTH_CLIENT_ID],
+		ClientSecret: envMap[env.GOOGLE_OAUTH_SECRET],
+		RedirectURL:  cfg.OAuth.OAuthRedirectUri,
+		Scopes:       cfg.OAuth.Scopes,
+		Endpoint: google.Endpoint,
+	}
 	ctx := context.Background()
 	
 	conn, err := connectWithRetry(ctx,envMap[env.DB_URL]);if err!=nil{
 		log.Fatalf("Could not connect to DB: %v", err)
 	}
 
+
+
 	app := &Application{
 		env:       envMap,
+		config:    cfg,
 		models:    models.NewModels(conn),
 		graphs:    graphs.NewGraphs(conn),
 		websocket: NewConnectionManager(),

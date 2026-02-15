@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -21,8 +20,12 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func (app *Application) GoogleLogin(c echo.Context) error {
-    url := app.oAuthConfig.AuthCodeURL("this_is_dumb") 
+func (app *Application) RequestAuthorization(c echo.Context) error {
+	code,err:=GenerateSalt(32);if err!=nil{
+		c.Logger().Error("Error generating salt for login: ", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+	}
+    url := app.oAuthConfig.AuthCodeURL(code) 
     return c.Redirect(http.StatusTemporaryRedirect, url)
 }
 
@@ -65,7 +68,7 @@ func (app *Application)GoogleCallback(c echo.Context)error{
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "internal server error"})
 		}
 		//i desperately need to add a proper config 
-        return c.Redirect(http.StatusTemporaryRedirect, "http://localhost:8000/choose-username")
+        return c.Redirect(http.StatusTemporaryRedirect, app.config.OAuth.NewAccountRedirectUri)
 	}
 
 	sess.Values[sessionvar.USERNAME] = username
@@ -73,7 +76,7 @@ func (app *Application)GoogleCallback(c echo.Context)error{
 		c.Logger().Error("Error saving session: ", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "internal server error"})
 	}
-	return c.Redirect(http.StatusTemporaryRedirect, "http://localhost:8000/")
+	return c.Redirect(http.StatusTemporaryRedirect, app.config.OAuth.SuccessRedirectUri)
 }
 
 func (app *Application) FinalizeRegistration(c echo.Context) error {
@@ -506,7 +509,6 @@ func (app *Application)GetOverDueTasks(c echo.Context)error{
 		c.Logger().Error("Error retrieving overdue tasks: ",err)
 		return c.JSON(http.StatusInternalServerError,map[string]string{"error":"internal server error"})
 	}
-	log.Println("tasks: ",tasks)
 	return c.JSON(http.StatusOK,map[string]any{"overdue":tasks})
 }
 
@@ -770,7 +772,6 @@ func (app *Application) CreateCpm(c echo.Context) error {
 	if len(cpm) == 0 {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "no cpm data provided"})
 	}
-	log.Println("cpm recieved data: ",cpm[0])
 	if err := DetectCycleCpm(cpm); err != nil {
 		c.Logger().Warn(err)
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Cyclic dependencies are not allowed"})
